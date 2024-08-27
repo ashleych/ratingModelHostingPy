@@ -1,0 +1,85 @@
+OrderNo,Label,Item,Formula,Header,,,,,,,,,,
+44, ASSETS ,assets,,Yes,,,,,,,,,,
+45, 1.1CURRENT ASSETS ,1_1current_assets,,Yes,,,,,,,,,,
+46, I. Inventories ,i_inventories,,,,,,,,,,,,
+47, Raw Materials ,raw_materials,,,161,288,319,444,493,,,,,
+48, Stock in process ,stock_in_process,,,12,13,15,26,28,,,,,
+49, Finished Goods ,finished_goods,,,177,321,311,517,572,,,,,
+50, Consumable Spares ,consumable_spares,,,10,54,97,117,126,,,,,
+51, TOTAL INVENTORIES ,total_inventories,i_inventories +raw_materials +stock_in_process+finished_goods+consumable_spares,,360,677,741,1104,1219, -   , -   , -   , -   , -   
+52, II. Trade Debtors  ,ii_trade_debtors,,,,,,,,,,,,
+53, Domestic Debtors over six months ,domestic_debtors_over_six_months,,,,,,,,,,,,
+54, Domestic Debtors less than six months ,domestic_debtors_less_than_six_months,,,217,444,576,827,951,,,,,
+55, Export Debtors over six months ,export_debtors_over_six_months,,,,,,,,,,,,
+56, Export Debtors less than six months ,export_debtors_less_than_six_months,,,,,,,,,,,,
+57, TOTAL DEBTORS ,total_debtors,domestic_debtors_over_six_months + domestic_debtors_less_than_six_months + export_debtors_over_six_months + export_debtors_less_than_six_months,,217,444,576,827,951, -   , -   , -   , -   , -   
+58, III. Other Current Assets ,iii_other_current_assets,,Yes,,,,,,,,,,
+59, Cash and Bank Balance ,cash_and_bank_balance,,,36,79,120,113,116,,,,,
+60, Prepaid Expenses ,prepaid_expenses,,,,,,,,,,,,
+61, Advance Tax ,advance_tax,,,16,16,24,32,48,,,,,
+62, Deposits with Excise and Sales Tax ,deposits_with_excise_and_sales_tax,,,20,14,36,53,62,,,,,
+63, Loans and Advances ,loans_and_advances,,,98,133,207,255,290,,,,,
+64, Others ,others,,,12,25,25,33,37,,,,,
+65, Total Other Current Assets ,total_other_current_assets,cash_and_bank_balance + prepaid_expenses + advance_tax + deposits_with_excise_and_sales_tax + loans_and_advances + others ,,181,268,413,485,553, -   , -   , -   , -   , -   
+66, Total Current Assets(a)  ,total_current_assets_a,total_other_current_assets+ total_inventories + total_debtors,,758,1389,1730,2416,2724, -   , -   , -   , -   , -   
+67, 1.2 FIXED ASSETS ,1_2_fixed_assets,,Yes,,,,,,,,,,
+68, I.   Land & Buildings ,i_land_buildings,,,140,239,272,275,275,,,,,
+69, II.   Plant & Machinery ,ii_plant_machinery,,,295,669,694,706,727,,,,,
+70, III.  Sundries ,iii_sundries,,,62,170,188,192,201,,,,,
+71, Gross Fixed Assets ,gross_fixed_assets,i_land_buildings + ii_plant_machinery + iii_sundries ,,496,1077,1154,1173,1203, -   , -   , -   , -   , -   
+72, Less: Depreciation to date ,less_depreciation_to_date,,,147,272,398,504,596,,,,,
+73, Net Fixed Assets  ,net_fixed_assets,gross_fixed_assets - less_depreciation_to_date ,,350,805,756,670,607, -   , -   , -   , -   , -   
+74, Capital Work in Progress ,capital_work_in_progress,,,3,16,12,10,10,,,,,
+75, Total Fixed Assets(b) ,total_fixed_assets_b,net_fixed_assets + capital_work_in_progress ,,352,821,768,680,617, -   , -   , -   , -   , -   
+76, 1.3 NON-CURRENT ASSETS ,1_3_non_current_assets,,Yes,,,,,,,,,,
+77, I.    Investments in/Loans to subsidiaries/ ,i_investments_in_loans_to_subsidiaries,,,0,296,319,319,379,,,,,
+78, II.   Others Non Current Assets ,ii_others_non_current_assets,,Yes,,,,,,,,,,
+79, Investment in other companies ,investment_in_other_companies,,,22,26,45,11,11,,,,,
+80, Loans and Advances ,loans_and_advances_nc,,,,,,,,,,,,
+81, Overdue debtors ,overdue_debtors,,,20,24,34,36,36,,,,,
+82," Deposits with EB,etc. ",deposits_with_eb_etc,,,,,,,,,,,,
+83, Non-Moving Inventories ,non_moving_inventories,,,,,,,,,,,,
+84, Others ,others_2,,,,,,,,,,,,
+85, Total Other Non Current Assets( c) ,total_other_non_current_assets_c,investment_in_other_companies + loans_and_advances_nc + overdue_debtors + deposits_with_eb_etc + non_moving_inventories + others_2 + i_investments_in_loans_to_subsidiaries ,,42,346,398,366,426, -   , -   , -   , -   , -   
+86, Deferred Tax Asset (d) ,deferred_tax_asset_d,,, -   , -   , -   , -   , -   , -   , -   , -   , -   , -   
+87, 1.4 INTANGIBLE ASSETS/MISC EXPENDITURE (e) ,intangible_assets_misc_expenditure_e,,,1,1,2,1,1, -   , -   , -   , -   , -   
+88, TOTAL ASSETS (a+b+c+d+e) ,total_assets_a_b_c_d_e,total_current_assets_a + total_fixed_assets_b + total_other_non_current_assets_c + deferred_tax_asset_d + intangible_assets_misc_expenditure_e,,1153,2557,2898,3463,3767, -   , -   , -   , -   , -   
+89, 2. LIABILITIES ,2_liabilities,,Yes,,,,,,,,,,
+90, CURRENT LIABILITIES ,current_liabilities,,Yes,,,,,,,,,,
+91, I. Working Capital Borrowings  ,i_working_capital_borrowings,,Yes,,,,,,,,,,
+92, Borrowings from Yes Bank ,borrowings_from_yes_bank,,, -   ,,,,,,,,,
+93, From other Banks ,from_other_banks,,,153,381,708,770,820,,,,,
+94, Commercial Paper ,commercial_paper,,,,,,,,,,,,
+95, Sub- total  ,sub_total_1,borrowings_from_yes_bank + from_other_banks + commercial_paper,,153,381,708,770,820, -   , -   , -   , -   , -   
+96, II.      Creditors for Purchases ,ii_creditors_for_purchases,,,232,514,479,837,906,,,,,
+97, III.     Other Current Liabilities ,iii_other_current_liabilities,,Yes,,,,,,,,,,
+98, Creditiors for Expenses ,creditiors_for_expenses,,,,,,,,,,,,
+99, Provision for Tax ,provision_for_tax,,,,,,,,,,,,
+100, Long Term Debt due within one year ,long_term_debt_due_within_one_year,,,35,83,101,92,92,,,,,
+101, Outstanding Expenses ,outstanding_expenses,,,,,,,,,,,,
+102, Others (Curr. Liabilities / Provisions) ,others_curr_liabilities_provisions,,,66,106,110,110,115,,,,,
+103, Sub- total  ,sub_total_2,creditiors_for_expenses + provision_for_tax + long_term_debt_due_within_one_year + outstanding_expenses + others_curr_liabilities_provisions ,,101,188,211,202,207, -   , -   , -   , -   , -   
+104, IV.    Creditors on Capital Account ,iv_creditors_on_capital_account,,,,,,,,,,,,
+105, Total Current Liabilities(e) ,total_current_liabilities_e,iv_creditors_on_capital_account +sub_total_1 +sub_total_2 +ii_creditors_for_purchases ,,487,1084,1398,1809,1933, -   , -   , -   , -   , -   
+106, 2.2.LONG TERM LIABILITIES ,2_2_long_term_liabilities,,Yes,,,,,,,,,,
+107, I.       Term Loan from Yes Bank ,i_term_loan_from_yes_bank,,,,,,,,,,,,
+108, II.      Term Loan from institutions/Banks ,ii_term_loan_from_institutions_banks,,,142,338,246,187,92,,,,,
+109, III.     Other Long Term Liabilities ,iii_other_long_term_liabilities,,Yes,,,,,,,,,,
+110, Preference Shares (Repayment Due within 3 years / maturity of our facility) ,preference_shares_repayment_due_within_3_years_maturity_of_our_facility,,,,,,,,,,,,
+111, Fixed Deposits ,fixed_deposits,,,,,,,,,,,,
+112, Foreign currency loans ,foreign_currency_loans,,,,39,,,,,,,,
+113, Debentures ,debentures,,,,,,,,,,,,
+114, Others (Sales Tax Deferment Loan) ,others_sales_tax_deferment_loan,,,,21,44,50,50,,,,,
+115, Long term liability to be taken as Quasi Equity  ,long_term_liability_to_be_taken_as_quasi_equity,,,,,,,,,,,,
+116, Total Other Long Term Liabilities ,total_other_long_term_liabilities,preference_shares_repayment_due_within_3_years_maturity_of_our_facility + fixed_deposits + foreign_currency_loans + debentures + others_sales_tax_deferment_loan  ,, -   ,61,44,50,50, -   , -   , -   , -   , -   
+117, Total Long Term Debt (f) ,total_long_term_debt_f, total_other_long_term_liabilities + i_term_loan_from_yes_bank + ii_term_loan_from_institutions_banks,,142,399,290,237,142, -   , -   , -   , -   , -   
+118, 2.3.CAPITAL AND SURPLUS ,2_3_capital_and_surplus,,Yes,,,,,,,,,,
+119, I.       Paid up Capital ,i_paid_up_capital,,,103,198,198,198,198,,,,,
+120, II.      Preference Share Capital ,ii_preference_share_capital,,,,,,,,,,,,
+121, III.     Reserves and Surplus ,iii_reserves_and_surplus,,,400,823,971,1169,1434,,,,,
+122, IV.    Revaluation Reserves ,iv_revaluation_reserves,,,9,9,8,8,8,,,,,
+123, V.    Loss Bought Forward ,v_loss_bought_forward,,,,,,,,,,,,
+124, Capital & Reserves (g) ,capital_reserves_g,i_paid_up_capital + ii_preference_share_capital + iii_reserves_and_surplus + iv_revaluation_reserves + v_loss_bought_forward ,,511,1029,1177,1376,1641, -   , -   , -   , -   , -   
+125, Deferred Tax Liability (h) ,deferred_tax_liability_h,,,13,45,33,40,50,,,,,
+126, TOTAL LIABILITIES  (e+f+g+h) ,total_liabilities_e_f_g_h,total_current_liabilities_e + long_term_liability_to_be_taken_as_quasi_equity + total_long_term_debt_f + capital_reserves_g ,,1153,2557,2898,3463,3767, -   , -   , -   , -   , -   
+127, Contingent Liabilities ,contingent_liabilities,,,,,,,,,,,,

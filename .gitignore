@@ -1,0 +1,4 @@
+ratingModelVenv/
+ratingModelVenv/*.*
+backend/__pycache_
+_

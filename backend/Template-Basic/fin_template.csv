@@ -1,0 +1,211 @@
+OrderNo(for calcuation of formula),DisplayOrderNo,Label,Type,Item,Formula,Header,Lag_months,Display,Year,Year2,Year3,Year3,Year3,,
+1,1,Gross Sales(Manufacturing),PNL,gross_sales_manufacturing,,,,,,,1671,2856,4468,,
+2,2,Less: Excise Duty,PNL,less_excise_duty,,,,,,,111,179,213,,
+3,3,Net Sales(Manufacturing Sales),PNL,net_sales_manufacturing_sales,gross_sales_manufacturing - less_excise_duty,,,,,,1559,2677,4256,,
+4,4,Gross Sales(Trading),PNL,gross_sales_trading,,,,,,,,,,,
+5,5,Less: Other Duties,PNL,less_other_duties,,,,,,,,,,,
+6,6,Net Sales(Trading),PNL,net_sales_trading,gross_sales_trading - less_other_duties,,,,,,0,0,0,,
+7,7,Other Operating Income (e.g. Processing Charges),PNL,other_operating_income_e_g_processing_charges,,,,,,,,,,,
+8,8,Total Operating Income,PNL,total_operating_income,other_operating_income_e_g_processing_charges + net_sales_trading + net_sales_manufacturing_sales,,,,,,1559,2677,4256,,
+9,9,Other Income(Excluding Interest Income),PNL,other_income_excluding_interest_income,,,,,,,10,1,46,,
+10,10,Total Income,PNL,total_income,total_operating_income + other_income_excluding_interest_income,,,,,,1569,2677,4302,,
+11,11,Purchases(Finsihed Goods),PNL,purchases_finsihed_goods,,,,,,,,,,,
+12,12,Raw Material Consumed,PNL,raw_material_consumed,,,,,,,1252,1885,2585,,
+13,13,Power Costs(if related to manufacturing),PNL,power_costs_if_related_to_manufacturing,,,,,,,28,86,210,,
+14,14,Any other Direct Costs (e.g. Other Manufacturing Expenses),PNL,any_other_direct_costs_e_g_other_manufacturing_expenses,,,,,,,67,109,203,,
+15,15,Increase/(Decrease) in Inventory(Finshed Goods/WIP),PNL,increase_decrease_in_inventory_finshed_goods_wip,,,,,,,132,127,-9,,
+16,16,Cost of Goods Sold,PNL,cost_of_goods_sold,purchases_finsihed_goods + raw_material_consumed +any_other_direct_costs_e_g_other_manufacturing_expenses + power_costs_if_related_to_manufacturing - increase_decrease_in_inventory_finshed_goods_wip,,,,,,1216,1953,3007,,
+17,17,Gross Profit(Excluding Depn/other Income),PNL,gross_profit_excluding_depn_other_income,total_operating_income-cost_of_goods_sold,,,,,,343,723,1249,,
+18,18,Employees Employments(To the extent not included in direct costs),PNL,employees_employments_to_the_extent_not_included_in_direct_costs,,,,,,,69,100,166,,
+19,19,Operational lease payments,PNL,operational_lease_payments,,,,,,,,,,,
+20,20,Other Costs,PNL,other_costs,,,,,,,186,401,686,,
+21,21,Operational provisions(Pls Specify),PNL,operational_provisions_pls_specify,,,,,,,,,,,
+22,22,Total Adminstration Expenses,PNL,total_adminstration_expenses,employees_employments_to_the_extent_not_included_in_direct_costs + operational_lease_payments + other_costs + operational_provisions_pls_specify,,,,,,256,502,852,,
+23,23,Total Operating Expenses,PNL,total_operating_expenses,total_adminstration_expenses + cost_of_goods_sold,,,,,,1472,2455,3859,,
+24,24,EBITDA,PNL,ebitda,total_income - total_operating_expenses - other_income_excluding_interest_income ,,,,,,88,222,396,,
+25,25,Depreciation,PNL,depreciation,,,,,,,34,65,129,,
+26,26,Amortization,PNL,amortization,,,,,,,0,0,0,,
+27,27,Total D/A,PNL,total_d_a,depreciation + amortization ,,,,,,34,65,129,,
+28,28,EBIT,PNL,ebit,ebitda - total_d_a ,,,,,,54,157,267,,
+29,29,Interest Income recd.,PNL,interest_income_recd,,,,,,,3,0,5,,
+30,30,Interest paid,PNL,interest_paid,,,,,,,18,42,79,,
+31,31,Interest expenses net,PNL,interest_expenses_net,interest_paid-interest_income_recd,,,,,,15,42,74,,
+32,32,EBT before exceptionals,PNL,ebt_before_exceptionals,other_income_excluding_interest_income +ebit - interest_expenses_net,,,,,,49,116,239,,
+33,33,Exceptional income - Cash,PNL,exceptional_income_cash,,,,,,,46,36,5,,
+34,34,Exceptional expenses-Non Cash,PNL,exceptional_expenses_non_cash,,,,,,,,0,,,
+35,35,Exceptional Income-Non Cash,PNL,exceptional_income_non_cash,,,,,,,,,2,,
+36,36,Exceptional expenses-Cash,PNL,exceptional_expenses_cash,,,,,,,,,,,
+37,37,EBT,PNL,ebt,ebt_before_exceptionals + exceptional_income_cash + exceptional_income_non_cash - exceptional_expenses_non_cash - exceptional_expenses_cash ,,,,,,95,152,245,,
+38,38,Current Tax,PNL,current_tax,,,,,,,9,21,52,,
+39,39,Deferred Tax,PNL,deferred_tax,,,,,,,8,25,-11,,
+40,40,EAT,PNL,eat,ebt - current_tax - deferred_tax,,,,,,78,106,204,,
+41,41,Dividends,PNL,dividends,,,,,,,23,29,56,,
+42,42,Retained Profit,PNL,retained_profit,eat-dividends,,,,,,55,77,148,,
+43,43,Net Cash Accruals,PNL,net_cash_accruals,eat - dividends + total_d_a - exceptional_income_non_cash + exceptional_expenses_non_cash + deferred_tax,,,,,,96,166,264,,
+44,44,ASSETS,BS,assets,,Yes,,,,,,,,,
+45,45,1.1CURRENT ASSETS,BS,1_1current_assets,,Yes,,,,,,,,,
+46,46,I. Inventories,BS,i_inventories,,,,,,,,,,,
+47,47,Raw Materials,BS,raw_materials,,,,,,,161,288,319,444,493
+48,48,Stock in process,BS,stock_in_process,,,,,,,12,13,15,26,28
+49,49,Finished Goods,BS,finished_goods,,,,,,,177,321,311,517,572
+50,50,Consumable Spares,BS,consumable_spares,,,,,,,10,54,97,117,126
+51,51,TOTAL INVENTORIES,BS,total_inventories,i_inventories +raw_materials +stock_in_process+finished_goods+consumable_spares,,,,,,360,677,741,1104,1219
+52,52,II. Trade Debtors,BS,ii_trade_debtors,,,,,,,,,,,
+53,53,Domestic Debtors over six months,BS,domestic_debtors_over_six_months,,,,,,,,,,,
+54,54,Domestic Debtors less than six months,BS,domestic_debtors_less_than_six_months,,,,,,,217,444,576,827,951
+55,55,Export Debtors over six months,BS,export_debtors_over_six_months,,,,,,,,,,,
+56,56,Export Debtors less than six months,BS,export_debtors_less_than_six_months,,,,,,,,,,,
+57,57,TOTAL DEBTORS,BS,total_debtors,domestic_debtors_over_six_months + domestic_debtors_less_than_six_months + export_debtors_over_six_months + export_debtors_less_than_six_months,,,,,,217,444,576,827,951
+58,58,III. Other Current Assets,BS,iii_other_current_assets,,Yes,,,,,,,,,
+59,59,Cash and Bank Balance,BS,cash_and_bank_balance,,,,,,,36,79,120,113,116
+60,60,Prepaid Expenses,BS,prepaid_expenses,,,,,,,,,,,
+61,61,Advance Tax,BS,advance_tax,,,,,,,16,16,24,32,48
+62,62,Deposits with Excise and Sales Tax,BS,deposits_with_excise_and_sales_tax,,,,,,,20,14,36,53,62
+63,63,Loans and Advances,BS,loans_and_advances,,,,,,,98,133,207,255,290
+64,64,Others,BS,others,,,,,,,12,25,25,33,37
+65,65,Total Other Current Assets,BS,total_other_current_assets,cash_and_bank_balance + prepaid_expenses + advance_tax + deposits_with_excise_and_sales_tax + loans_and_advances + others ,,,,,,181,268,413,485,553
+66,66,Total Current Assets(a),BS,total_current_assets_a,total_other_current_assets+ total_inventories + total_debtors,,,,,,758,1389,1730,2416,2724
+67,67,1.2 FIXED ASSETS,BS,1_2_fixed_assets,,Yes,,,,,,,,,
+68,68,I. Land & Buildings,BS,i_land_buildings,,,,,,,140,239,272,275,275
+69,69,II. Plant & Machinery,BS,ii_plant_machinery,,,,,,,295,669,694,706,727
+70,70,III. Sundries,BS,iii_sundries,,,,,,,62,170,188,192,201
+71,71,Gross Fixed Assets,BS,gross_fixed_assets,i_land_buildings + ii_plant_machinery + iii_sundries ,,,,,,496,1077,1154,1173,1203
+72,72,Less: Depreciation to date,BS,less_depreciation_to_date,,,,,,,147,272,398,504,596
+73,73,Net Fixed Assets,BS,net_fixed_assets,gross_fixed_assets - less_depreciation_to_date ,,,,,,350,805,756,670,607
+74,74,Capital Work in Progress,BS,capital_work_in_progress,,,,,,,3,16,12,10,10
+75,75,Total Fixed Assets(b),BS,total_fixed_assets_b,net_fixed_assets + capital_work_in_progress ,,,,,,352,821,768,680,617
+76,76,1.3 NON-CURRENT ASSETS,BS,1_3_non_current_assets,,Yes,,,,,,,,,
+77,77,I. Investments in/Loans to subsidiaries/,BS,i_investments_in_loans_to_subsidiaries,,,,,,,0,296,319,319,379
+78,78,II. Others Non Current Assets,BS,ii_others_non_current_assets,,Yes,,,,,,,,,
+79,79,Investment in other companies,BS,investment_in_other_companies,,,,,,,22,26,45,11,11
+80,80,Loans and Advances,BS,loans_and_advances_nc,,,,,,,,,,,
+81,81,Overdue debtors,BS,overdue_debtors,,,,,,,20,24,34,36,36
+82,82,"Deposits with EB,etc.",BS,deposits_with_eb_etc,,,,,,,,,,,
+83,83,Non-Moving Inventories,BS,non_moving_inventories,,,,,,,,,,,
+84,84,Others,BS,others_2,,,,,,,,,,,
+85,85,Total Other Non Current Assets( c),BS,total_other_non_current_assets_c,investment_in_other_companies + loans_and_advances_nc + overdue_debtors + deposits_with_eb_etc + non_moving_inventories + others_2 + i_investments_in_loans_to_subsidiaries ,,,,,,42,346,398,,426
+86,86,Deferred Tax Asset (d),BS,deferred_tax_asset_d,,,,,,,0,0,0,, -   
+87,87,1.4 INTANGIBLE ASSETS/MISC EXPENDITURE (e),BS,intangible_assets_misc_expenditure_e,,,,,,,1,1,2,,1
+88,88,TOTAL ASSETS (a+b+c+d+e),BS,total_assets_a_b_c_d_e,total_current_assets_a + total_fixed_assets_b + total_other_non_current_assets_c + deferred_tax_asset_d + intangible_assets_misc_expenditure_e,,,,,,1153,2557,2898,,3767
+89,89,2. LIABILITIES,BS,2_liabilities,,Yes,,,,,,,,,
+90,90,CURRENT LIABILITIES,BS,current_liabilities,,Yes,,,,,,,,,
+91,91,I. Working Capital Borrowings,BS,i_working_capital_borrowings,,Yes,,,,,,,,,
+92,92,Borrowings from Yes Bank,BS,borrowings_from_yes_bank,,,,,,,0,,,,
+93,93,From other Banks,BS,from_other_banks,,,,,,,153,381,708,,820
+94,94,Commercial Paper,BS,commercial_paper,,,,,,,,,,,
+95,95,Sub- total,BS,sub_total_1,borrowings_from_yes_bank + from_other_banks + commercial_paper,,,,,,153,381,708,,820
+96,96,II. Creditors for Purchases,BS,ii_creditors_for_purchases,,,,,,,232,514,479,,906
+97,97,III. Other Current Liabilities,BS,iii_other_current_liabilities,,Yes,,,,,,,,,
+98,98,Creditiors for Expenses,BS,creditiors_for_expenses,,,,,,,,,,,
+99,99,Provision for Tax,BS,provision_for_tax,,,,,,,,,,,
+100,100,Long Term Debt due within one year,BS,long_term_debt_due_within_one_year,,,,,,,35,83,101,,92
+101,101,Outstanding Expenses,BS,outstanding_expenses,,,,,,,,,,,
+102,102,Others (Curr. Liabilities / Provisions),BS,others_curr_liabilities_provisions,,,,,,,66,106,110,,115
+103,103,Sub- total,BS,sub_total_2,creditiors_for_expenses + provision_for_tax + long_term_debt_due_within_one_year + outstanding_expenses + others_curr_liabilities_provisions ,,,,,,101,188,211,,207
+104,104,IV. Creditors on Capital Account,BS,iv_creditors_on_capital_account,,,,,,,,,,,
+105,105,Total Current Liabilities(e),BS,total_current_liabilities_e,iv_creditors_on_capital_account +sub_total_1 +sub_total_2 +ii_creditors_for_purchases ,,,,,,487,1084,1398,,1933
+106,106,2.2.LONG TERM LIABILITIES,BS,2_2_long_term_liabilities,,Yes,,,,,,,,,
+107,107,I. Term Loan from Yes Bank,BS,i_term_loan_from_yes_bank,,,,,,,,,,,
+108,108,II. Term Loan from institutions/Banks,BS,ii_term_loan_from_institutions_banks,,,,,,,142,338,246,,92
+109,109,III. Other Long Term Liabilities,BS,iii_other_long_term_liabilities,,Yes,,,,,,,,,
+110,110,Preference Shares (Repayment Due within 3 years / maturity of our facility),BS,preference_shares_repayment_due_within_3_years_maturity_of_our_facility,,,,,,,,,,,
+111,111,Fixed Deposits,BS,fixed_deposits,,,,,,,,,,,
+112,112,Foreign currency loans,BS,foreign_currency_loans,,,,,,,,39,,,
+113,113,Debentures,BS,debentures,,,,,,,,,,,
+114,114,Others (Sales Tax Deferment Loan),BS,others_sales_tax_deferment_loan,,,,,,,,21,44,,50
+115,115,Long term liability to be taken as Quasi Equity,BS,long_term_liability_to_be_taken_as_quasi_equity,,,,,,,,,,,
+116,116,Total Other Long Term Liabilities,BS,total_other_long_term_liabilities,preference_shares_repayment_due_within_3_years_maturity_of_our_facility + fixed_deposits + foreign_currency_loans + debentures + others_sales_tax_deferment_loan  ,,,,,,0,61,44,,50
+117,117,Total Long Term Debt (f),BS,total_long_term_debt_f, total_other_long_term_liabilities + i_term_loan_from_yes_bank + ii_term_loan_from_institutions_banks,,,,,,142,399,290,,142
+118,118,2.3.CAPITAL AND SURPLUS,BS,2_3_capital_and_surplus,,Yes,,,,,,,,,
+119,119,I. Paid up Capital,BS,i_paid_up_capital,,,,,,,103,198,198,,198
+120,120,II. Preference Share Capital,BS,ii_preference_share_capital,,,,,,,,,,,
+121,121,III. Reserves and Surplus,BS,iii_reserves_and_surplus,,,,,,,400,823,971,,1434
+122,122,IV. Revaluation Reserves,BS,iv_revaluation_reserves,,,,,,,9,9,8,,8
+123,123,V. Loss Bought Forward,BS,v_loss_bought_forward,,,,,,,,,,,
+124,124,Capital & Reserves (g),BS,capital_reserves_g,i_paid_up_capital + ii_preference_share_capital + iii_reserves_and_surplus + iv_revaluation_reserves + v_loss_bought_forward ,,,,,,511,1029,1177,,1641
+125,125,Deferred Tax Liability (h),BS,deferred_tax_liability_h,,,,,,,13,45,33,,50
+126,126,TOTAL LIABILITIES (e+f+g+h),BS,total_liabilities_e_f_g_h,total_current_liabilities_e + long_term_liability_to_be_taken_as_quasi_equity + total_long_term_debt_f + capital_reserves_g + deferred_tax_liability_h,,,,,,1153,2557,2898,,3767
+127,127,Contingent Liabilities,BS,contingent_liabilities,,,,,,,,,,,
+128,128,Working Capital,BS,workingCapital,total_current_assets_a-cash_and_bank_balance-advance_tax-total_current_liabilities_e+long_term_debt_due_within_one_year+sub_total_1+provision_for_tax,,,No,,,,,,,
+129,129,Working Capital Lag1,BS,workingCapital_lag12,workingCapital,,12,No,,,,,,,
+130,130,provision_for_tax_lag12,BS,provision_for_tax_lag12,provision_for_tax,,12,No,,,,,,,
+131,131,deferred_tax_liability_h_lag12,BS,deferred_tax_liability_h_lag12,deferred_tax_liability_h,,12,No,,,,,,,
+132,132,advance_tax_lag12,BS,advance_tax_lag12,advance_tax,,12,No,,,,,,,
+133,133,deferred_tax_asset_d_lag12,BS,deferred_tax_asset_d_lag12,deferred_tax_asset_d,,12,No,,,,,,,
+134,184,cash_and_bank_balance_lag12,Ratio,cash_and_bank_balance_lag12,cash_and_bank_balance,,12,No,,,,,,,
+135,185,Long Term Debt due within one year_lag,BS,long_term_debt_due_within_one_year_lag12,long_term_debt_due_within_one_year,,12,No,,,,,,,
+136,134,Funds Flow from operations,CF,funds_flow_from_operations,ebitda-exceptional_expenses_non_cash+exceptional_income_non_cash,,,,,,,,,,
+137,135,(Increase) / Decrease in Adjusted WC,CF,increase_decrease_in_adjusted_wc,workingCapital_lag12-workingCapital,,,,,,,,,,
+138,136,Cash Flow from operations,CF,cash_flow_from_operations,funds_flow_from_operations+increase_decrease_in_adjusted_wc,,,,,,,,,,
+139,137,Maintenance CAPEX,CF,maintenance_capex,depreciation*0.75,,,,,,,,,,
+140,138,Cash Interest,CF,cash_interest,interest_expenses_net,,,,,,,,,,
+141,139,Cash Taxes,CF,cash_taxes,provision_for_tax_lag12+current_tax-provision_for_tax+deferred_tax_liability_h_lag12+deferred_tax-deferred_tax_liability_h+advance_tax-advance_tax_lag12+deferred_tax_asset_d-deferred_tax_asset_d_lag12,,,,,,,,,,
+142,140,Total Priority Payments,CF,total_priority_payments,maintenance_capex+cash_interest+cash_taxes,,,,,,,,,,
+143,141,Free Cash Flow,CF,free_cash_flow,cash_flow_from_operations-total_priority_payments,,,,,,,,,,
+144,142,Term Debt Repayment,CF,term_debt_repayment,long_term_debt_due_within_one_year_lag12,,,,,,,,,,
+145,143,Other Income / (Expenses),CF,other_income_expenses,other_income_excluding_interest_income+exceptional_income_cash-exceptional_expenses_cash,,,,,,,,,,
+146,144,Discretionary Cash Flow,CF,discretionary_cash_flow,free_cash_flow-term_debt_repayment+other_income_expenses,,,,,,,,,,
+147,145,Dividends,CF,dividends_cf,dividends,,,,,,,,,,
+148,,total_fixed_assets_b_lag12,Lag,total_fixed_assets_b_lag12,total_fixed_assets_b,,12,,,,,,,,
+149,146,CAPEX (Discretionary),CF,capex_discretionary,total_fixed_assets_b-total_fixed_assets_b_lag12+depreciation-maintenance_capex,,,,,,,,,,
+150,147,Other Major Uses / (Sources): e.g. LT Inv. / Intangibles,CF,other_major_uses_sources_e_g_lt_inv_intangibles,total_other_non_current_assets_c+intangible_assets_misc_expenditure_e-(total_other_non_current_assets_c_lag12+intangible_assets_misc_expenditure_e_lag12-amortization),,,,,,,,,,
+155,148,Net Cash Flow,CF,net_cash_flow,discretionary_cash_flow-dividends-capex_discretionary-other_major_uses_sources_e_g_lt_inv_intangibles,,,,,,,,,,
+156,149,Major Financing Sources / (Uses),CF,major_financing_sources_uses,increase_decrease_in_std+increase_decrease_in_ltd+increase_decrease_in_quasi_equity+increase_decrease_in_equity_exc_p_l,,,,,,,,,,
+151,150,- Increase / (Decrease) in STD,CF,increase_decrease_in_std,sub_total_1-sub_total_1_lag12,,,,,,,,,,
+152,151,- Increase / (Decrease) in LTD,CF,increase_decrease_in_ltd,total_long_term_debt_f+long_term_debt_due_within_one_year-total_long_term_debt_f_lag12,,,,,,,,,,
+153,152,- Increase/ (Decrease) In Quasi-equity,CF,increase_decrease_in_quasi_equity,+long_term_liability_to_be_taken_as_quasi_equity-long_term_liability_to_be_taken_as_quasi_equity_lag12,,,,,,,,,,
+154,153,- Increase / (Decrease) in Equity (exc. P&L),CF,increase_decrease_in_equity_exc_p_l,capital_reserves_g-capital_reserves_g_lag12-retained_profit,,,,,,,,,,
+157,154,Net Cash Flow after financing,CF,net_cash_flow_after_financing,net_cash_flow+increase_decrease_in_std+increase_decrease_in_ltd+increase_decrease_in_quasi_equity+increase_decrease_in_equity_exc_p_l,,,,,,,,,,
+158,155,Gross Margins(Operating),Ratio,gross_margins_operating,gross_profit_excluding_depn_other_income/total_operating_income,,,,,,,,,,
+159,156,Operating Margins(EBIDTA Margin),Ratio,operating_margins_ebidta_margin,(+ebitda)/total_operating_income,,,,,,,,,,
+160,157,EBIT/Total Income,Ratio,ebit_total_income,ebit/total_income,,,,,,,,,,
+161,158,"Net Margin, PAT Margin",Ratio,net_margin_pat_margin,eat/total_income,,,,,,,,,,
+162,159,EBIT/Total Assets,Ratio,ebit_total_assets,ebit/total_assets_a_b_c_d_e,,,,,,,,,,
+163,160,Sales/GAFA or Fixed Assets Turnover,Ratio,sales_gafa_or_fixed_assets_turnover,total_operating_income/gross_fixed_assets,,,,,,,,,,
+164,161,Interest cover ((EBITDA+int earned)/Interest expense),Ratio,interest_cover_ebitda_int_earned_interest_expense,(ebitda+interest_income_recd)/interest_paid,,,,,,,,,,
+165,162,(EBIT+Interest earned)/Interest expenses,Ratio,ebit_interest_earned_interest_expenses,(ebit+interest_income_recd)/interest_paid,,,,,,,,,,
+166,163,Total Debt,Ratio,total_debt,total_long_term_debt_f+sub_total_1+long_term_debt_due_within_one_year,,,,,,,,,,
+167,164,Total Debt Lag12,Ratio,total_debt_lag12,total_debt,,12,No,,,,,,,
+168,165,ROE,Ratio,roe,eat/capital_reserves_g,,,,,,,,,,
+169,166,Ctgt. Liab,Ratio,ctgt_liab,contingent_liabilities,,,,,,,,,,
+170,167,TD+ctgt liab,Ratio,td_ctgt_liab,ctgt_liab+total_debt,,,,,,,,,,
+171,168,TNW(Tangible),Ratio,tnw_tangible,capital_reserves_g+deferred_tax_liability_h-intangible_assets_misc_expenditure_e-iv_revaluation_reserves-deferred_tax_asset_d,,,,,,,,,,
+172,169,TNW(Tangible) Lag,Ratio,tnw_tangible_lag12,tnw_tangible,,12,No,,,,,,,
+173,170,TD/TNW,Ratio,td_tnw,total_debt/tnw_tangible,,,,,,,,,,
+174,171,(TD+ctgt. Liab)/TNW,Ratio,td_ctgt_liab_tnw,td_ctgt_liab/tnw_tangible,,,,,,,,,,
+175,172,Solvency (TNW/Total Assets),Ratio,solvency_tnw_total_assets,tnw_tangible/total_assets_a_b_c_d_e,,,,,,,,,,
+176,173,NCA/Total Debt,Ratio,nca_total_debt,net_cash_accruals/total_debt,,,,,,,,,,
+148,174,Long term liability to be taken as Quasi Equity_lag12,BS,long_term_liability_to_be_taken_as_quasi_equity_lag12,long_term_liability_to_be_taken_as_quasi_equity,,12,No,,,,,,,
+178,175,ROCE(Average Capital Employed),Ratio,roce_average_capital_employed,(ebt_before_exceptionals+interest_paid)*2/(total_debt+tnw_tangible+long_term_liability_to_be_taken_as_quasi_equity+total_debt_lag12+tnw_tangible_lag12+long_term_liability_to_be_taken_as_quasi_equity_lag12),,,,,,,,,,
+179,176,Current Ratio,Ratio,current_ratio,total_current_assets_a/total_current_liabilities_e,,,,,,,,,,
+180,177,Net Working Capital,Ratio,net_working_capital,total_current_assets_a-total_current_liabilities_e,,,,,,,,,,
+181,178,Net Working Capital Lag,Ratio,net_working_capital_lag12,net_working_capital,,12,No,,,,,,,
+182,179,Net Working Capital/Net Sales,Ratio,net_working_capital_net_sales,net_working_capital/total_operating_income,,,,,,,,,,
+183,180,R.M. HOLDING (IN DAYS),Ratio,r_m_holding_in_days,(raw_materials+consumable_spares)*365/raw_material_consumed,,,,,,,,,,
+184,181,WIP HOLDING (IN DAYS),Ratio,wip_holding_in_days,stock_in_process*365/cost_of_goods_sold,,,,,,,,,,
+185,182,FG HOLDING (IN DAYS),Ratio,fg_holding_in_days,finished_goods*365/cost_of_goods_sold,,,,,,,,,,
+186,183,RECEIVABLES HOLDING(IN DAYS),Ratio,receivables_holding_in_days,total_debtors*365/total_operating_income,,,,,,,,,,
+187,184,CREDIT AVAILMENT (IN DAYS),Ratio,credit_availment_in_days,ii_creditors_for_purchases*365/(raw_material_consumed+purchases_finsihed_goods),,,,,,,,,,
+188,185,OPERATING CYCLE IN DAYS,Ratio,operating_cycle_in_days,r_m_holding_in_days+wip_holding_in_days+fg_holding_in_days+receivables_holding_in_days-credit_availment_in_days,,,,,,,,,,
+189,186,Cash DSCR,Ratio,cash_dscr,(net_cash_accruals+interest_paid-0.25*((net_working_capital-cash_and_bank_balance)-(net_working_capital_lag12-cash_and_bank_balance_lag12)))/(long_term_debt_due_within_one_year_lag12+interest_paid),,,,,,,,,,
+190,187,total_operating_income_lag12,Lag,total_operating_income_lag12,total_operating_income,,12,,,,,,,,
+191,188,current_ratio_lag12,Lag,current_ratio_lag12,current_ratio,,12,,,,,,,,
+192,189,nca_total_debt_lag12,Lag,nca_total_debt_lag12,nca_total_debt,,12,,,,,,,,
+193,190,net_margin_pat_margin_lag12,Lag,net_margin_pat_margin_lag12,net_margin_pat_margin,,12,,,,,,,,
+194,191,interest_cover_ebitda_int_earned_interest_expense_lag12,Lag,interest_cover_ebitda_int_earned_interest_expense_lag12,interest_cover_ebitda_int_earned_interest_expense,,12,,,,,,,,
+195,192,td_tnw_lag12,Lag,td_tnw_lag12,td_tnw,,12,,,,,,,,
+196,193,cash_dscr_lag12,Lag,cash_dscr_lag12,cash_dscr,,12,,,,,,,,
+197,194,roce_average_capital_employed_lag12,Lag,roce_average_capital_employed_lag12,roce_average_capital_employed,,12,,,,,,,,
+198,195,Net Sales (crores),,avg_net_sales_crores,(total_operating_income+total_operating_income_lag12)/20,,,,,,,,,,
+199,196,Current Ratio,,avg_current_ratio,(current_ratio+current_ratio_lag12)/2,,,,,,,,,,
+200,197,Cash Flow / TD (Net Cash Accruals/ Total Debt),,avg_cash_flow_td_net_cash_accruals_total_debt,(nca_total_debt+nca_total_debt_lag12)/2,,,,,,,,,,
+201,198,PAT Margin (PAT/Operating Income),,avg_pat_margin_pat_operating_income,(net_margin_pat_margin +net_margin_pat_margin_lag12)*100/2,,,,,,,,,,
+202,199,Interest Coverage ((PBDIT+Interest earned)/ interest expense),,avg_interest_coverage_pbdit_interest_earned_interest_expense,(interest_cover_ebitda_int_earned_interest_expense+interest_cover_ebitda_int_earned_interest_expense_lag12)/2,,,,,,,,,,
+203,200,Gearing (Debt/Tangible net worth),,avg_gearing_debt_tangible_net_worth,(td_tnw+td_tnw_lag12)/2,,,,,,,,,,
+204,201,Average Cash DSCR((NCA+Interest-25%of incremental net working capital other than cash) /( Debt payable within 1  year + interest & finance charges)),,avg_average_cash_dscr_nca_interest_25_of_incremental_net_working_capital_other_than_cash_debt_payable_within_1_year_interest_finance_charges,(cash_dscr+cash_dscr_lag12)/2,,,,,,,,,,
+205,202,ROCE (PBIT/Total Debt+Tangible Networth),,avg_roce_pbit_total_debt_tangible_networth,(roce_average_capital_employed+roce_average_capital_employed_lag12)*100/2,,,,,,,,,,
+148,,total_other_non_current_assets_c_lag12 ,Lag,total_other_non_current_assets_c_lag12 ,total_other_non_current_assets_c,,12,,,,,,,,
+148,,intangible_assets_misc_expenditure_e_lag12,Lag,intangible_assets_misc_expenditure_e_lag12,intangible_assets_misc_expenditure_e,,12,,,,,,,,
+148,,sub_total_1_lag12,Lag,sub_total_1_lag12,sub_total_1,,12,,,,,,,,
+148,,total_long_term_debt_f_lag12,Lag,total_long_term_debt_f_lag12,total_long_term_debt_f,,12,,,,,,,,
+148,,capital_reserves_g_lag12,Lag,capital_reserves_g_lag12,capital_reserves_g,,12,,,,,,,,
