@@ -3,7 +3,7 @@ from fastapi.responses import RedirectResponse
 
 
 from fastapi.templating import Jinja2Templates
-from models.models import Customer,FinancialStatement,BusinessUnit
+from models.models import Customer,FinancialStatement,BusinessUnit,WorkflowAction
 from sqlalchemy.orm import Session
 from db.database import SessionLocal, engine
 
@@ -27,6 +27,13 @@ async def list_customers(request: Request, db: Session = Depends(get_db)):
     return templates.TemplateResponse("customers/partials/list.html", {"request": request, "customers": customers})
 
 
+@router.get("/customers/new")
+async def new_customer(request: Request,  db: Session = Depends(get_db)):
+    business_units = db.query(BusinessUnit).all()
+
+    return templates.TemplateResponse("customers/partials/new.html", {"request": request,"business_units": business_units})
+
+
 @router.get("/customers/{customer_id}")
 async def customer_detail(request: Request, customer_id: str, db: Session = Depends(get_db)):
     customer = db.query(Customer).filter(Customer.id == customer_id).first()
@@ -41,9 +48,7 @@ async def customer_detail(request: Request, customer_id: str, db: Session = Depe
         "statements": statements
     })
 
-@router.get("/customers/new")
-async def new_customer(request: Request):
-    return templates.TemplateResponse("customers/partials/new.html", {"request": request})
+
 
 
 @router.delete("/customers/{customer_id}")
@@ -57,33 +62,59 @@ async def delete_customer(request: Request, customer_id: str, db: Session = Depe
     
     return {"success": True, "message": "Customer deleted successfully"}
 
+
+    
 @router.post("/customers/new")
 async def create_customer(
     request: Request,
     db: Session = Depends(get_db),
-    cif_number: str = Form(...),
     customer_name: str = Form(...),
     group_name: str = Form(...),
-    business_unit: int = Form(...),
+    cif_number: str = Form(...),
+    business_unit: str = Form(...),
     relationship_type: str = Form(...),
-    internal_risk_rating: str = Form(...)
+    internal_risk_rating: str = Form(...),
 ):
+    # Validate business unit
     business_unit_obj = db.query(BusinessUnit).filter(BusinessUnit.id == business_unit).first()
     if not business_unit_obj:
         raise HTTPException(status_code=400, detail="Invalid business unit")
-    
-    customer = Customer(
-        cif_number=cif_number,
-        customer_name=customer_name,
-        group_name=group_name,
-        business_unit=business_unit_obj,
-        relationship_type=relationship_type,
-        internal_risk_rating=internal_risk_rating
-    )
-    db.add(customer)
-    db.commit()
-    return templates.TemplateResponse("customers/partials/created.html", {"request": request, "customer": customer})
 
+    # Create new customer first
+    new_customer = Customer(
+        customer_name=customer_name,
+        cif_number=cif_number,
+        group_name=group_name,
+        business_unit_id=business_unit,
+        relationship_type=relationship_type,
+        internal_risk_rating=internal_risk_rating,
+        workflow_action_type="Create"  # Set the initial workflow action type
+    )
+    db.add(new_customer)
+    db.flush()  # This will assign an ID to the new customer
+
+    # Now create the corresponding WorkflowAction
+    new_workflow_action = WorkflowAction(
+        customer_id=new_customer.id,
+        action_count_customer_level=1,
+        action_by='user',
+        action_type="Create",
+        head=True
+    )
+    db.add(new_workflow_action)
+    db.flush()  # This will assign an ID to the new workflow action
+
+    # Update the customer with the workflow action ID
+    new_customer.workflow_action_id = new_workflow_action.id
+    new_customer.workflow_action = new_workflow_action
+
+    try:
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"An error occurred while creating the customer: {str(e)}")
+
+    return {"message": "Customer created successfully", "customer_id": new_customer.id}
 @router.get("/customers/{customer_id}/edit")
 async def edit_customer(request: Request, customer_id: str, db: Session = Depends(get_db)):
     customer = db.query(Customer).filter(Customer.id == customer_id).first()

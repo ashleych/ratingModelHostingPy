@@ -1,5 +1,6 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="light">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,27 +9,140 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/handsontable/dist/handsontable.full.min.css" />
     <script src="https://cdn.jsdelivr.net/npm/handsontable/dist/handsontable.full.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
     <link rel="stylesheet" href="/static/src/output.css" />
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                },
+            },
+        }
+    </script>
+
+    <style>
+        /* Consistent form input styling */
+        .form-input,
+        .form-select {
+            @apply appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm;
+        }
+
+        .dark .form-input,
+        .dark .form-select {
+            @apply bg-gray-700 border-gray-600 text-white placeholder-gray-400;
+        }
+
+        /* Prevent font size increase on mobile devices */
+        @media (max-width: 640px) {
+
+            .form-input,
+            .form-select,
+            input[type="text"],
+            input[type="number"],
+            input[type="email"],
+            input[type="tel"],
+            input[type="password"],
+            input[type="date"],
+            input[type="time"],
+            input[type="datetime-local"],
+            select,
+            textarea {
+                font-size: 16px !important;
+            }
+
+            body,
+            p,
+            label,
+            button {
+                font-size: 14px !important;
+            }
+
+            h1 {
+                font-size: 1.5rem !important;
+            }
+
+            h2 {
+                font-size: 1.25rem !important;
+            }
+
+            h3 {
+                font-size: 1.125rem !important;
+            }
+        }
+
+        /* Adjust padding/margins for better touch targets on mobile */
+        @media (max-width: 640px) {
+
+            .form-input,
+            .form-select,
+            input,
+            select,
+            textarea,
+            button {
+                padding: 0.5rem !important;
+            }
+
+            .space-y-6>*+* {
+                margin-top: 1rem !important;
+            }
+        }
+    </style>
 
 </head>
 
-<body class="bg-gray-100">
-    <div class="flex h-screen bg-gray-100">
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200 transition-colors duration-200 ease-in-out">
+    <div class="flex h-screen bg-gray-100 dark:bg-gray-900">
         <!-- Sidebar -->
-        <div class="bg-gray-800 text-white w-64 space-y-6 py-7 px-2 absolute inset-y-0 left-0 transform -translate-x-full md:relative md:translate-x-0 transition duration-200 ease-in-out">
+        <div
+            class="bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 w-64 space-y-6 py-7 px-2 absolute inset-y-0 left-0 transform -translate-x-full md:relative md:translate-x-0 transition duration-200 ease-in-out">
             <nav>
-                <a href="/" class="block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-700">Home</a>
-                <a href="/customers" class="block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-700">View Customers</a>
-                <a href="/customers/new" class="block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-700">Create Customer</a>
-                <a href="/statements/new" class="block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-700">Create Statement</a>
+                <a href="/"
+                    class="block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-200 dark:hover:bg-gray-700">Home</a>
+                <a href="/customers"
+                    class="block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-200 dark:hover:bg-gray-700">View
+                    Customers</a>
+                <a href="/customers/new"
+                    class="block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-200 dark:hover:bg-gray-700">Create
+                    Customer</a>
+                <a href="/statements/new"
+                    class="block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-200 dark:hover:bg-gray-700">Create
+                    Statement</a>
             </nav>
+            <div class="px-4 mt-6">
+                <button id="darkModeToggle"
+                    class="px-4 py-2 bg-gray-200 dark:bg-gray-700 rounded-md transition-colors duration-200">
+                    Toggle Dark Mode
+                </button>
+            </div>
         </div>
 
         <!-- Content -->
-        <div class="flex-1 p-10 text-2xl font-bold">
+        <div class="flex-1 p-10 text-2xl font-bold overflow-y-auto">
             {% block content %}
             {% endblock %}
         </div>
     </div>
+
+    <script>
+        // Dark mode toggle functionality
+        const darkModeToggle = document.getElementById('darkModeToggle');
+        const html = document.documentElement;
+
+        darkModeToggle.addEventListener('click', () => {
+            html.classList.toggle('dark');
+            localStorage.setItem('darkMode', html.classList.contains('dark') ? 'true' : 'false');
+        });
+
+        // Check for saved dark mode preference
+        if (localStorage.getItem('darkMode') === 'true') {
+            html.classList.add('dark');
+        }
+    </script>
 </body>
+
 </html>

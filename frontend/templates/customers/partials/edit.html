@@ -1,13 +1,15 @@
+
 {% extends "_layout.html" %}
 
-
 {% block content %}
+
+
 <div class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
     <div class="md:grid md:grid-cols-3 md:gap-6">
         <div class="md:col-span-1">
             <div class="px-4 sm:px-0">
-                <h3 class="text-lg font-medium leading-6 text-gray-900">Edit Customer</h3>
-                <p class="mt-1 text-sm text-gray-600">
+                <h3 class="text-lg font-medium leading-6 text-gray-900 dark:text-gray-100">Edit Customer</h3>
+                <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
                     Update the customer's information.
                 </p>
             </div>
@@ -15,31 +17,31 @@
         <div class="mt-5 md:mt-0 md:col-span-2">
             <form action="{{ url_for('update_customer', customer_id=customer.id) }}" method="POST">
                 <div class="shadow sm:rounded-md sm:overflow-hidden">
-                    <div class="px-4 py-5 bg-white space-y-6 sm:p-6">
+                    <div class="px-4 py-5 bg-white dark:bg-gray-800 space-y-6 sm:p-6">
                         <div class="grid grid-cols-6 gap-6">
                             <div class="col-span-6 sm:col-span-3">
-                                <label for="customer_id" class="block text-sm font-medium text-gray-700">Customer ID</label>
-                                <input type="text" name="customer_id" id="customer_id" value="{{ customer.id }}" class="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md bg-gray-100" readonly>
+                                <label for="customer_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Customer ID</label>
+                                <input type="text" name="customer_id" id="customer_id" value="{{ customer.id }}" class="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md bg-gray-100 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300 h-10 px-3" readonly>
                             </div>
 
                             <div class="col-span-6 sm:col-span-3">
-                                <label for="cif_number" class="block text-sm font-medium text-gray-700">CIF Number</label>
-                                <input type="text" name="cif_number" id="cif_number" value="{{ customer.cif_number }}" class="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md">
+                                <label for="cif_number" class="block text-sm font-medium text-gray-700 dark:text-gray-300">CIF Number</label>
+                                <input type="text" name="cif_number" id="cif_number" value="{{ customer.cif_number }}" class="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white h-10 px-3">
                             </div>
 
                             <div class="col-span-6 sm:col-span-3">
-                                <label for="customer_name" class="block text-sm font-medium text-gray-700">Customer Name</label>
-                                <input type="text" name="customer_name" id="customer_name" value="{{ customer.customer_name }}" class="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md">
+                                <label for="customer_name" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Customer Name</label>
+                                <input type="text" name="customer_name" id="customer_name" value="{{ customer.customer_name }}" class="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white h-10 px-3">
                             </div>
 
                             <div class="col-span-6 sm:col-span-3">
-                                <label for="group_name" class="block text-sm font-medium text-gray-700">Group Name</label>
-                                <input type="text" name="group_name" id="group_name" value="{{ customer.group_name }}" class="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md">
+                                <label for="group_name" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Group Name</label>
+                                <input type="text" name="group_name" id="group_name" value="{{ customer.group_name }}" class="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white h-10 px-3">
                             </div>
 
                             <div class="col-span-6 sm:col-span-3">
-                                <label for="business_unit" class="block text-sm font-medium text-gray-700">Business Unit</label>
-                                <select id="business_unit" name="business_unit" class="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                                <label for="business_unit" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Business Unit</label>
+                                <select id="business_unit" name="business_unit" class="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white h-10">
                                     {% for bu in business_units %}
                                         <option value="{{ bu.id }}" {% if bu.id == customer.business_unit_id %}selected{% endif %}>
                                             {{ bu.name }}
@@ -49,18 +51,18 @@
                             </div>
 
                             <div class="col-span-6 sm:col-span-3">
-                                <label for="relationship_type" class="block text-sm font-medium text-gray-700">Relationship Type</label>
-                                <input type="text" name="relationship_type" id="relationship_type" value="{{ customer.relationship_type }}" class="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md">
+                                <label for="relationship_type" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Relationship Type</label>
+                                <input type="text" name="relationship_type" id="relationship_type" value="{{ customer.relationship_type }}" class="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white h-10 px-3">
                             </div>
 
                             <div class="col-span-6 sm:col-span-3">
-                                <label for="internal_risk_rating" class="block text-sm font-medium text-gray-700">Internal Risk Rating</label>
-                                <input type="text" name="internal_risk_rating" id="internal_risk_rating" value="{{ customer.internal_risk_rating }}" class="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md">
+                                <label for="internal_risk_rating" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Internal Risk Rating</label>
+                                <input type="text" name="internal_risk_rating" id="internal_risk_rating" value="{{ customer.internal_risk_rating }}" class="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white h-10 px-3">
                             </div>
                         </div>
                     </div>
-                    <div class="px-4 py-3 bg-gray-50 text-right sm:px-6">
-                        <button type="submit" class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                    <div class="px-4 py-3 bg-gray-50 dark:bg-gray-700 text-right sm:px-6">
+                        <button type="submit" class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:bg-indigo-500 dark:hover:bg-indigo-600">
                             Save Changes
                         </button>
                     </div>
@@ -70,10 +72,11 @@
     </div>
 </div>
 
+<!-- (The rest of the HTML content remains the same) -->
 
 <div class="hidden sm:block" aria-hidden="true">
     <div class="py-5">
-        <div class="border-t border-gray-200"></div>
+        <div class="border-t border-gray-200 dark:border-gray-700"></div>
     </div>
 </div>
 
@@ -81,15 +84,15 @@
     <div class="md:grid md:grid-cols-3 md:gap-6">
         <div class="md:col-span-1">
             <div class="px-4 sm:px-0">
-                <h3 class="text-lg font-medium leading-6 text-gray-900">Danger Zone</h3>
-                <p class="mt-1 text-sm text-gray-600">
+                <h3 class="text-lg font-medium leading-6 text-gray-900 dark:text-gray-100">Danger Zone</h3>
+                <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
                     Permanent actions that cannot be undone.
                 </p>
             </div>
         </div>
         <div class="mt-5 md:mt-0 md:col-span-2">
             <div class="shadow sm:rounded-md sm:overflow-hidden">
-                <div class="px-4 py-5 bg-white space-y-6 sm:p-6">
+                <div class="px-4 py-5 bg-white dark:bg-gray-800 space-y-6 sm:p-6">
                     <div class="flex items-start">
                         <div class="flex-shrink-0">
                             <svg class="h-5 w-5 text-red-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
@@ -97,16 +100,16 @@
                             </svg>
                         </div>
                         <div class="ml-3 flex-1">
-                            <p class="text-sm text-gray-700">
+                            <p class="text-sm text-gray-700 dark:text-gray-300">
                                 Deleting this customer will permanently remove all associated data, including financial statements. This action cannot be undone.
                             </p>
                         </div>
                     </div>
                 </div>
-                <div class="px-4 py-3 bg-gray-50 text-right sm:px-6">
+                <div class="px-4 py-3 bg-gray-50 dark:bg-gray-700 text-right sm:px-6">
                     <button type="button" hx-delete="{{ url_for('delete_customer', customer_id=customer.id) }}"
                         hx-confirm="Are you sure you want to delete this customer? This action cannot be undone."
-                        class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+                        class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 dark:bg-red-500 dark:hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 dark:focus:ring-offset-gray-800">
                         Delete Customer
                     </button>
                 </div>
@@ -114,4 +117,9 @@
         </div>
     </div>
 </div>
+
+
+
+<!-- (The rest of the HTML content remains the same) -->
+
 {% endblock %}

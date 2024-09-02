@@ -1,4 +1,6 @@
 ratingModelVenv/
 ratingModelVenv/*.*
 backend/__pycache_
-_
+node_modules/
+backend/routes/__pycache__/
+*cpython*.pyc
