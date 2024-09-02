@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Financial Statement App{% endblock %}</title>
+    <script src="https://unpkg.com/htmx.org@1.9.6"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/handsontable/dist/handsontable.full.min.css" />
+    <script src="https://cdn.jsdelivr.net/npm/handsontable/dist/handsontable.full.min.js"></script>
+    <link rel="stylesheet" href="/static/src/output.css" />
+
+</head>
+
+<body class="bg-gray-100">
+    <div class="flex h-screen bg-gray-100">
+        <!-- Sidebar -->
+        <div class="bg-gray-800 text-white w-64 space-y-6 py-7 px-2 absolute inset-y-0 left-0 transform -translate-x-full md:relative md:translate-x-0 transition duration-200 ease-in-out">
+            <nav>
+                <a href="/" class="block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-700">Home</a>
+                <a href="/customers" class="block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-700">View Customers</a>
+                <a href="/customers/new" class="block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-700">Create Customer</a>
+                <a href="/statements/new" class="block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-700">Create Statement</a>
+            </nav>
+        </div>
+
+        <!-- Content -->
+        <div class="flex-1 p-10 text-2xl font-bold">
+            {% block content %}
+            {% endblock %}
+        </div>
+    </div>
+</body>
+</html>
