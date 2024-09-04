@@ -4,7 +4,7 @@ from sqlalchemy import Column, DateTime, UUID
 from sqlalchemy.sql import func
 from sqlalchemy.ext.declarative import as_declarative, declared_attr
 
-from sqlalchemy import Column, Integer, String, Float, Boolean, ForeignKey, JSON
+from sqlalchemy import Column, Integer, String, Float, Boolean, ForeignKey, JSON,UniqueConstraint
 from sqlalchemy.orm import relationship
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.sql import func
@@ -164,8 +164,6 @@ class LineItemMeta(Base):
     display_order_no = Column(Integer)
     
 
-
-
 class FinancialStatement(Base):
 
     actuals = Column(Boolean)
@@ -173,7 +171,9 @@ class FinancialStatement(Base):
     audit_type = Column(String)  # Audited, Unaudited
     standalone = Column(Boolean)
     consolidated = Column(Boolean)
-    financials_period_id = Column(UUID, ForeignKey('financialsperiod.id'))
+    financials_period_year = Column(Integer)
+    financials_period_month = Column( Integer)
+    financials_period_date = Column( Integer)
     customer_id = Column(UUID, ForeignKey('customer.id'))
     template_id = Column(UUID, ForeignKey('template.id'))
     workflow_action_id = Column(UUID, ForeignKey('workflowaction.id'), nullable=False)
@@ -182,7 +182,6 @@ class FinancialStatement(Base):
     preferred_statement = Column(Boolean)
     source_of_lag_variables = Column(Integer)
 
-    financials_period = relationship("FinancialsPeriod")
     customer = relationship("Customer")
     template = relationship("Template")
     workflow_action = relationship("WorkflowAction")
@@ -219,7 +218,7 @@ class LineItemValue(Base):
 
     financial_statement = relationship("FinancialStatement")
     line_item_meta = relationship("LineItemMeta")
-    
+    __table_args__ = ( UniqueConstraint('financial_statement_id', 'line_item_meta_id', name='uix_financial_statement_line_item'), )
     
     def __repr__(self):
         return f"<LineItemValue(financial_statement_id={self.financial_statement_id}, line_item_meta_id='{self.line_item_meta_id}', value={self.value})>"

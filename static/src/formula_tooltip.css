@@ -1,0 +1,36 @@
+.highlighted-formula-component {
+    background-color: green !important;
+  }
+
+/* .formula-tooltip {
+      position: absolute;
+      background-color: white;
+      border: 1px solid black;
+      padding: 5px;
+      z-index: 999;
+  } */
+ :root {
+    --tooltip-bg: white;
+    --tooltip-text: black;
+    --tooltip-border: #ccc;
+  }
+
+  .dark {
+    --tooltip-bg: #333;
+    --tooltip-text: #fff;
+    --tooltip-border: #555;
+  }
+
+  .formula-tooltip {
+    position: absolute;
+    background-color: var(--tooltip-bg);
+    color: var(--tooltip-text);
+    border: 1px solid var(--tooltip-border);
+    padding: 5px;
+    z-index: 999;
+    border-radius: 4px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    font-size: 14px;
+    max-width: 300px;
+    word-wrap: break-word;
+  }

@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field,ConfigDict
 from typing import Optional, List, Dict
 from datetime import datetime
 from enum import Enum
@@ -174,23 +174,23 @@ class LineItemMetaSchema(BaseModel):
 
 
 # Pydantic schema
-class FinancialStatementSchema(BaseModel):
-    id: Optional[int] = None
-    actuals: bool
-    projections: bool
-    audit_type: str
-    standalone: bool
-    consolidated: bool
-    financials_period_id: int
-    customer_id: int
-    template_id: int
-    workflow_action_id: int
-    workflow_action_type: WorkflowActionType = Field(default=WorkflowActionType.DRAFT)
-    is_dirty: bool = Field(default=True)
-    preferred_statement: bool
-    source_of_lag_variables: Optional[int] = None
-    created_at: Optional[datetime] = None
-    updated_at: Optional[datetime] = None
+# class FinancialStatementSchema(BaseModel):
+#     id: Optional[int] = None
+#     actuals: bool
+#     projections: bool
+#     audit_type: str
+#     standalone: bool
+#     consolidated: bool
+#     financials_period_id: int
+#     customer_id: int
+#     template_id: int
+#     workflow_action_id: int
+#     workflow_action_type: WorkflowActionType = Field(default=WorkflowActionType.DRAFT)
+#     is_dirty: bool = Field(default=True)
+#     preferred_statement: bool
+#     source_of_lag_variables: Optional[int] = None
+#     created_at: Optional[datetime] = None
+#     updated_at: Optional[datetime] = None
 
 
 
@@ -232,3 +232,43 @@ class LineItemValueCreate(BaseModel):
     class Config:
         orm_mode = True
         allow_population_by_field_name = True
+class FinancialStatement(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: UUID
+    actuals: Optional[bool]
+    projections: Optional[bool]
+    audit_type: Optional[str]
+    standalone: Optional[bool]
+    consolidated: Optional[bool]
+    financials_period_year: int
+    financials_period_month: int
+    financials_period_date: int
+    customer_id: UUID
+    template_id: UUID
+    workflow_action_id: UUID
+    workflow_action_type: WorkflowActionType = Field(default=WorkflowActionType.DRAFT)
+    is_dirty: bool = Field(default=True)
+    preferred_statement: Optional[bool] = None
+    source_of_lag_variables: Optional[int] = None
+    # class Config:
+    #     orm_mode = True
+    #     allow_population_by_field_name = True
+class SpreadingStatementProperties(BaseModel):
+    statement_type: str
+    dates :List[str]
+    
+class SpreadingLineItems(BaseModel):
+    # spreading_statement_properties_id: UUID = Field(..., description="The unique identifier template into which it is being mapped")
+    # spreading_statement_properties: SpreadingStatementProperties
+    order_no:int
+    template_id: UUID = Field(..., description="The unique identifier template into which it is being mapped")
+    template_financial_item_id: Optional[UUID] = Field(...,description="Link to statmeent meta information")
+    formula:Optional[str]=None
+    template_financial_line_item_name:str
+    template_label :Optional[str ]=Field(default=None)
+    value_1:Optional[float]=None
+    value_2:Optional[float]=None
+    value_3:Optional[float]=None
+    value_4:Optional[float]=None
+    value_5:Optional[float]=None
+    value_6:Optional[float]=None
