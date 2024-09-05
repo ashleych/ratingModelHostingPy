@@ -35,7 +35,46 @@ def create_engine_and_session(db_path):
 
 def init_db(db_path):
     engine, session = create_engine_and_session(db_path)
+
+    from sqlalchemy import text
+#     def drop_all_tables_without_fk_checks(engine):
+#         with engine.begin() as conn:
+#             conn.execute(text("SET CONSTRAINTS ALL DEFERRED"))
+#             Base.metadata.drop_all(conn)
+#             conn.execute(text("SET CONSTRAINTS ALL IMMEDIATE"))
+
+# # Use this function instead of Base.metadata.drop_all(engine)
+#     drop_all_tables_without_fk_checks(engine)
+    def drop_tables_in_order(engine):
+        # Define the order to drop tables
+        # Start with tables that have the most dependencies and work backwards
+        tables = [
+            "ratingfactorscore",
+            "ratingmodule",
+            "ratinginstance",
+            "ratingfactor",
+            "ratingfactorattribute",
+            "ratingmodel",
+            "template",
+            "customer",
+            "financialsperiod",
+            "workflowaction",
+            # Add any other tables that might be in your schema
+        ]
     
+        with engine.begin() as conn:
+            # Disable triggers temporarily
+            conn.execute(text("SET session_replication_role = 'replica';"))
+            
+            for table_name in tables:
+                # Use DROP CASCADE for each table
+                conn.execute(text(f"DROP TABLE IF EXISTS {table_name} CASCADE"))
+            
+            # Re-enable triggers
+            conn.execute(text("SET session_replication_role = 'origin';"))
+
+# Use this function instead of Base.metadata.drop_all(engine)
+    drop_tables_in_order(engine)
     # Drop all tables
     Base.metadata.drop_all(engine)
     # Create all tables

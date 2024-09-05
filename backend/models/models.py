@@ -12,9 +12,10 @@ import enum
 
 from sqlalchemy import Enum as SQLAlchemyEnum
 from .base import Base
+from typing import List
+from sqlalchemy.orm import Session
 
-
-class FactorInputSource(String):
+class FactorInputSource(enum.Enum):
     USER_INPUT = "user_input"
     FINANCIAL_STATEMENT = "financial_statement"
     DERIVED = "derived"
@@ -23,6 +24,7 @@ class FactorType(enum.Enum):
     QUALITATIVE = "qualitative"
     OVERALLSCORE = "overallScore"
     QUANTITATIVE = "quantitative"
+    OVERALL="overall"
 
 class AttributeType(enum.Enum):
     BIN = "bin"
@@ -75,60 +77,114 @@ class FinancialsPeriod(Base):
     date = Column(Integer, nullable=False)
     type = Column(String, nullable=False)
 
+# class RatingFactorAttribute(Base):
+#     rating_factor_name = Column(String, ForeignKey('ratingfactor.name'))
+#     rating_model_id = Column(UUID, ForeignKey('ratingmodel.id'))
+#     name = Column(String, nullable=False)
+#     label = Column(String)
+#     attribute_type = Column(String)
+#     bin_start = Column(Float)
+#     bin_end = Column(Float)
+#     score = Column(Float)
+
+
+#     # factor_value = Column(JSON)  # Storing FactorValue as JSON
+#     # factor_attributes = relationship("RatingFactorAttribute")
+
+# class RatingModule(Base):
+#     module_name = Column(String, nullable=False)
+#     module_factor_id = Column(UUID, ForeignKey('ratingfactor.id'))
+#     module_factor = relationship("RatingFactor")
+
+# class RatingModel(Base):
+#     name = Column(String, nullable=False)
+#     label = Column(String)
+#     template_id = Column(UUID, ForeignKey('template.id'))
+#     template = relationship("Template")
+#     # qualitative_factors = relationship("RatingFactor", primaryjoin="and_(RatingModel.id==RatingFactor.rating_model_id, RatingFactor.factor_type=='QUALITATIVE')")
+#     # quantitative_factors = relationship("RatingFactor", primaryjoin="and_(RatingModel.id==RatingFactor.rating_model_id, RatingFactor.factor_type=='QUANTITATIVE')")
+#     # # qualitative_factors = relationship("RatingFactor")
+#     # # quantitative_factors = relationship("RatingFactor")
+#     # quantitative_module = relationship("QuantitativeModule", 
+#     #                                    primaryjoin="RatingModel.quantitative_module_id == QuantitativeModule.id")
+#     # qualitative_module = relationship("QualitativeModule", 
+#     #                                    primaryjoin="RatingModel.qualitative_module_id == QualitativeModule.id")
+# class RatingFactor(Base):
+#     name = Column(String, unique=True, nullable=False)
+#     label = Column(String)
+#     weightage = Column(Float)
+#     parent_factor_name = Column(String, ForeignKey('ratingfactor.name'))
+#     parent_factor = relationship("RatingFactor")
+#     rating_model_id = Column(UUID, ForeignKey('ratingmodel.id'))
+#     factor_type = Column(String)
+#     input_source = Column(String)
+#     order_no = Column(Integer)
+#     formula = Column(String)
+#     module = Column(Boolean)
+
+# class RatingFactorScore(Base):
+#     factor_value = Column(JSON)  # Storing FactorValue as JSON
+#     score_dirty = Column(Boolean)
+#     rating_instance_id = Column(UUID, ForeignKey('ratinginstance.id'))
+#     rating_factor_name = Column(String, ForeignKey('ratingfactor.name'))
+# class FactorType(enum.Enum):
+#     QUANTITATIVE = "quantitative"
+#     QUALITATIVE = "qualitative"
+
+# class FactorInputSource(enum.Enum):
+#     FINANCIAL_STATEMENT = "financial_statement"
+#     USER_INPUT = "user_input"
+#     DERIVED = "derived"
+
+# class AttributeType(enum.Enum):
+#     SCORING = "scoring"
+#     # Add other attribute types as needed
+
+class RatingFactor(Base):
+
+    id = Column(Integer, primary_key=True)
+    name = Column(String,nullable=False)
+    label = Column(String)
+    input_source = Column(String)
+    order_no = Column(Integer)
+    factor_type = Column(String)
+    parent_factor_name = Column(String)
+    weightage = Column(Float)
+    module = Column(Boolean)
+    formula = Column(String)
+    rating_model_id = Column(UUID, ForeignKey('ratingmodel.id'),nullable=False)
+
+    rating_model = relationship("RatingModel")
+    __table_args__ = ( UniqueConstraint('rating_model_id', 'name', name='uix_rating_model_factorname'), )
+
 class RatingFactorAttribute(Base):
-    rating_factor_name = Column(String, ForeignKey('ratingfactor.name'))
-    rating_model_id = Column(UUID, ForeignKey('ratingmodel.id'))
-    name = Column(String, nullable=False)
+
+    rating_model_id = Column(UUID, ForeignKey('ratingmodel.id'),nullable=False)
+    rating_factor_name = Column(String)
+    name = Column(String)
     label = Column(String)
     attribute_type = Column(String)
     bin_start = Column(Float)
     bin_end = Column(Float)
     score = Column(Float)
 
-class RatingFactor(Base):
-    name = Column(String, unique=True, nullable=False)
-    label = Column(String)
-    weightage = Column(Float)
-    parent_factor_name = Column(String, ForeignKey('ratingfactor.name'))
-    parent_factor = relationship("RatingFactor")
-    rating_model_id = Column(UUID, ForeignKey('ratingmodel.id'))
-    factor_type = Column(String)
-    input_source = Column(String)
-    order_no = Column(Integer)
-    formula = Column(String)
-    module = Column(Boolean)
-    # factor_value = Column(JSON)  # Storing FactorValue as JSON
-    # factor_attributes = relationship("RatingFactorAttribute")
+    rating_model = relationship("RatingModel")
 
-class RatingModule(Base):
-    module_name = Column(String, nullable=False)
-    module_factor_id = Column(UUID, ForeignKey('ratingfactor.id'))
-    module_factor = relationship("RatingFactor")
+
 
 class RatingModel(Base):
-    name = Column(String, nullable=False)
-    label = Column(String)
-    template_id = Column(UUID, ForeignKey('template.id'))
-    template = relationship("Template")
-    # qualitative_factors = relationship("RatingFactor", primaryjoin="and_(RatingModel.id==RatingFactor.rating_model_id, RatingFactor.factor_type=='QUALITATIVE')")
-    # quantitative_factors = relationship("RatingFactor", primaryjoin="and_(RatingModel.id==RatingFactor.rating_model_id, RatingFactor.factor_type=='QUANTITATIVE')")
-    # # qualitative_factors = relationship("RatingFactor")
-    # # quantitative_factors = relationship("RatingFactor")
-    # quantitative_module = relationship("QuantitativeModule", 
-    #                                    primaryjoin="RatingModel.quantitative_module_id == QuantitativeModule.id")
-    # qualitative_module = relationship("QualitativeModule", 
-    #                                    primaryjoin="RatingModel.qualitative_module_id == QualitativeModule.id")
-    
 
-class RatingFactorScore(Base):
-    factor_value = Column(JSON)  # Storing FactorValue as JSON
-    score_dirty = Column(Boolean)
-    rating_instance_id = Column(UUID, ForeignKey('ratinginstance.id'))
-    rating_factor_name = Column(String, ForeignKey('ratingfactor.name'))
+    name = Column(String, unique=True)
+    label = Column(String)
+    template_id = Column(UUID, ForeignKey('template.id'),nullable=False)
+
+    template = relationship("Template")
+
+
 
 class RatingInstance(Base):
     rating_instance_front_end_id = Column(String)
-    customer_id = Column(UUID, ForeignKey('customer.id'))
+    customer_id = Column(UUID, ForeignKey('customer.id'),nullable=False)
     financials_period_id = Column(UUID, ForeignKey('financialsperiod.id'))
     rating_model_id = Column(UUID, ForeignKey('ratingmodel.id'))
     # factor_attribute_map = Column(JSON)  # Storing as JSON
@@ -174,8 +230,8 @@ class FinancialStatement(Base):
     financials_period_year = Column(Integer)
     financials_period_month = Column( Integer)
     financials_period_date = Column( Integer)
-    customer_id = Column(UUID, ForeignKey('customer.id'))
-    template_id = Column(UUID, ForeignKey('template.id'))
+    customer_id = Column(UUID, ForeignKey('customer.id'),nullable=False)
+    template_id = Column(UUID, ForeignKey('template.id'),nullable=False)
     workflow_action_id = Column(UUID, ForeignKey('workflowaction.id'), nullable=False)
     workflow_action_type = Column(String, default=WorkflowActionType.DRAFT.value)
     is_dirty = Column(Boolean, default=True)
@@ -212,8 +268,8 @@ from sqlalchemy import ForeignKeyConstraint
 
 class LineItemValue(Base):
 
-    financial_statement_id = Column(UUID, ForeignKey('financialstatement.id'))
-    line_item_meta_id = Column(UUID, ForeignKey('lineitemmeta.id'))
+    financial_statement_id = Column(UUID, ForeignKey('financialstatement.id'),nullable=False)
+    line_item_meta_id = Column(UUID, ForeignKey('lineitemmeta.id'),nullable=False)
     value = Column(Float, nullable=True)
 
     financial_statement = relationship("FinancialStatement")
