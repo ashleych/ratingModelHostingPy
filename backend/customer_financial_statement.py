@@ -16,6 +16,9 @@ import logging
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 from py_expression_eval import Parser
+
+from schema import schema
+
 class NullableFloat:
     def __init__(self, value: float = None):
         self.value = value
@@ -55,7 +58,36 @@ class FsApp:
         # self.update_financial_statement(statement)
 
         self.db.commit()
+    def update_statement(self, statement_id: str, updated_values: List[schema.UpdatedValue]) -> Dict:
+        statement = self.db.query(FinancialStatement).filter(FinancialStatement.id == statement_id).first()
+        if not statement:
+            raise ValueError(f"No statement found with id {statement_id}")
 
+        template = statement.template
+
+        # Update the values in the database
+        for update in updated_values:
+            line_item = self.db.query(LineItemValue).filter(
+                LineItemValue.financial_statement_id == statement_id,
+                LineItemValue.line_item_meta_id == update.template_financial_item_id
+            ).first()
+            if line_item:
+                line_item.value = update.new_value
+
+        self.db.flush()
+
+        # Recalculate derived values
+        derived_fields = self.get_derived_fields(template)
+        field_values_map = self.get_all_fields_values(statement)
+        updated_derived_values_map = self.compute_derived_line_item_values(derived_fields, field_values_map)
+        self.update_derived_field_values_in_db(statement, updated_derived_values_map)
+
+        # Commit changes
+        self.db.commit()
+
+        # Fetch updated data to return
+
+        return
     def create_statement_data_for_customer(self, cif_number: str) -> Customer:
         customer = self.db.query(Customer).filter(Customer.cif_number == cif_number).first()
         workflow_action = customer.workflow_action
@@ -157,8 +189,80 @@ class FsApp:
     #             } for item in line_items
     #         ]
     #     return statement, line_items
-    
     def get_statement_data(self, statement_ids: List[str]) -> Dict:
+        statements = (self.db.query(FinancialStatement)
+                      .options(joinedload(FinancialStatement.customer),
+                               joinedload(FinancialStatement.template))
+                      .filter(FinancialStatement.id.in_(statement_ids))
+                      .order_by(FinancialStatement.financials_period_year,
+                                FinancialStatement.financials_period_month,
+                                FinancialStatement.financials_period_date)
+                      .all())
+        
+        if not statements:
+            raise ValueError(f"No statements found with the provided IDs")
+
+        # Get line items for the first statement (assuming they're the same for all)
+        first_statement = statements[0]
+        line_items = (self.db.query(LineItemValue, LineItemMeta)
+                      .join(LineItemMeta)
+                      .filter(LineItemValue.financial_statement_id == first_statement.id)
+                      .order_by(LineItemMeta.order_no)
+                      .all())
+
+        # Prepare the result structure
+        spreading_line_items = []
+        for i, (line_value, line_meta) in enumerate(line_items):
+            try:
+                item = schema.SpreadingLineItems(
+                    statement_1=first_statement.id,
+                    order_no=line_meta.order_no,
+                    formula=line_meta.formula,
+                    template_financial_line_item_name=line_meta.name,
+                    template_id=first_statement.template_id,
+                    template_financial_item_id=line_meta.id,
+                    template_label=line_meta.label,
+                    value_1=line_value.value
+                )
+                spreading_line_items.append(item)
+            except ValidationError as e:
+                logger.error(f"Validation error at index {i}:")
+                logger.error(f"Line value: {line_value.__dict__}")
+                logger.error(f"Line meta: {line_meta.__dict__}")
+                logger.error(f"Error details: {e}")
+                raise  # Remove this if you want to continue processing other items
+
+        # Populate values for other statements
+        for i, statement in enumerate(statements[1:], start=2):
+            values = (self.db.query(LineItemValue.value)
+                      .join(LineItemMeta)
+                      .filter(LineItemValue.financial_statement_id == statement.id)
+                      .order_by(LineItemMeta.order_no)
+                      .all())
+            
+            if len(values) != len(spreading_line_items):
+                raise ValueError(f"Mismatch in number of line items for statement {statement.id}")
+            
+            for j, value in enumerate(values):
+                setattr(spreading_line_items[j], f"statement_{i}", statement.id)
+                setattr(spreading_line_items[j], f"value_{i}", value[0])
+
+        # Prepare the properties
+        spreading_properties = schema.SpreadingStatementProperties(
+            statement_type=first_statement.template.name,
+            dates=[f"{s.financials_period_year}-{s.financials_period_month:02d}-{s.financials_period_date:02d}"
+                   for s in statements]
+        )
+        dates_in_statement = [f"{s.financials_period_year}-{s.financials_period_month:02d}-{s.financials_period_date:02d}"
+                              for s in statements]
+        statement_type = first_statement.template.name.lower()
+
+        return {
+            "data": [item.dict() for item in spreading_line_items],  # Convert Pydantic models to dicts
+            "statement_type": statement_type,
+            "dates_in_statement": dates_in_statement
+        }
+    def get_statement_data_old(self, statement_ids: List[str]) -> Dict:
         statements = (self.db.query(FinancialStatement)
                       .options(joinedload(FinancialStatement.customer),
                                joinedload(FinancialStatement.template))

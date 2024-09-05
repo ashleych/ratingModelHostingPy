@@ -4,173 +4,206 @@
 <h1 class="text-1xl font-bold mb-6">Financial Statement for {{customer.customer_name}} </h1>
 <div id="hot-app"></div>
 <div id="spreads-table"></div>
-
+{% include "loading_indicator.html" %}
 <script>
-var spreads_data={{ data | tojson|safe }} ;
-var statement_type='pnl' ;
-var dates_in_statement={{ dates_in_statement | tojson }} ;
+    const currentCustomerId = "{{ customer.id }}";
+    // ... rest of your JavaScript ...
+</script>
+<script>
+  var spreads_data = {{ data | tojson | safe }};
+  var statement_type = 'pnl';
+  var dates_in_statement = {{ dates_in_statement | tojson }};
 
-function assignClasses(row, col) {
+  function assignClasses(row, col) {
 
-  className = 'font-nunito text-xs';
-  if (row % 2) {
-    className = className + " " + '!bg-slate-100 dark:!bg-slate-700  text-gray-500 dark:text-gray-100'; //to alternate shade the rows
-  } else {
-    className = className + " " + '!bg-slate-200 dark:!bg-slate-800  text-gray-500 dark:text-gray-100'; //to alternate shade the rows - darker shade
+    className = 'font-nunito text-xs';
+    if (row % 2) {
+      className = className + " " + '!bg-slate-100 dark:!bg-slate-700  text-gray-500 dark:text-gray-100'; //to alternate shade the rows
+    } else {
+      className = className + " " + '!bg-slate-200 dark:!bg-slate-800  text-gray-500 dark:text-gray-100'; //to alternate shade the rows - darker shade
 
+    }
+    if (col > 0) {
+      className = className + " " + 'htRight';
+    }
+    return className
   }
-  if (col > 0) {
-    className = className + " " + 'htRight';
-  }
-  return className
-}
-let highlightedRows = [];
-function displaySpreadsFormat(spreads_data, statement_type,dates_in_statement) {
+  let highlightedRows = [];
+  function displaySpreadsFormat(spreads_data, statement_type, dates_in_statement) {
     const spreads_format_container = document.getElementById('spreads-table');
-
-
-    const cols = Object.keys(spreads_data[0]).filter((x) => {
-        return x.includes('value_')
+    if (spreads_data.length > 0) {
+        allStatementIds = Object.keys(spreads_data[0])
+            .filter(key => key.startsWith('statement_'))
+            .map(key => spreads_data[0][key])
+            .filter(id => id != null);
+    }
+    const cols_all = Object.keys(spreads_data[0]).filter((x) => {
+      return x.includes('value_')
     });
-
-    console.log(Object.keys(spreads_data));
-    console.log(cols);
+    const cols = cols_all.slice(0,dates_in_statement.length)
     const dates_cols = cols.map((c) => { return { data: c, type: 'numeric' } });
-
+console.log(dates_cols);
     spreads_format_hot = new Handsontable(spreads_format_container, {
-        data: spreads_data,
-        cells: function (row, col) {
-            var cellProperties = {};
-            var className=" "
-            if (highlightedRows.includes(row)) {
-              className += ' highlighted-formula-component';}
-              else{
-    className +=  assignClasses(row, col);
-
-
-  }
-            cellProperties.className = className;
-            return cellProperties;
-        },
-
-        colHeaders: ['Line Item', ...dates_in_statement],
-        columns: [
-            { data: 'template_label', type: 'text' }, ...dates_cols
-        ],
-        width: "auto",
-        stretchH: "all",
-        height: "700px",
-        licenseKey: 'non-commercial-and-evaluation',
-        afterChange: function (changes, source) {
-            if (source === 'edit' || source === "CopyPaste.paste") {
-                var updatedData = spreads_format_hot.getSourceData();
-                //update_spreads_data(spreads_format_hot, updatedData, statement_type);
-            }
-        },
-        beforeOnCellMouseDown: function (event, coords, TD) {
-            if (coords.col > 0) {
-                const formula = spreads_format_hot.getSourceData()[coords.row].formula
-                if (formula) {
-                    const lineItemNames = extractFormulaComponents(formula);
-                    highlightRows(spreads_format_hot, lineItemNames);
-                    showFormulaTooltip(TD, formula);
-                }
-            } else {
-                removeHighlights(spreads_format_hot);
-                //removeFormulaTooltip();
-            }
+      data: spreads_data,
+      cells: function (row, col) {
+        var cellProperties = {};
+        var className = " "
+        if (highlightedRows.includes(row)) {
+          className += ' highlighted-formula-component';
         }
+        else {
+          className += assignClasses(row, col);
+
+
+        }
+        cellProperties.className = className;
+        return cellProperties;
+      },
+
+      colHeaders: ['Line Item', ...dates_in_statement],
+      columns: [
+        { data: 'template_label', type: 'text' }, ...dates_cols
+      ],
+      width: "auto",
+      stretchH: "all",
+      height: "700px",
+      licenseKey: 'non-commercial-and-evaluation',
+      afterChange: function (changes, source) {
+        if (source === 'edit' || source === "CopyPaste.paste") {
+          if (changes && changes.length > 0) {
+            const changedData = changes.map(([row, prop, oldValue, newValue]) => {
+              const rowData = this.getSourceDataAtRow(row);
+              const statementIndex = parseInt(prop.split('_')[1]) - 1;
+              return {
+                statement_id: rowData[`statement_${statementIndex + 1}`],
+                template_financial_item_id: rowData.template_financial_item_id,
+                template_financial_line_item_name: rowData.template_financial_line_item_name,
+                old_value: oldValue,
+                new_value: newValue
+              };
+            });
+
+            update_spreads_data(changedData,allStatementIds);
+          }
+        }
+      },
+      beforeOnCellMouseDown: function (event, coords, TD) {
+        if (coords.col > 0) {
+          const formula = spreads_format_hot.getSourceData()[coords.row].formula
+          if (formula) {
+            const lineItemNames = extractFormulaComponents(formula);
+            highlightRows(spreads_format_hot, lineItemNames);
+            showFormulaTooltip(TD, formula);
+          }
+        } else {
+          removeHighlights(spreads_format_hot);
+          //removeFormulaTooltip();
+        }
+      }
     });
-  //  for (var row = 1; row < spreads_data.length; row++) {
-  //        // className=assignClasses( row, col);
-  //        // hot_raw.setCellMeta(row, col, "className", className );
-  //        spreads_format_hot.setCellMeta(row, col, "lineItemId",spreads_data[row].template_financial_item_id) ;
-   //       spreads_format_hot.setCellMeta(row, col, "lineItemName", spreads_data[row].template_financial_item_name);
-   // }
-}
-function update_spreads_data(spreads_format_hot, updatedData, statement_type) {
-    const updatedValuesUrl = '/update_corporate_pnl/?statement_type=' + statement_type;
+    //  for (var row = 1; row < spreads_data.length; row++) {
+    //        // className=assignClasses( row, col);
+    //        // hot_raw.setCellMeta(row, col, "className", className );
+    //        spreads_format_hot.setCellMeta(row, col, "lineItemId",spreads_data[row].template_financial_item_id) ;
+    //       spreads_format_hot.setCellMeta(row, col, "lineItemName", spreads_data[row].template_financial_item_name);
+    // }
+  }
+
+
+function update_spreads_data(updatedData) {
+  showLoadingIndicator();
+ disableInteractions();
+    const updatedValuesUrl = '/update_statement'
 
     fetch(updatedValuesUrl, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ line_items: updatedData })
-    })
-        .then(response => response.json())
-        .then(data => {
-            console.log("data receive :", data);
-            // const transformedData = data["corporate_pnl"].map(item => [ item.order_no, item.line_item_row_id, item.label, item.value ]); -->
-            //            const transformedData = Object.entries(data).map(([key, value]) => [key, value]);
-            spreads_format_hot.loadData(data["corporate_pnl"]);
+        body: JSON.stringify({
+            line_items: updatedData,
+            multi_statement_ids: allStatementIds,
+            customer_id: currentCustomerId  // Make sure this variable is set somewhere in your code
         })
-        .catch(error => {
-            console.error('Error updating corporate PNL data:', error);
-        });
+    })
+    .then(response => {
+        if (response.redirected) {
+            // If the response is a redirect, navigate to the new URL
+            window.location.href = response.url;
+        } else if (!response.ok) {
+            throw new Error('Network response was not ok');
+        }
+    })
+    .catch(error => {
+        console.error('Error updating statement data:', error);
+        hideLoadingIndicator();
+                enableInteractions();
+
+    });
 }
-function extractRowIdsFromFormula(formula) {
+  function extractRowIdsFromFormula(formula) {
     const regex = /\b\w+_\d+\b/g;
     return formula.match(regex);
-}
-function extractFormulaComponents(formula) {
+  }
+  function extractFormulaComponents(formula) {
     // Split the formula by common operators (+, -, *, /)
     const components = formula.split(/\s*[\+\-\*\/]\s*/);
-    
+
     // Trim each component and filter out any empty strings
     const trimmedComponents = components
-        .map(component => component.trim())
-        .filter(component => component.length > 0);
+      .map(component => component.trim())
+      .filter(component => component.length > 0);
 
     // Log for debugging
     console.log("Formula:", formula);
     console.log("Extracted components:", trimmedComponents);
-    
+
     return trimmedComponents;
-}
-function highlightRows(spreads_format_hot, lineItemNames) {
+  }
+  function highlightRows(spreads_format_hot, lineItemNames) {
     // Clear previous highlights
     removeHighlights(spreads_format_hot);
 
     const data = spreads_format_hot.getSourceData();
     highlightedRows = data.reduce((acc, row, index) => {
-        if (lineItemNames.includes(row.template_financial_line_item_name)) {
-            acc.push(index);
-        }
-        return acc;
+      if (lineItemNames.includes(row.template_financial_line_item_name)) {
+        acc.push(index);
+      }
+      return acc;
     }, []);
     console.log("Highlighted rows: ", highlightedRows);
     highlightedRows.forEach(row => {
-        for (let col = 0; col < spreads_format_hot.countCols(); col++) {
-          console.log("The cell meta for the row is: ",spreads_format_hot.getCellMeta(row, col));
-            spreads_format_hot.setCellMeta(row, col, 'className', 
-                spreads_format_hot.getCellMeta(row, col).className + ' highlighted-formula-component');
-        }
+      for (let col = 0; col < spreads_format_hot.countCols(); col++) {
+        console.log("The cell meta for the row is: ", spreads_format_hot.getCellMeta(row, col));
+        spreads_format_hot.setCellMeta(row, col, 'className',
+          spreads_format_hot.getCellMeta(row, col).className + ' highlighted-formula-component');
+      }
     });
 
     spreads_format_hot.render();
-}
+  }
 
-function removeHighlights(spreads_format_hot) {
+  function removeHighlights(spreads_format_hot) {
     highlightedRows.forEach(row => {
-        for (let col = 0; col < spreads_format_hot.countCols(); col++) {
-            let className = spreads_format_hot.getCellMeta(row, col).className || '';
-            className = className.replace('highlighted-formula-component', '').trim();
-            spreads_format_hot.setCellMeta(row, col, 'className', className);
-        }
+      for (let col = 0; col < spreads_format_hot.countCols(); col++) {
+        let className = spreads_format_hot.getCellMeta(row, col).className || '';
+        className = className.replace('highlighted-formula-component', '').trim();
+        spreads_format_hot.setCellMeta(row, col, 'className', className);
+      }
     });
 
     highlightedRows = [];
     spreads_format_hot.render();
-}
+  }
 
-function showFormulaTooltip(cell, formula) {
+  function showFormulaTooltip(cell, formula) {
     const tooltip = document.createElement('div');
     tooltip.className = 'formula-tooltip';
     tooltip.textContent = formula;
     cell.appendChild(tooltip);
-}
-displaySpreadsFormat(spreads_data,statement_type,dates_in_statement);
+  }
+  displaySpreadsFormat(spreads_data, statement_type, dates_in_statement);
 
 </script>
+
 {% endblock %}

@@ -1,5 +1,6 @@
 from models.models import FinancialStatement, Customer,LineItemValue
 from fastapi import APIRouter, Request, Form, HTTPException,Depends
+from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
 from models.models import Customer
 from sqlalchemy.orm import Session
@@ -68,12 +69,14 @@ async def view_statement(request:Request,customer_id: str, db: Session = Depends
             "statement_type": statement_data["statement_type"],
             "dates_in_statement": statement_data["dates_in_statement"]
         })
+
+
     # except ValueError as e:
     #     raise HTTPException(status_code=404, detail=str(e))
     # except Exception as e:
     #     raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")
 @router.post("/statements/{statement_id}/update")
-async def update_statement(request: Request, statement_id: str, db: Session = Depends(get_db), field_name: str = Form(...), new_value: float = Form(...)):
+async def update_statement_old(request: Request, statement_id: str, db: Session = Depends(get_db), field_name: str = Form(...), new_value: float = Form(...)):
     fs_app = FsApp(db)
     print("field name is :",field_name)
     print("field name is :",new_value)
@@ -89,3 +92,33 @@ async def update_statement(request: Request, statement_id: str, db: Session = De
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")
     return {"success": True, "updated_values": updated_values}
+
+from pydantic import BaseModel
+from typing import List
+from schema import schema
+class UpdateStatementRequest(BaseModel):
+    customer_id:str
+    multi_statement_ids:List[str]
+    line_items: List[schema.UpdatedValue]
+@router.post("/update_statement")
+async def update_statement(request: UpdateStatementRequest, db: Session = Depends(get_db)):
+    fs_app = FsApp(db)
+    
+        # Group updates by statement_id
+    updates_by_statement = {}
+    for item in request.line_items:
+        if item.statement_id not in updates_by_statement:
+            updates_by_statement[item.statement_id] = []
+        updates_by_statement[item.statement_id].append(item)
+
+    # Process updates for each statement
+    all_updated_data = []
+    for statement_id, updates in updates_by_statement.items():
+        fs_app.update_statement(statement_id, updates)
+    updated_data = fs_app.get_statement_data(request.multi_statement_ids)
+    return RedirectResponse(url=f"/statements/{request.customer_id}", status_code=303)
+    # return {"data": jsonable_encoder(updated_data)}
+    # except ValueError as e:
+    #     raise HTTPException(status_code=404, detail=str(e))
+    # except Exception as e:
+    #     raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")

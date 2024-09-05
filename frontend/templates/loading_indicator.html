@@ -1,0 +1,60 @@
+<!-- Loading indicator -->
+
+<div id="loading-indicator" class="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50 hidden">
+    <div class="bg-white dark:bg-gray-800 rounded-lg p-8 shadow-2xl flex flex-col items-center">
+        <div class="loader"></div>
+        <p class="mt-4 text-gray-700 dark:text-gray-300 font-semibold">Updating...</p>
+    </div>
+</div>
+
+<div id="interaction-blocker" class="fixed inset-0 bg-transparent hidden"></div>
+<style>
+    .loader {
+        border: 5px solid #f3f3f3; /* Light grey */
+        border-top: 5px solid #3498db; /* Blue */
+        border-radius: 50%;
+        width: 50px;
+        height: 50px;
+        animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+
+    /* Optional: Add a subtle scale animation to the entire loading indicator */
+    #loading-indicator {
+        animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+
+    @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.8; }
+    }
+</style>
+<script>
+
+function showLoadingIndicator() {
+    document.getElementById('loading-indicator').classList.remove('hidden');
+}
+
+function hideLoadingIndicator() {
+    document.getElementById('loading-indicator').classList.add('hidden');
+}
+function disableInteractions() {
+    document.getElementById('interaction-blocker').classList.remove('hidden');
+}
+
+function enableInteractions() {
+    document.getElementById('interaction-blocker').classList.add('hidden');
+}
+
+
+</script>
+<script>
+  window.addEventListener('beforeunload', function() {
+    hideLoadingIndicator();
+    enableInteractions();
+});
+</script>

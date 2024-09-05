@@ -256,10 +256,19 @@ class FinancialStatement(BaseModel):
 class SpreadingStatementProperties(BaseModel):
     statement_type: str
     dates :List[str]
+
+class MultiStatement(BaseModel):
+    statement_1:UUID
+    statement_2:Optional[UUID]=None
+    statement_3:Optional[UUID]=None
+    statement_4:Optional[UUID]=None
+    statement_5:Optional[UUID]=None
+    statement_6:Optional[UUID]=None
     
-class SpreadingLineItems(BaseModel):
+class SpreadingLineItems(MultiStatement):
     # spreading_statement_properties_id: UUID = Field(..., description="The unique identifier template into which it is being mapped")
     # spreading_statement_properties: SpreadingStatementProperties
+
     order_no:int
     template_id: UUID = Field(..., description="The unique identifier template into which it is being mapped")
     template_financial_item_id: Optional[UUID] = Field(...,description="Link to statmeent meta information")
@@ -272,3 +281,13 @@ class SpreadingLineItems(BaseModel):
     value_4:Optional[float]=None
     value_5:Optional[float]=None
     value_6:Optional[float]=None
+
+
+class UpdatedValue(BaseModel):
+    statement_id: str
+    template_financial_item_id: str
+    template_financial_line_item_name: str
+    old_value: float
+    new_value: float
+
+
