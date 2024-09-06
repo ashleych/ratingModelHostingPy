@@ -79,24 +79,34 @@ class RatingModelApp:
 
     def get_factors_attributes(self, rating_model: RatingModel) -> List[RatingFactorAttribute]:
         return self.session.query(RatingFactorAttribute).filter_by(rating_model_id=rating_model.id).all()
-
+    def get_all_factors(self, rating_model: RatingModel) -> List[RatingFactor]:
+        return self.session.query(RatingFactor).filter_by(rating_model_id=rating_model.id).all()
     def get_formulae_from_weightages(self, rating_model: RatingModel):
-        def find_immediate_children(parent_name: str, factors: List[RatingFactor]) -> List[RatingFactor]:
-            return [factor for factor in factors if factor.parent_factor_name == parent_name]
+        def find_immediate_children(factor: RatingFactor, all_factors: List[RatingFactor]) -> List[RatingFactor]:
+            return [child for child in all_factors if child.parent_factor_name == factor.name]
 
-        factors = self.get_quantitative_factors(rating_model)
+        factors = self.get_all_factors(rating_model)
+        updated_factors = []
+
         for factor in factors:
-            if factor.input_source == FactorInputSource.DERIVED:
-                children = find_immediate_children(factor.name, factors)
-                formula = " + ".join(
-                    [f"{child.weightage} * {child.name}" for child in children])
-                factor.formula = formula
+            if factor.input_source == FactorInputSource.DERIVED.value:
+                children = find_immediate_children(factor, factors)
+                if children:
+                    formula = " + ".join([f"{child.weightage} * {child.name}" for child in children])
+                    if factor.formula != formula:
+                        factor.formula = formula
+                        updated_factors.append(factor)
+                        self.session.add(factor)
 
-        self.update_formula_to_db(rating_model, factors)
+        if updated_factors:
+            self.session.commit()
+            for factor in updated_factors:
+                self.session.refresh(factor)
 
+        return factors
     def check_quant_factors_presence_in_financial_template(self, rating_model: RatingModel):
         quant_factors = self.get_quantitative_factors(
-            rating_model, FactorInputSource.FINANCIAL_STATEMENT)
+            rating_model, FactorInputSource.FINANCIAL_STATEMENT.value)
         line_items = self.get_financial_template_line_items(
             rating_model.template)
 
@@ -110,21 +120,21 @@ class RatingModelApp:
 
     def get_quantitative_factors(self, rating_model: RatingModel, input_source: Optional[FactorInputSource] = None) -> List[RatingFactor]:
         query = self.session.query(RatingFactor).filter_by(
-            rating_model_id=rating_model.id, factor_type=FactorType.QUANTITATIVE)
+            rating_model_id=rating_model.id, factor_type=FactorType.QUANTITATIVE.value)
         if input_source:
             query = query.filter_by(input_source=input_source)
         return query.all()
 
     def get_qualitative_factors(self, rating_model: RatingModel, input_source: Optional[FactorInputSource] = None) -> List[RatingFactor]:
         query = self.session.query(RatingFactor).filter_by(
-            rating_model_id=rating_model.id, factor_type=FactorType.QUALITATIVE)
+            rating_model_id=rating_model.id, factor_type=FactorType.QUALITATIVE.value)
         if input_source:
             query = query.filter_by(input_source=input_source)
         return query.all()
 
     def organise_factors_in_modules(self, rating_model: RatingModel, factor_type: FactorType) -> List[RatingModule]:
         factors = self.get_quantitative_factors(
-            rating_model) if factor_type == FactorType.QUANTITATIVE else self.get_qualitative_factors(rating_model)
+            rating_model) if factor_type == FactorType.QUANTITATIVE.value else self.get_qualitative_factors(rating_model)
 
         modules = [RatingModule(module_name=factor.name, module_factor=factor, child_factors_in_module=[])
                    for factor in factors if factor.module]
@@ -171,26 +181,11 @@ def get_or_create_rating_model(session, template,model_name):
     return rating_model
 # Usage example
 if __name__ == "__main__":
-    from main import create_engine_and_session, DB_NAME
+
+    from main import create_engine_and_session, DB_NAME,init_db
+    init_db(DB_NAME)
     _, db = create_engine_and_session(DB_NAME)
     with db as session:
-        # rating_model = RatingModel(name="Example Model", label="Example Label",)
-        # session.add(rating_model)
-        # session.commit()
-
-        # factors = rating_model.configure_scoring_factors_meta_from_csv(")
-        # session.add_all(factors)
-        # session.commit()
-
-        # attributes = rating_model.configure_attributes_scoring_from_csv("/home/ashleyubuntu/ratingModelPython/backend/Template-Basic/CorporateModelDefinition-attributes.csv")
-        # session.add_all(attributes)
-        # session.commit()
-
-        # rating_model.get_formulae_from_weightages(session)
-        # rating_model.check_quant_factors_presence_in_financial_template(session)
-
-        # modules = rating_model.organise_factors_in_modules(FactorType.QUANTITATIVE)
-        # print(modules)
         import os
         files_dir='/home/ashleyubuntu/ratingModelPython/backend/Template-Basic/'
         model_definition_fn=os.path.join(files_dir,'CorporateModelDefinition.csv')
@@ -207,7 +202,7 @@ if __name__ == "__main__":
         session.add_all(attributes)
         session.commit()
 
-        # rating_model_app.get_formulae_from_weightages(rating_model)
+        rating_model_app.get_formulae_from_weightages(rating_model)
         # rating_model_app.check_quant_factors_presence_in_financial_template(
         #     rating_model)
 

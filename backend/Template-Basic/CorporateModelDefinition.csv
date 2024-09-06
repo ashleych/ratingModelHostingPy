@@ -1,25 +1,25 @@
 label,name,parent_factor,factor_type,Weightage,input_source,order_no,module
-Net Sales (crores),avg_net_sales_crores,financialScore,quantitative,0,financial_statement,1,0
-Current Ratio,avg_current_ratio,financialScore,quantitative,0,financial_statement,2,0
-Cash Flow / TD (Net Cash Accruals/ Total Debt),avg_cash_flow_td_net_cash_accruals_total_debt,financialScore,quantitative,0,financial_statement,3,0
-PAT Margin (PAT/Operating Income),avg_pat_margin_pat_operating_income,financialScore,quantitative,0,financial_statement,4,0
-Interest Coverage ((PBDIT+Interest earned)/ interest expense),avg_interest_coverage_pbdit_interest_earned_interest_expense,financialScore,quantitative,0,financial_statement,5,0
-Gearing (Debt/Tangible net worth),avg_gearing_debt_tangible_net_worth,financialScore,quantitative,0,financial_statement,6,0
-Average Cash DSCR((NCA+Interest-25%of incremental net working capital other than cash) /( Debt payable within 1  year + interest & finance charges)),avg_average_cash_dscr_nca_interest_25_of_incremental_net_working_capital_other_than_cash_debt_payable_within_1_year_interest_finance_charges,financialScore,quantitative,0,financial_statement,7,0
-ROCE (PBIT/Total Debt+Tangible Networth),avg_roce_pbit_total_debt_tangible_networth,financialScore,quantitative,0,financial_statement,8,0
-Total Financial Score,financialScore,overallScore,quantitative,1,derived,9,1
-Industry Risk,industry_risk,nonfinancialScore,qualitative,0,derived,10,1
-What is the industry outlook?,industry_outlook,industry_risk,qualitative,0,user_input,11,0
-How would you characterize the market for the industry segment in which the customer does business?,mkt_segment,industry_risk,qualitative,0,user_input,12,0
-Government Policies/Stance on sector,governmentPolicies,industry_risk,qualitative,0,user_input,13,0
-Management  Risk,mgmt_risk,nonfinancialScore,qualitative,0,derived,14,1
-"Management Competency (Qualification, Capability) ",mkt_competence,mgmt_risk,qualitative,0,user_input,15,0
-Promoter/Management Track Record (Relationship with Banks / FIs & comfort level with our management.),promoter_track,mgmt_risk,qualitative,1,user_input,16,0
-Business  Risk,business_risk,nonfinancialScore,qualitative,0,derived,17,1
-Risk due to concentration in customers?,customer_concentration,business_risk,qualitative,0,user_input,18,0
-Capacity Utilisation vis a vis industry,capacity_utilisation,business_risk,qualitative,0,user_input,19,0
-Cost Efficiency (Cost to Income) versus peers,cost_efficiency,business_risk,qualitative,0,user_input,20,0
-Nature of Technology Employed,technology_employed,business_risk,qualitative,0,user_input,21,0
-Does the company have access to other financial sources through 1) Ununtilized Bank lines 2) CP issuances 3) Capital Markets through Bonds/Debs/Stocks 4) Strong promoter/Group Backing ,other_financial_sources,business_risk,qualitative,0,user_input,22,0
-Total Non-Financial Score,nonfinancialScore,overallScore,qualitative,1,derived,23,1
-overallScore,overallScore,,overall,1,derived,24,0
+Net Sales (crores),avg_net_sales_crores,financialScore,quantitative,0.15,financial_statement,1,0
+Current Ratio,avg_current_ratio,financialScore,quantitative,0.05,financial_statement,2,0
+Cash Flow / TD (Net Cash Accruals/ Total Debt),avg_cash_flow_td_net_cash_accruals_total_debt,financialScore,quantitative,0.15,financial_statement,3,0
+PAT Margin (PAT/Operating Income),avg_pat_margin_pat_operating_income,financialScore,quantitative,0.05,financial_statement,4,0
+Interest Coverage ((PBDIT+Interest earned)/ interest expense),avg_interest_coverage_pbdit_interest_earned_interest_expense,financialScore,quantitative,0.15,financial_statement,5,0
+Gearing (Debt/Tangible net worth),avg_gearing_debt_tangible_net_worth,financialScore,quantitative,0.15,financial_statement,6,0
+Average Cash DSCR((NCA+Interest-25%of incremental net working capital other than cash) /( Debt payable within 1  year + interest & finance charges)),avg_average_cash_dscr_nca_interest_25_of_incremental_net_working_capital_other_than_cash_debt_payable_within_1_year_interest_finance_charges,financialScore,quantitative,0.15,financial_statement,7,0
+ROCE (PBIT/Total Debt+Tangible Networth),avg_roce_pbit_total_debt_tangible_networth,financialScore,quantitative,0.15,financial_statement,8,0
+Total Financial Score,financialScore,overallScore,quantitative,0.50,derived,9,1
+Industry Risk,industry_risk,nonfinancialScore,qualitative,0.33,derived,10,1
+What is the industry outlook?,industry_outlook,industry_risk,qualitative, 0.40 ,user_input,11,0
+How would you characterize the market for the industry segment in which the customer does business?,mkt_segment,industry_risk,qualitative, 0.30 ,user_input,12,0
+Government Policies/Stance on sector,governmentPolicies,industry_risk,qualitative, 0.30 ,user_input,13,0
+Management  Risk,mgmt_risk,nonfinancialScore,qualitative,0.33,derived,14,1
+"Management Competency (Qualification, Capability) ",mkt_competence,mgmt_risk,qualitative, 0.40 ,user_input,15,0
+Promoter/Management Track Record (Relationship with Banks / FIs & comfort level with our management.),promoter_track,mgmt_risk,qualitative, 0.60 ,user_input,16,0
+Business  Risk,business_risk,nonfinancialScore,qualitative,0.33,derived,17,1
+Risk due to concentration in customers?,customer_concentration,business_risk,qualitative, 0.20 ,user_input,18,0
+Capacity Utilisation vis a vis industry,capacity_utilisation,business_risk,qualitative, 0.20 ,user_input,19,0
+Cost Efficiency (Cost to Income) versus peers,cost_efficiency,business_risk,qualitative, 0.20 ,user_input,20,0
+Nature of Technology Employed,technology_employed,business_risk,qualitative, 0.10 ,user_input,21,0
+Does the company have access to other financial sources through 1) Ununtilized Bank lines 2) CP issuances 3) Capital Markets through Bonds/Debs/Stocks 4) Strong promoter/Group Backing ,other_financial_sources,business_risk,qualitative, 0.30 ,user_input,22,0
+Total Non-Financial Score,nonfinancialScore,overallScore,qualitative,0.50,derived,23,1
+overallScore,overallScore,,overall,1.00,derived,24,0
