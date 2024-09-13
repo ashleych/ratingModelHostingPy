@@ -14,6 +14,7 @@ from models.models import FactorType,AttributeType
 
 # You'll need to implement the Template model and other necessary models
 
+import os
 # Add other fields as needed
 
 # You'll need to implement the FsApp class with necessary database connection methods
@@ -38,44 +39,44 @@ class RatingModelApp:
             raise ValueError("Unsupported type being saved")
         self.session.commit()
 
-    def configure_scoring_factors_meta_from_csv(self, rating_model: RatingModel, filepath: str) -> List[RatingFactor]:
-        factors = []
-        with open(filepath, 'r') as csvfile:
-            reader = csv.DictReader(csvfile)
-            for row in reader:
-                factor = RatingFactor(
-                    name=row['name'],
-                    label=row['label'],
-                    input_source=FactorInputSource[row['input_source'].upper(
-                    )].value,
-                    order_no=int(row['order_no']),
-                    factor_type=FactorType[row['factor_type'].upper()].value,
-                    parent_factor_name=row['parent_factor'],
-                    weightage=float(row['Weightage']),
-                    module=bool(int(row['module'])),
-                    rating_model_id=rating_model.id
-                )
-                factors.append(factor)
-        return factors
+    # def configure_scoring_factors_meta_from_csv(self, rating_model: RatingModel, filepath: str) -> List[RatingFactor]:
+    #     factors = []
+    #     with open(filepath, 'r') as csvfile:
+    #         reader = csv.DictReader(csvfile)
+    #         for row in reader:
+    #             factor = RatingFactor(
+    #                 name=row['name'],
+    #                 label=row['label'],
+    #                 input_source=FactorInputSource[row['input_source'].upper(
+    #                 )].value,
+    #                 order_no=int(row['order_no']),
+    #                 factor_type=FactorType[row['factor_type'].upper()].value,
+    #                 parent_factor_name=row['parent_factor'],
+    #                 weightage=float(row['Weightage']),
+    #                 module=bool(int(row['module'])),
+    #                 rating_model_id=rating_model.id
+    #             )
+    #             factors.append(factor)
+    #     return factors
 
-    def configure_attributes_scoring_from_csv(self, rating_model: RatingModel, filepath: str) -> List[RatingFactorAttribute]:
-        attributes = []
-        with open(filepath, 'r') as csvfile:
-            reader = csv.DictReader(csvfile)
-            for row in reader:
-                attribute = RatingFactorAttribute(
-                    rating_model_id=rating_model.id,
-                    rating_factor_name=row['factor'],
-                    name=row['attribute_name'],
-                    label=row['attribute_label'],
-                    attribute_type=AttributeType[row['scoring_type'].upper()].value,
-                    bin_start=float(
-                        row['bin_start']) if row['bin_start'] else None,
-                    bin_end=float(row['bin_end']) if row['bin_end'] else None,
-                    score=float(row['score'])
-                )
-                attributes.append(attribute)
-        return attributes
+    # def configure_attributes_scoring_from_csv(self, rating_model: RatingModel, filepath: str) -> List[RatingFactorAttribute]:
+    #     attributes = []
+    #     with open(filepath, 'r') as csvfile:
+    #         reader = csv.DictReader(csvfile)
+    #         for row in reader:
+    #             attribute = RatingFactorAttribute(
+    #                 rating_model_id=rating_model.id,
+    #                 rating_factor_name=row['factor'],
+    #                 name=row['attribute_name'],
+    #                 label=row['attribute_label'],
+    #                 attribute_type=AttributeType[row['scoring_type'].upper()].value,
+    #                 bin_start=float(
+    #                     row['bin_start']) if row['bin_start'] else None,
+    #                 bin_end=float(row['bin_end']) if row['bin_end'] else None,
+    #                 score=float(row['score'])
+    #             )
+    #             attributes.append(attribute)
+    #     return attributes
 
     def get_factors_attributes(self, rating_model: RatingModel) -> List[RatingFactorAttribute]:
         return self.session.query(RatingFactorAttribute).filter_by(rating_model_id=rating_model.id).all()
@@ -179,30 +180,111 @@ def get_or_create_rating_model(session, template,model_name):
         rating_model = create_new_rating_model(session, template,model_name)
     
     return rating_model
+
+def configure_rating_model_factors(db):
+    with db as session:
+        files_dir='/home/ashleyubuntu/ratingModelPython/backend/Template-Basic/'
+        model_definition_fn=os.path.join(files_dir,'CorporateModelDefinition.csv')
+        rating_model_app = RatingModelApp(session)
+        template = session.query(Template).filter(Template.name == "FinTemplate").first()
+        rating_model=get_or_create_rating_model(session=session,template=template,model_name='Corporate')
+        factors = configure_scoring_factors_meta_from_csv(
+            rating_model, model_definition_fn)
+        session.add_all(factors)
+        session.flush()
+        session.commit()
+
+        attributes = configure_attributes_scoring_from_csv(factors,
+            rating_model, os.path.join(files_dir,"CorporateModelDefinition-attributes.csv"))
+        session.add_all(attributes)
+        session.commit()
+
+        rating_model_app.get_formulae_from_weightages(rating_model)
+    
+     
+def configure_scoring_factors_meta_from_csv(rating_model: RatingModel, filepath: str) -> List[RatingFactor]:
+        factors = []
+        with open(filepath, 'r') as csvfile:
+            reader = csv.DictReader(csvfile)
+            for row in reader:
+                factor = RatingFactor(
+                    name=row['name'],
+                    label=row['label'],
+                    input_source=FactorInputSource[row['input_source'].upper()].value,
+                    order_no=int(row['order_no']),
+                    factor_type=FactorType[row['factor_type'].upper()].value,
+                    parent_factor_name=row['parent_factor'],
+                    weightage=float(row['Weightage']),
+                    module=bool(int(row['module'])),
+                    rating_model_id=rating_model.id
+                )
+                factors.append(factor)
+        
+        # Add factors to the database and flush to get their IDs
+        # db.add_all(factors)
+        # db.flush()
+        
+        return factors
+
+def configure_attributes_scoring_from_csv(factors:List[RatingFactor],rating_model: RatingModel, filepath: str) -> List[RatingFactorAttribute]:
+        # First, get all RatingFactors for this model
+        # factors = db.query(RatingFactor).filter(RatingFactor.rating_model_id == rating_model.id).all()
+        factor_map = {factor.name: factor.id for factor in factors}
+
+        attributes = []
+        with open(filepath, 'r') as csvfile:
+            reader = csv.DictReader(csvfile)
+            for row in reader:
+                factor_name = row['factor']
+                factor_id = factor_map.get(factor_name)
+                if not factor_id:
+                    raise ValueError(f"No matching RatingFactor found for: {factor_name}")
+
+                attribute = RatingFactorAttribute(
+                    rating_model_id=rating_model.id,
+                    rating_factor_id=factor_id,
+                    rating_factor_name=factor_name,
+                    name=row['attribute_name'],
+                    label=row['attribute_label'],
+                    attribute_type=AttributeType[row['scoring_type'].upper()].value,
+                    bin_start=float(row['bin_start']) if row['bin_start'] else None,
+                    bin_end=float(row['bin_end']) if row['bin_end'] else None,
+                    score=float(row['score'])
+                )
+                attributes.append(attribute)
+        
+        return attributes
+
+def configure_rating_model_from_csv(self, rating_model: RatingModel, factors_filepath: str, attributes_filepath: str):
+        # Configure factors
+        factors = configure_scoring_factors_meta_from_csv(rating_model, factors_filepath)
+        self.db.add_all(factors)
+        self.db.flush()  # This ensures all factors have IDs
+
+        # Configure attributes
+        attributes = self.configure_attributes_scoring_from_csv(db,rating_model, attributes_filepath)
+        self.db.add_all(attributes)
+        
+        # Commit all changes
+        self.db.commit()
+
+        return factors, attributes
 # Usage example
 if __name__ == "__main__":
 
     from main import create_engine_and_session, DB_NAME,init_db
     init_db(DB_NAME)
     _, db = create_engine_and_session(DB_NAME)
-    with db as session:
-        import os
-        files_dir='/home/ashleyubuntu/ratingModelPython/backend/Template-Basic/'
-        model_definition_fn=os.path.join(files_dir,'CorporateModelDefinition.csv')
-        rating_model_app = RatingModelApp(session)
-        template = session.query(Template).filter(Template.name == "FinTemplate").first()
-        rating_model=get_or_create_rating_model(session=session,template=template,model_name='Corporate')
-        factors = rating_model_app.configure_scoring_factors_meta_from_csv(
-            rating_model, model_definition_fn)
-        session.add_all(factors)
-        session.commit()
-
-        attributes = rating_model_app.configure_attributes_scoring_from_csv(
-            rating_model, os.path.join(files_dir,"CorporateModelDefinition-attributes.csv"))
-        session.add_all(attributes)
-        session.commit()
-
-        rating_model_app.get_formulae_from_weightages(rating_model)
+    rating_model = db.query(RatingModel).first()  # Or create a new one
+        
+    configure_rating_model_factors(db)
+    # factors, attributes = app.configure_rating_model_from_csv(
+    #         rating_model,
+    #         "path_to_factors.csv",
+    #         "path_to_attributes.csv"
+    #     )
+        
+    # print(f"Configured {len(factors)} factors and {len(attributes)} attributes for the rating model.")
         # rating_model_app.check_quant_factors_presence_in_financial_template(
         #     rating_model)
 

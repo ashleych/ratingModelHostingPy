@@ -142,7 +142,6 @@ class FinancialsPeriod(Base):
 
 class RatingFactor(Base):
 
-    id = Column(Integer, primary_key=True)
     name = Column(String,nullable=False)
     label = Column(String)
     input_source = Column(String)
@@ -160,6 +159,7 @@ class RatingFactor(Base):
 class RatingFactorAttribute(Base):
 
     rating_model_id = Column(UUID, ForeignKey('ratingmodel.id'),nullable=False)
+    rating_factor_id = Column(UUID, ForeignKey('ratingfactor.id'),nullable=False)
     rating_factor_name = Column(String)
     name = Column(String)
     label = Column(String)
@@ -168,6 +168,7 @@ class RatingFactorAttribute(Base):
     bin_end = Column(Float)
     score = Column(Float)
 
+    rating_factor = relationship("RatingFactor")
     rating_model = relationship("RatingModel")
 
 
@@ -183,9 +184,10 @@ class RatingModel(Base):
 
 
 class RatingInstance(Base):
-    rating_instance_front_end_id = Column(String)
+    # rating_instance_front_end_id = Column(String)
     customer_id = Column(UUID, ForeignKey('customer.id'),nullable=False)
-    financials_period_id = Column(UUID, ForeignKey('financialsperiod.id'))
+
+    financial_statement_id = Column(UUID, ForeignKey('financialstatement.id'),nullable=False)
     rating_model_id = Column(UUID, ForeignKey('ratingmodel.id'))
     # factor_attribute_map = Column(JSON)  # Storing as JSON
     # factors = relationship("RatingFactor", secondary="rating_instance_factor")
@@ -200,7 +202,6 @@ class RatingInstance(Base):
     workflow_action_id = Column(UUID, ForeignKey('workflowaction.id'))
     workflow_action_type = Column(String)
     customer = relationship("Customer")
-    financials_period = relationship("FinancialsPeriod")
     rating_model = relationship("RatingModel")
     workflow_action = relationship("WorkflowAction")
 
@@ -237,32 +238,33 @@ class FinancialStatement(Base):
     is_dirty = Column(Boolean, default=True)
     preferred_statement = Column(Boolean)
     source_of_lag_variables = Column(Integer)
-
+    preceding_statement_id=Column(UUID)
+    
     customer = relationship("Customer")
     template = relationship("Template")
     workflow_action = relationship("WorkflowAction")
-    
-    
-# invoice = Table(
-#     "invoice",
-#     metadata_obj,
-#     Column("invoice_id", Integer, primary_key=True),
-#     Column("ref_num", Integer, primary_key=True),
-#     Column("description", String(60), nullable=False),
-# )
 
-# invoice_item = Table(
-#     "invoice_item",
-#     metadata_obj,
-#     Column("item_id", Integer, primary_key=True),
-#     Column("item_name", String(60), nullable=False),
-#     Column("invoice_id", Integer, nullable=False),
-#     Column("ref_num", Integer, nullable=False),
-#     ForeignKeyConstraint(
-#         ["invoice_id", "ref_num"], ["invoice.invoice_id", "invoice.ref_num"]
-#     ),
-# )
-# SQLAlchemy model
+# class StatementSeries(Base):
+    
+#     customer_id = Column(UUID, ForeignKey('customer.id'),nullable=False)
+#     main_series= Column(Boolean)
+#     series_name=Column(String)
+#     statement_ids=Column(JSON) # list of statement IDs will be stored here, in ascending order of dates 
+#     customer = relationship("Customer")
+class RatingFactorScore(Base):
+
+    # FactorValue embedded struct
+    raw_value_text = Column(String)
+    raw_value_float = Column(Float)
+    score = Column(Float)
+
+    score_dirty = Column(Boolean, default=True)
+    rating_instance_id = Column(UUID, ForeignKey('ratinginstance.id', onupdate="CASCADE", ondelete="CASCADE"))
+    rating_factor_id = Column(UUID, ForeignKey('ratingfactor.id', onupdate="CASCADE", ondelete="CASCADE"))
+
+    rating_instance = relationship("RatingInstance")
+    rating_factor = relationship("RatingFactor")
+
 
 from sqlalchemy import ForeignKeyConstraint
 

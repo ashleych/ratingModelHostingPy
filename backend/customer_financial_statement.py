@@ -17,6 +17,7 @@ logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 from py_expression_eval import Parser
 
+import re
 from schema import schema
 
 class NullableFloat:
@@ -31,10 +32,27 @@ class FsApp:
     def generate_statement_data_for_customer(self, year_no_index: int,year:int, month:int, date:int,
                                              workflow_action: WorkflowAction, customer: Customer):
         template = self.db.query(Template).filter(Template.name == "FinTemplate").first()
-        statement = FinancialStatement( financials_period_year=year, financials_period_month=month, financials_period_date=date,workflow_action=workflow_action, 
+        new_statement = FinancialStatement( financials_period_year=year, financials_period_month=month, financials_period_date=date,workflow_action=workflow_action, 
                                        customer=customer, template=template, is_dirty=True)
-        self.db.add(statement)
-        self.db.flush()
+
+    # Find the preceding statement
+        preceding_statement = self.db.query(FinancialStatement).filter(
+            FinancialStatement.customer_id == customer.id,
+            (FinancialStatement.financials_period_year < new_statement.financials_period_year) |
+            ((FinancialStatement.financials_period_year == new_statement.financials_period_year) &
+            (FinancialStatement.financials_period_month < new_statement.financials_period_month)) |
+            ((FinancialStatement.financials_period_year == new_statement.financials_period_year) &
+            (FinancialStatement.financials_period_month == new_statement.financials_period_month) &
+            (FinancialStatement.financials_period_date < new_statement.financials_period_date))
+        ).order_by(
+            FinancialStatement.financials_period_year.desc(),
+            FinancialStatement.financials_period_month.desc(),
+            FinancialStatement.financials_period_date.desc()
+        ).first()
+        if preceding_statement:
+            new_statement.preceding_statement_id = preceding_statement.id
+            self.db.add(new_statement)
+            self.db.flush()
 
         stmt_data = self.read_stmt_data(year_no_index)
         stmt_data_map = {item["name"]: item["value"] for item in stmt_data}
@@ -42,7 +60,7 @@ class FsApp:
         all_fields = self.get_all_fields(template)
         all_field_values = []
         for field in all_fields:
-            line_item = LineItemValue(financial_statement_id=statement.id, financial_statement=statement,
+            line_item = LineItemValue(financial_statement_id=new_statement.id, financial_statement=new_statement,
                                       line_item_meta_id=field.id, line_item_meta=field)
             line_item.value = stmt_data_map.get(field.name)
             all_field_values.append(line_item)
@@ -50,11 +68,17 @@ class FsApp:
         self.db.add_all(all_field_values)
         self.db.flush()
         self.db.commit()
+        lag_variables = self.get_lag_variables(statement=new_statement)    
 
+        for l in lag_variables:
+            # Get the current value of the lag variable
+            new_value=self.get_lag_variable_value(statement=new_statement,lag_meta=l)
+            if new_value:
+                self.update_or_create_lag_line_item_value(statement=new_statement,lag_meta=l,value=new_value)
         derived_fields = self.get_derived_fields(template)
-        field_values_map = self.get_all_fields_values(statement)
+        field_values_map = self.get_all_fields_values(new_statement)
         updated_derived_values_map = self.compute_derived_line_item_values(derived_fields, field_values_map)
-        self.update_derived_field_values_in_db(statement, updated_derived_values_map)
+        self.update_derived_field_values_in_db(new_statement, updated_derived_values_map)
         # self.update_financial_statement(statement)
 
         self.db.commit()
@@ -86,8 +110,8 @@ class FsApp:
         self.db.commit()
 
         # Fetch updated data to return
-
         return
+
     def create_statement_data_for_customer(self, cif_number: str) -> Customer:
         customer = self.db.query(Customer).filter(Customer.cif_number == cif_number).first()
         workflow_action = customer.workflow_action
@@ -131,27 +155,8 @@ class FsApp:
             LineItemMeta.formula != None,LineItemMeta.formula != ''
         ).all()
 
-    # def get_all_fields_values(self, statement: FinancialStatement) -> Dict[str, float]:
-    #     values = self.db.query(LineItemValue).filter(LineItemValue.financial_statement_id == statement.id).all()
-    #     return {value.line_item_meta.name: value.value for value in values}
-    # def get_all_fields_values(self, statement: FinancialStatement) -> Dict[str, NullableFloat]:
-    #     values = self.db.query(LineItemValue).filter(LineItemValue.financial_statement_id == statement.id).all()
-
-    #     return {value.line_item_meta_name: NullableFloat(value.value) for value in values}
-
-    # def get_all_fields_values(self, statement: FinancialStatement) -> Dict[str, NullableFloat]:
-    #     values = self.db.query(LineItemValue).options(joinedload(LineItemValue.line_item_meta)).filter(
-    #         LineItemValue.financial_statement_id == statement.id
-    #     ).all()
-    #     return {value.line_item_meta.name: NullableFloat(value.value) for value in values}
     def get_all_fields_values(self, statement: FinancialStatement) -> Dict[str, NullableFloat]:
-        # values = (self.db.query(LineItemValue, LineItemMeta.order_no)
-        #           .join(LineItemMeta)
-        #           .filter(LineItemValue.financial_statement_id == statement.id)
-        #           .order_by(LineItemMeta.order_no)
-        #           .all())
-        
-        # return {value.LineItemMeta.name: NullableFloat(value.LineItemValue.value) for value in values}
+
         values = (self.db.query(LineItemValue, LineItemMeta)
               .join(LineItemMeta)
               .filter(LineItemValue.financial_statement_id == statement.id)
@@ -162,33 +167,17 @@ class FsApp:
         # item[1] corresponds to LineItemMeta
         return {item[1].name: NullableFloat(item[0].value) for item in values}
 
-    # def get_statement_data(self, statement_id: str) :
-    #     statement = (self.db.query(FinancialStatement)
-    #                  .options(joinedload(FinancialStatement.customer))
-    #                  .filter(FinancialStatement.id == statement_id)
-    #                  .first())
-        
-    #     if not statement:
-    #         raise ValueError(f"No statement found with id {statement_id}")
+    # def get_lag_fields_values(self, statement: FinancialStatement) -> Dict[str, NullableFloat]:
 
-    #     line_items = (self.db.query(LineItemValue, LineItemMeta)
-    #                   .join(LineItemMeta)
-    #                   .filter(LineItemValue.financial_statement_id == statement_id)
-    #                   .order_by(LineItemMeta.order_no)
-    #                   .all())
-    #         # "statement_id": statement.id,
-    #         # "customer_name": statement.customer.customer_name,
-    #         # "period": f"{statement.financials_period.year}-{statement.financials_period.month:02d}-{statement.financials_period.date:02d}",
-    #     line_items= [
-    #             {
-    #                 "name": item.LineItemMeta.name,
-    #                 "label": item.LineItemMeta.label,
-    #                 "value": item.LineItemValue.value,
-    #                 "order_no": item.LineItemMeta.order_no,
-    #                 "is_header": item.LineItemMeta.header
-    #             } for item in line_items
-    #         ]
-    #     return statement, line_items
+    #     values = (self.db.query(LineItemValue, LineItemMeta)
+    #           .join(LineItemMeta)
+    #           .filter(LineItemValue.financial_statement_id == statement.id)
+    #           .order_by(LineItemMeta.order_no)
+    #           .all())
+    #     # we're using index access (item[0] and item[1]) instead of attribute access. This is because when you query multiple entities, SQLAlchemy returns each row as a tuple-like object where each item corresponds to one of the entities in the order they were queried.
+    #     # item[0] corresponds to LineItemValue
+    #     # item[1] corresponds to LineItemMeta
+    #     return {item[1].name: NullableFloat(item[0].value) for item in values}
     def get_statement_data(self, statement_ids: List[str]) -> Dict:
         statements = (self.db.query(FinancialStatement)
                       .options(joinedload(FinancialStatement.customer),
@@ -353,7 +342,6 @@ class FsApp:
                 env[key] = value.value
 
         parser = Parser()
-        parser.parse('2 * x').evaluate({'x': 7})
 
         for derived_field in derived_fields:
             if derived_field.lag_months > 0:
@@ -472,7 +460,78 @@ class FsApp:
     def update_financial_statement(self, statement: FinancialStatement):
         # This method needs to be implemented based on your specific update logic
         pass
+    
+    def get_lag_variables(self, statement: FinancialStatement):
+            lag_variables = {}
 
+        # Get all LineItemMeta with lag_period > 0 for the statement's template
+            lag_metas = self.db.query(LineItemMeta).filter(
+                LineItemMeta.template_id == statement.template_id,
+                LineItemMeta.lag_months > 0
+            ).all()
+
+            return lag_metas
+    
+            
+    def remove_lag_suffix(self,name: str) -> str:
+        return re.sub(r'_lag\d+$', '', name)
+
+    def process_and_update_lag_variables(self, statement: FinancialStatement):
+        lag_metas = self.get_lag_variables(statement)
+        
+        for lag_meta in lag_metas:
+            lag_value = self.get_lag_variable_value(statement, lag_meta)
+            if lag_value is not None:
+                self.update_or_create_line_item_value(statement, lag_meta, lag_value)
+    def get_base_line_item_meta_id(self, lag_meta: LineItemMeta) :
+            base_name = self.remove_lag_suffix(lag_meta.name)
+            base_meta = self.db.query(LineItemMeta).filter(
+                LineItemMeta.template_id == lag_meta.template_id,
+                LineItemMeta.name == base_name,
+                LineItemMeta.lag_months == 0
+            ).first()
+            return base_meta.id if base_meta else None
+    def get_lag_variable_value(self, statement: FinancialStatement, lag_meta: LineItemMeta) -> float:
+
+
+        preceding_statement_id = statement.preceding_statement_id
+        
+        if preceding_statement_id:
+            base_meta_id = self.get_base_line_item_meta_id(lag_meta)
+            if base_meta_id:
+                line_item_value = self.db.query(LineItemValue).filter(
+                    LineItemValue.financial_statement_id == preceding_statement_id,
+                    LineItemValue.line_item_meta_id == base_meta_id
+                ).first()
+                if line_item_value:
+                    return line_item_value.value
+            # line_item_value = self.db.query(LineItemValue).filter(
+            #     LineItemValue.financial_statement_id == preceding_statement_id,
+            #     LineItemValue.name == base_name
+            # ).first()
+            # line_item_value = self.db.query(LineItemValue).filter(
+            #     LineItemValue.financial_statement_id == preceding_statement_id,
+            #     LineItemValue.line_item_meta_id == lag_meta.id
+            # ).first()
+            # if line_item_value:
+            #     return line_item_value.value
+        return None
+
+    def update_or_create_lag_line_item_value(self, statement: FinancialStatement, lag_meta: LineItemMeta, value: float):
+        line_item_value = self.db.query(LineItemValue).filter(
+            LineItemValue.financial_statement_id == statement.id,
+            LineItemValue.line_item_meta_id == lag_meta.id
+        ).first()
+        if line_item_value:
+            line_item_value.value = value
+        else:
+            line_item_value = LineItemValue(
+                financial_statement_id=statement.id,
+                line_item_meta_id=lag_meta.id,
+                value=value
+            )
+            self.db.add(line_item_value)
+        self.db.commit()
     def update_field_and_derived_values(self, statement_id: str, field_name: str, new_value: float):
         statement = self.db.query(FinancialStatement).filter(FinancialStatement.id == statement_id).first()
         if not statement:
@@ -490,9 +549,16 @@ class FsApp:
         line_item.value = new_value
         self.db.flush()
 
+        lag_variables = self.get_lag_variables(statement=statement)    
+
+        for l in lag_variables:
+            # Get the current value of the lag variable
+            new_value=self.get_lag_variable_value(statement=statement,lag_meta=l)
+            if new_value:
+                self.update_or_create_lag_line_item_value(statement=statement,lag_meta=l,value=new_value)
+
         # Get all fields and their current values
         field_values_map = self.get_all_fields_values(statement)
-
         # Get derived fields
         derived_fields = self.get_derived_fields(statement.template)
 
