@@ -207,18 +207,20 @@ def configure_scoring_factors_meta_from_csv(rating_model: RatingModel, filepath:
         with open(filepath, 'r') as csvfile:
             reader = csv.DictReader(csvfile)
             for row in reader:
-                factor = RatingFactor(
-                    name=row['name'],
-                    label=row['label'],
-                    input_source=FactorInputSource[row['input_source'].upper()].value,
-                    order_no=int(row['order_no']),
-                    factor_type=FactorType[row['factor_type'].upper()].value,
-                    parent_factor_name=row['parent_factor'],
-                    weightage=float(row['Weightage']),
-                    module=bool(int(row['module'])),
-                    rating_model_id=rating_model.id
-                )
-                factors.append(factor)
+                    factor = RatingFactor(
+                        name=row['name'],
+                        label=row['label'],
+                        input_source=FactorInputSource[row['input_source'].upper()].value,
+                        order_no=int(row['order_no']),
+                        factor_type=FactorType[row['factor_type'].upper()].value,
+                        parent_factor_name=row['parent_factor'],
+                        weightage=float(row['Weightage']),
+                        module_name=row['module'],
+                        module_order=int(row['module_order']),
+                        rating_model_id=rating_model.id
+                    )
+                    factors.append(factor)
+
         
         # Add factors to the database and flush to get their IDs
         # db.add_all(factors)

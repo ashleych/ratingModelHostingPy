@@ -2,7 +2,7 @@ from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
-from routes import customer_routes, statement_routes
+from routes import customer_routes, statement_routes,rating_model_routes
 app = FastAPI()
 
 # Mount static files
@@ -16,6 +16,7 @@ templates = Jinja2Templates(directory="../frontend/templates")
 # Include routers
 app.include_router(customer_routes.router)
 app.include_router(statement_routes.router)
+app.include_router(rating_model_routes.router)
 
 @app.get("/")
 async def root(request: Request):

@@ -140,22 +140,38 @@ class FinancialsPeriod(Base):
 #     SCORING = "scoring"
 #     # Add other attribute types as needed
 
-class RatingFactor(Base):
+# class RatingFactor(Base):
 
-    name = Column(String,nullable=False)
+#     name = Column(String,nullable=False)
+#     label = Column(String)
+#     input_source = Column(String)
+#     order_no = Column(Integer)
+#     factor_type = Column(String)
+#     parent_factor_name = Column(String)
+#     weightage = Column(Float)
+#     module = Column(Boolean)
+#     formula = Column(String)
+#     rating_model_id = Column(UUID, ForeignKey('ratingmodel.id'),nullable=False)
+
+#     rating_model = relationship("RatingModel")
+#     __table_args__ = ( UniqueConstraint('rating_model_id', 'name', name='uix_rating_model_factorname'), )
+class RatingFactor(Base):
+    __tablename__ = 'ratingfactor'
+
+    name = Column(String, nullable=False)
     label = Column(String)
     input_source = Column(String)
     order_no = Column(Integer)
     factor_type = Column(String)
     parent_factor_name = Column(String)
     weightage = Column(Float)
-    module = Column(Boolean)
+    module_name = Column(String)
+    module_order = Column(Integer)  # New field for module order
     formula = Column(String)
-    rating_model_id = Column(UUID, ForeignKey('ratingmodel.id'),nullable=False)
+    rating_model_id = Column(UUID, ForeignKey('ratingmodel.id'), nullable=False)
 
     rating_model = relationship("RatingModel")
-    __table_args__ = ( UniqueConstraint('rating_model_id', 'name', name='uix_rating_model_factorname'), )
-
+    __table_args__ = (UniqueConstraint('rating_model_id', 'name', name='uix_rating_model_factorname'),)
 class RatingFactorAttribute(Base):
 
     rating_model_id = Column(UUID, ForeignKey('ratingmodel.id'),nullable=False)
