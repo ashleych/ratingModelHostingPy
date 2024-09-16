@@ -21,7 +21,39 @@ from sqlalchemy import and_
 from typing import Dict, List
 from collections import OrderedDict
 from fastapi import BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import FileResponse
+from sqlalchemy.orm import Session
+from db.database import SessionLocal
+from models.models import Customer, RatingInstance, RatingFactorScore, RatingFactor
+from sqlalchemy import and_
+from typing import Dict, List
+from collections import OrderedDict
+import io
+from docx import Document
+from docx.shared import Inches, Pt
+from docx.enum.text import WD_ALIGN_PARAGRAPH
+from reportlab.lib.pagesizes import letter
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph
+from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.lib import colors
 
+from reportlab.lib.pagesizes import letter
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib import colors
+from reportlab.lib.units import inch
+from reportlab.lib.pagesizes import letter
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib import colors
+from reportlab.lib.units import inch
+from pydantic import BaseModel
+
+
+
+from models.models import RatingFactorScore, RatingFactor, RatingFactorAttribute
+from calculate_derived_scores import DerivedFactor, calculate_derived_scores
 import os
 router = APIRouter()
 
@@ -58,10 +90,6 @@ async def new_rating(request: Request, customer_id: str, db: Session = Depends(g
 
 # Add more routes as needed for updating ratings, etc.
 
-
-
-
-
 @router.get("/rating/{customer_id}")
 async def view_customer_rating(
     request: Request, 
@@ -91,7 +119,12 @@ async def view_customer_rating(
 
     factors = []
     for score, factor in factor_scores:
+        factor_attributes = db.query(RatingFactorAttribute)\
+            .filter(RatingFactorAttribute.rating_factor_id == factor.id)\
+            .all()
+        
         factor_data = {
+            "id": score.id,
             "factor_name": factor.name,
             "label": factor.label,
             "score": score.score,
@@ -102,7 +135,14 @@ async def view_customer_rating(
             "weightage": factor.weightage,
             "module_name": factor.module_name,
             "module_order": factor.module_order,
-            "order_no": factor.order_no
+            "order_no": factor.order_no,
+            "input_source": factor.input_source,
+            "factor_attributes": [
+                {
+                    "label": attr.label,
+                    "score": attr.score
+                } for attr in factor_attributes
+            ]
         }
         factors.append(factor_data)
 
@@ -116,23 +156,63 @@ async def view_customer_rating(
         "view_type": view_type
     })
 
-# Other routes remain the same...
-from fastapi import APIRouter, Depends, HTTPException
-from fastapi.responses import FileResponse
-from sqlalchemy.orm import Session
-from db.database import SessionLocal
-from models.models import Customer, RatingInstance, RatingFactorScore, RatingFactor
-from sqlalchemy import and_
-from typing import Dict, List
-from collections import OrderedDict
-import io
-from docx import Document
-from docx.shared import Inches, Pt
-from docx.enum.text import WD_ALIGN_PARAGRAPH
-from reportlab.lib.pagesizes import letter
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph
-from reportlab.lib.styles import getSampleStyleSheet
-from reportlab.lib import colors
+
+
+# @router.get("/rating/{customer_id}")
+# async def view_customer_rating(
+#     request: Request, 
+#     customer_id: str, 
+#     db: Session = Depends(get_db),
+#     view_type: str = Query("tabbed", description="View type: 'tabbed' or 'single'")
+# ):
+#     customer = db.query(Customer).filter(Customer.id == customer_id).first()
+#     if not customer:
+#         raise HTTPException(status_code=404, detail="Customer not found")
+
+#     rating_instance = db.query(RatingInstance)\
+#         .filter(RatingInstance.customer_id == customer_id)\
+#         .order_by(RatingInstance.created_at.desc())\
+#         .first()
+
+#     if not rating_instance:
+#         return templates.TemplateResponse("rating/no_rating.html", {
+#             "request": request,
+#             "customer": customer
+#         })
+
+#     factor_scores = db.query(RatingFactorScore, RatingFactor)\
+#         .join(RatingFactor, RatingFactorScore.rating_factor_id == RatingFactor.id)\
+#         .filter(RatingFactorScore.rating_instance_id == rating_instance.id)\
+#         .all()
+
+#     factors = []
+#     for score, factor in factor_scores:
+#         factor_data = {
+#             "factor_name": factor.name,
+#             "label": factor.label,
+#             "score": score.score,
+#             "raw_value_text": score.raw_value_text,
+#             "raw_value_float": score.raw_value_float,
+#             "factor_type": factor.factor_type,
+#             "parent_factor_name": factor.parent_factor_name,
+#             "weightage": factor.weightage,
+#             "module_name": factor.module_name,
+#             "module_order": factor.module_order,
+#             "order_no": factor.order_no
+#         }
+#         factors.append(factor_data)
+
+#     structured_data = structure_rating_data(factors)
+
+#     return templates.TemplateResponse("rating/view_modules.html", {
+#         "request": request,
+#         "customer": customer,
+#         "rating_instance": rating_instance,
+#         "structured_data": structured_data,
+#         "view_type": view_type
+#     })
+
+# # Other routes remain the same...
 
 
 
@@ -179,16 +259,6 @@ def generate_docx_report(customer: Customer, rating_instance: RatingInstance, st
         return tmp.name
 
 
-from reportlab.lib.pagesizes import letter
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.lib import colors
-from reportlab.lib.units import inch
-from reportlab.lib.pagesizes import letter
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.lib import colors
-from reportlab.lib.units import inch
 
 def generate_pdf_report(customer: Customer, rating_instance: RatingInstance, structured_data: OrderedDict) -> str:
     with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as tmp:
@@ -278,6 +348,7 @@ def remove_file(path: str):
 
 @router.get("/rating/{customer_id}/download/{format}")
 async def download_rating_report(customer_id: str, format: str,  background_tasks: BackgroundTasks,db: Session = Depends(get_db)):
+
     customer = db.query(Customer).filter(Customer.id == customer_id).first()
     if not customer:
         raise HTTPException(status_code=404, detail="Customer not found")
@@ -326,3 +397,80 @@ async def download_rating_report(customer_id: str, format: str,  background_task
 
     else:
         raise HTTPException(status_code=400, detail="Unsupported format")
+    
+    
+
+class FactorUpdateRequest(BaseModel):
+    factor_id: str
+    new_value: str
+
+# class UpdatedDerivedFactor(BaseModel):
+#     id: str
+#     raw_value: float
+#     score: float
+
+class FactorUpdateResponse(BaseModel):
+    success: bool
+    new_score: float
+    updated_derived_factors: List[DerivedFactor]
+
+@router.post("/api/update_factor_value", response_model=FactorUpdateResponse)
+async def update_factor_value(request: FactorUpdateRequest, db: Session = Depends(get_db)):
+    try:
+        print(f"Updating factor {request.factor_id} with new value {request.new_value}")
+        
+        factor_score = db.query(RatingFactorScore).filter(RatingFactorScore.id == request.factor_id).first()
+        if not factor_score:
+            raise HTTPException(status_code=404, detail="Factor score not found")
+
+        factor = db.query(RatingFactor).filter(RatingFactor.id == factor_score.rating_factor_id).first()
+        if not factor:
+            raise HTTPException(status_code=404, detail="Rating factor not found")
+
+        if factor.input_source != 'user_input':
+            raise HTTPException(status_code=400, detail="This factor cannot be updated manually")
+
+        # Update the factor value
+        factor_score.raw_value_text = request.new_value
+        db.commit()
+
+        # Recalculate the score for this factor
+        new_score = calculate_factor_score(db, factor, request.new_value)
+        factor_score.score = new_score
+        db.commit()
+
+        print(f"Updated factor score: {new_score}")
+
+        # Recalculate derived factors
+        # updated_derived_factors = recalculate_derived_factors(db, factor_score.rating_instance_id)
+        rating_instance= db.query(RatingInstance).filter(RatingInstance.id == factor_score.rating_instance_id).first()
+        _,updated_derived_factors  =calculate_derived_scores(db, rating_instance )
+
+        print(f"Updated derived factors: {updated_derived_factors}")
+
+        return FactorUpdateResponse(
+            success=True,
+            new_score=new_score,
+            updated_derived_factors=updated_derived_factors
+        )
+    except Exception as e:
+        print(f"Error updating factor value: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+def calculate_factor_score(db: Session, factor: RatingFactor, raw_value: str) -> float:
+    attribute = db.query(RatingFactorAttribute).filter(
+        RatingFactorAttribute.rating_factor_id == factor.id,
+        RatingFactorAttribute.label == raw_value
+    ).first()
+
+    if attribute:
+        return attribute.score
+    else:
+        print(f"No matching attribute found for factor {factor.id} and value {raw_value}")
+        return 0.0  # Default score if no matching attribute is found
+
+# You'll need to implement this function based on your rating calculation logic
+def recalculate_derived_factors(db: Session, rating_instance_id: str) -> List[RatingFactorScore]:
+    # Implement your logic to recalculate derived factors
+    # This is just a placeholder
+    return []

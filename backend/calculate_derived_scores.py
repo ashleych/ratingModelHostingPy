@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import and_
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional,Tuple
 from rating_model_instance import generate_qualitative_factor_data, score_quantitative_factors, update_qualitative_factor_scores
 from models.models import RatingFactor,RatingFactorAttribute,RatingFactorScore
 from sqlalchemy import Column, Integer, String, Float, Boolean, ForeignKey
@@ -25,7 +25,12 @@ class FactorNode:
         self.children: List[FactorNode] = []
         self.parent: Optional[FactorNode] = None
 
-def calculate_derived_scores(db: Session, rating_instance: RatingInstance):
+class DerivedFactor(BaseModel):
+        id : str
+        factor_name:str
+        new_score :float
+
+def calculate_derived_scores(db: Session, rating_instance: RatingInstance) -> Tuple[Dict[str, float], List[DerivedFactor]]:
     # Get all RatingFactors for this rating model
     rating_factors = db.query(RatingFactor).filter(
         RatingFactor.rating_model_id == rating_instance.rating_model_id
@@ -36,11 +41,12 @@ def calculate_derived_scores(db: Session, rating_instance: RatingInstance):
         RatingFactorScore.rating_instance_id == rating_instance.id
     ).all()
 
-    # Create a dictionary of factor scores for easy lookup
+    # Create a dictionary of factor scores for easy lookup,that are not
     env: Dict[str, float] = {}
     for fs in factor_scores:
         if fs.score is not None:
-            env[fs.rating_factor.name] = fs.score
+            if fs.rating_factor.input_source != 'derived':
+                env[fs.rating_factor.name] = fs.score
 
     # Create a dictionary of factors for easy lookup
     factor_dict: Dict[str, FactorNode] = {rf.name: FactorNode(rf) for rf in rating_factors}
@@ -56,8 +62,8 @@ def calculate_derived_scores(db: Session, rating_instance: RatingInstance):
             if parent_node:
                 parent_node.children.append(node)
                 node.parent = parent_node
-
     parser = Parser()
+    derived_factors: List[DerivedFactor] = []
 
     def calculate_score(factor: RatingFactor) -> Optional[float]:
         if not factor.formula:
@@ -80,8 +86,9 @@ def calculate_derived_scores(db: Session, rating_instance: RatingInstance):
         if node.factor.input_source == 'derived':
             score = calculate_score(node.factor)
             if score is not None:
-                update_or_create_score(db, rating_instance.id, node.factor.id, score)
+                updated_factor_score= update_or_create_score(db, rating_instance.id, node.factor.id, score)
                 env[node.factor.name] = score
+                derived_factors.append(DerivedFactor(id=str(updated_factor_score.id), factor_name=node.factor.name,new_score=score))
 
     # Start processing from leaf nodes
     leaf_nodes = [node for node in factor_dict.values() if not node.children]
@@ -94,28 +101,35 @@ def calculate_derived_scores(db: Session, rating_instance: RatingInstance):
             process_node(node)
 
     db.commit()
-    return env
+    return env, derived_factors
 
-def update_or_create_score(db: Session, rating_instance_id: int, rating_factor_id: int, score: float):
+def update_or_create_score(db: Session, rating_instance_id: int, factor_id: str, score: float) -> RatingFactorScore:
     factor_score = db.query(RatingFactorScore).filter(
-        and_(
-            RatingFactorScore.rating_instance_id == rating_instance_id,
-            RatingFactorScore.rating_factor_id == rating_factor_id
-        )
+        RatingFactorScore.rating_instance_id == rating_instance_id,
+        RatingFactorScore.rating_factor_id == factor_id
     ).first()
 
     if factor_score:
         factor_score.score = score
-        factor_score.score_dirty = False
+        factor_score.score_dirty = False  # Assuming you have this field to indicate the score has been updated
     else:
-        new_score = RatingFactorScore(
+        factor_score = RatingFactorScore(
             rating_instance_id=rating_instance_id,
-            rating_factor_id=rating_factor_id,
+            rating_factor_id=factor_id,
             score=score,
             score_dirty=False
         )
-        db.add(new_score)
+        db.add(factor_score)
+    
+    try:
+        db.commit()
+        db.refresh(factor_score)
+    except Exception as e:
+        db.rollback()
+        print(f"Error updating or creating score: {str(e)}")
+        raise
 
+    return factor_score
 if __name__ == "__main__":
     from sqlalchemy import create_engine
     from sqlalchemy.orm import sessionmaker
@@ -143,5 +157,7 @@ if __name__ == "__main__":
     score_quantitative_factors(db=db,rating_instance=rating_instance)
     generate_qualitative_factor_data(db,rating_instance=rating_instance)
     update_qualitative_factor_scores(db, rating_instance)
-    final_scores = calculate_derived_scores(db, rating_instance)
+    final_scores, derived_factors = calculate_derived_scores(db, rating_instance)
     print("Final scores:", final_scores)
+    for d in derived_factors:
+        print(d.factor_name,d.new_score)
