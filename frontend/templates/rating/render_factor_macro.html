@@ -1,0 +1,40 @@
+<div class="grid grid-cols-3 gap-4 mt-2">
+    <div class="text-sm font-medium text-gray-500 dark:text-gray-400 flex items-center">
+        {{ factor.label }}
+        {% if factor.weightage %}
+            ({{ factor.weightage * 100 }}%)
+        {% endif %}
+        {% if factor.input_source == 'user_input' and factor.factor_attributes %}
+            <button class="edit-btn ml-2 text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300"
+                    data-factor-id="{{ factor.id }}">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                </svg>
+            </button>
+        {% endif %}
+    </div>
+    <div class="text-sm text-gray-900 dark:text-gray-100">
+        <span class="factor-value" data-factor-id="{{ factor.id }}">
+            {% if factor.raw_value_text %}
+                {{ factor.raw_value_text }}
+            {% elif factor.raw_value_float is not none %}
+                {{ factor.raw_value_float }}
+            {% else %}
+                N/A
+            {% endif %}
+        </span>
+        {% if factor.input_source == 'user_input' and factor.factor_attributes %}
+            <select class="factor-input hidden w-full text-sm border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white" 
+                    data-factor-id="{{ factor.id }}">
+                {% for attribute in factor.factor_attributes %}
+                    <option value="{{ attribute.label }}" {% if attribute.label == factor.raw_value_text %}selected{% endif %}>
+                        {{ attribute.label }}
+                    </option>
+                {% endfor %}
+            </select>
+        {% endif %}
+    </div>
+    <div class="text-sm text-gray-900 dark:text-gray-100">
+        <span class="factor-score" data-factor-id="{{ factor.id }}">{{ factor.score }}</span>
+    </div>
+</div>
