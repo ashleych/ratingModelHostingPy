@@ -15,8 +15,8 @@
                     
                     <!-- View Options -->
                     <div class="px-4 py-2 text-sm text-gray-700 dark:text-gray-300 font-medium">View Options</div>
-                    <a href="?view_type=tabbed" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700 pl-8">Tabbed View</a>
-                    <a href="?view_type=single" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700 pl-8">Single Page View</a>
+                    <a href="{{ url_for('view_customer_rating', customer_id=customer.id ).include_query_params(rating_instance_id=rating_instance.id,view_type='tabbed') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700 pl-8">Tabbed View</a>
+                    <a href="{{ url_for('view_customer_rating', customer_id=customer.id ).include_query_params(rating_instance_id=rating_instance.id,view_type='single') }}"  class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700 pl-8">Single Page View</a>
                     
                     <!-- Download Options -->
                     <div class="mt-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 font-medium">Download Options</div>

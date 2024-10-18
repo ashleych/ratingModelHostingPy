@@ -1,0 +1,215 @@
+{% extends "_layout.html" %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <h1 class="text-2xl font-bold mb-4">Create New Rating for {{ customer.customer_name }}</h1>
+    
+    <div class="mb-6">
+        <label for="financial_statement" class="block text-sm font-medium text-gray-700">Select Financial Statement</label>
+        <select id="financial_statement" class="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+            <option value="">Select a statement</option>
+            {% for statement in financial_statements %}
+                <option value="{{ statement.id }}">
+                    {{ statement.financials_period_year }} - {{ statement.financials_period_month }} - {{ statement.financials_period_date }}
+                    ({{ "Audited" if statement.audit_type == 'Audited' else "Unaudited" }},
+                    {{ "Standalone" if statement.standalone else "Consolidated" }})
+                </option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <div id="existing_rating_message" class="hidden mb-4 p-4 bg-yellow-100 text-yellow-700 rounded-md"></div>
+
+    <div id="rating_form" class="hidden">
+        <div class="flex justify-between items-center mb-4">
+            <div class="text-xl font-semibold">Rating Factors</div>
+            <div class="text-sm">
+                Completion: <span id="completion_percentage">0%</span>
+            </div>
+        </div>
+
+        <div id="view_mode_toggle" class="mb-4">
+            <label class="inline-flex items-center cursor-pointer">
+                <input type="checkbox" id="tabbed_view" class="sr-only peer">
+                <div class="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                <span class="ml-3 text-sm font-medium text-gray-900 dark:text-gray-300">Tabbed View</span>
+            </label>
+        </div>
+
+        <div id="rating_modules">
+            {% for module, factors in factors_by_module.items() %}
+                <div class="module-section mb-8" data-module="{{ module }}">
+                    <h2 class="text-lg font-semibold mb-4">{{ module }}</h2>
+                    {% for factor in factors %}
+                        <div class="mb-4">
+                            <label for="{{ factor.id }}" class="block text-sm font-medium text-gray-700">{{ factor.label }}</label>
+                            {% if factor.input_source == 'user_input' %}
+                                <select id="{{ factor.id }}" name="{{ factor.id }}" class="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" data-factor-type="input">
+                                    <option value="">Select a value</option>
+                                    {% for attr in attributes_by_factor.get(factor.id, []) %}
+                                        <option value="{{ attr.label }}">{{ attr.label }}</option>
+                                    {% endfor %}
+                                </select>
+                            {% else %}
+                                <input type="text" id="{{ factor.id }}" name="{{ factor.id }}" class="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" readonly data-factor-type="derived">
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                    <button class="module-save mt-4 px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                        Save {{ module }}
+                    </button>
+                </div>
+            {% endfor %}
+        </div>
+
+        <button id="submit_rating" class="mt-8 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+            Submit Rating
+        </button>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const financialStatementSelect = document.getElementById('financial_statement');
+    const ratingForm = document.getElementById('rating_form');
+    const existingRatingMessage = document.getElementById('existing_rating_message');
+    const completionPercentage = document.getElementById('completion_percentage');
+    const submitRatingButton = document.getElementById('submit_rating');
+    const tabbedViewToggle = document.getElementById('tabbed_view');
+    const moduleSections = document.querySelectorAll('.module-section');
+    const moduleSaveButtons = document.querySelectorAll('.module-save');
+
+    financialStatementSelect.addEventListener('change', function() {
+        if (this.value) {
+            checkExistingRating(this.value);
+        } else {
+            ratingForm.classList.add('hidden');
+            existingRatingMessage.classList.add('hidden');
+        }
+    });
+
+    function checkExistingRating(financialStatementId) {
+        fetch(`/api/check_existing_rating/${financialStatementId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.exists) {
+                    existingRatingMessage.innerHTML = `
+                        A rating already exists for this financial statement. 
+                        <a href="/rating/${data.rating_id}" class="text-blue-600 hover:underline">View existing rating</a> or 
+                        <button class="text-green-600 hover:underline" onclick="loadExistingRating('${data.rating_id}')">Edit existing rating</button>
+                    `;
+                    existingRatingMessage.classList.remove('hidden');
+                    ratingForm.classList.add('hidden');
+                } else {
+                    existingRatingMessage.classList.add('hidden');
+                    ratingForm.classList.remove('hidden');
+                    loadQuantitativeData(financialStatementId);
+                }
+            });
+    }
+
+    function loadQuantitativeData(financialStatementId) {
+        fetch(`/api/get_quantitative_data/${financialStatementId}`)
+            .then(response => response.json())
+            .then(data => {
+                for (const [factorId, value] of Object.entries(data)) {
+                    const input = document.getElementById(factorId);
+                    if (input) {
+                        input.value = value;
+                        input.dispatchEvent(new Event('change'));
+                    }
+                }
+                updateCompletionPercentage();
+            });
+    }
+
+    function loadExistingRating(ratingId) {
+        // Implement logic to load existing rating data
+        // This might involve fetching the data and populating the form
+        console.log(`Loading existing rating: ${ratingId}`);
+        ratingForm.classList.remove('hidden');
+        existingRatingMessage.classList.add('hidden');
+        // Fetch and populate form data here
+    }
+
+    function updateCompletionPercentage() {
+        const totalInputs = document.querySelectorAll('[data-factor-type="input"]').length;
+        const filledInputs = document.querySelectorAll('[data-factor-type="input"]:not(:placeholder-shown)').length;
+        const percentage = Math.round((filledInputs / totalInputs) * 100);
+        completionPercentage.textContent = `${percentage}%`;
+    }
+
+    document.querySelectorAll('[data-factor-type="input"]').forEach(input => {
+        input.addEventListener('change', updateCompletionPercentage);
+    });
+
+    tabbedViewToggle.addEventListener('change', function() {
+        if (this.checked) {
+            document.getElementById('rating_modules').classList.add('tabbed-view');
+        } else {
+            document.getElementById('rating_modules').classList.remove('tabbed-view');
+        }
+    });
+
+    moduleSaveButtons.forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            const moduleSection = this.closest('.module-section');
+            const moduleName = moduleSection.dataset.module;
+            const moduleInputs = moduleSection.querySelectorAll('[data-factor-type="input"]');
+            const moduleData = {};
+            moduleInputs.forEach(input => {
+                moduleData[input.id] = input.value;
+            });
+            console.log(`Saving module: ${moduleName}`, moduleData);
+            // Here you would typically send an AJAX request to save the module data
+        });
+    });
+
+    submitRatingButton.addEventListener('click', function() {
+        const formData = {};
+        document.querySelectorAll('[data-factor-type]').forEach(input => {
+            formData[input.id] = input.value;
+        });
+
+        fetch('/api/rating/create', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                customer_id: '{{ customer.id }}',
+                financial_statement_id: financialStatementSelect.value,
+                rating_model_id: '{{ rating_model.id }}',
+                factors: formData
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Rating created successfully!');
+                // Redirect to the rating view or do something else
+            } else {
+                alert('Failed to create rating. Please try again.');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred. Please try again.');
+        });
+    });
+
+    // Initialize view
+    updateCompletionPercentage();
+});
+</script>
+
+<style>
+    .tabbed-view .module-section {
+        display: none;
+    }
+    .tabbed-view .module-section.active {
+        display: block;
+    }
+</style>
+{% endblock %}

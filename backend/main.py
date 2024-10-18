@@ -49,16 +49,21 @@ def init_db(db_path):
         # Define the order to drop tables
         # Start with tables that have the most dependencies and work backwards
         tables = [
-            "ratingfactorscore",
-            "ratingmodule",
-            "ratinginstance",
-            "ratingfactor",
-            "ratingfactorattribute",
-            "ratingmodel",
-            "template",
-            "customer",
-            "financialsperiod",
-            "workflowaction",
+'businessunit',
+'customer',
+'financialsperiod',
+'financialstatement',
+'lineitemmeta',
+'lineitemvalue',
+'masterratingscale',
+'ratingfactor',
+'ratingfactorattribute',
+'ratingfactorscore',
+'ratinginstance',
+'ratingmodel',
+'template',
+'templatesourcecsv',
+'workflowaction',
             # Add any other tables that might be in your schema
         ]
     

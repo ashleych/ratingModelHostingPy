@@ -95,6 +95,11 @@ document.addEventListener('DOMContentLoaded', function () {
                         derivedScoreSpan.textContent = derivedFactor.new_score
                     }
                 }
+                //update overall rating
+                const finalRatingDiv = document.querySelector(`.factor-value[data-factor-id="finalRating"]`);
+                finalRatingDiv.textContent = data.new_overall_rating;
+                
+
                 // Show toast notification
                 const factorName = document.querySelector(`.factor-label[data-factor-id="${factorId}"]`).textContent;
                 const overallScore = data.updated_derived_factors.find(df => df.factor_name === 'overallScore')?.new_score;

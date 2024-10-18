@@ -219,9 +219,9 @@ class LineItemValueSchema(BaseModel):
     line_item_meta_id: str
     value: Optional[float] = None
 
-    class Config:
-        orm_mode = True
-        allow_population_by_field_name = True
+    # class Config:
+    #     orm_mode = True
+    #     allow_population_by_field_name = True
 
 # Pydantic schema for creating/updating a LineItemValue
 class LineItemValueCreate(BaseModel):
@@ -229,9 +229,9 @@ class LineItemValueCreate(BaseModel):
     line_item_meta_id: str
     value: Optional[float] = None
 
-    class Config:
-        orm_mode = True
-        allow_population_by_field_name = True
+    # class Config:
+    #     orm_mode = True
+    #     allow_population_by_field_name = True
 class FinancialStatement(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     id: UUID

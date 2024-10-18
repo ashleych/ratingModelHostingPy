@@ -10,6 +10,13 @@ from customer_financial_statement import FsApp
 
 from fastapi.encoders import jsonable_encoder
 
+from pydantic import BaseModel
+from typing import List
+from schema import schema
+class UpdateStatementRequest(BaseModel):
+    customer_id:str
+    multi_statement_ids:List[str]
+    line_items: List[schema.UpdatedValue]
 router = APIRouter()
 
 templates = Jinja2Templates(directory="../frontend/templates")
@@ -37,16 +44,7 @@ async def create_statement(request: Request, db: Session = Depends(get_db), cust
     
     return templates.TemplateResponse("statements/created.html", {"request": request, "statement": statement})
 
-# @router.get("/statements/{statement_id}")
-# async def view_statement(request: Request, statement_id: str, db: Session = Depends(get_db)):
-#     statement = db.query(FinancialStatement).filter(FinancialStatement.id == statement_id).first()
-#     if not statement:
-#         raise HTTPException(status_code=404, detail="Statement not found")
-    
-#     line_items = db.query(LineItemValue).filter(LineItemValue.financial_statement_id == statement_id).all()
-#     data = [[item.line_item_meta.name, item.value] for item in line_items]
-    
-#     return templates.TemplateResponse("statements/partials/view.html", {"request": request, "statement": statement, "data": data})
+
 
 @router.get("/statements/{customer_id}")
 async def view_statement(request:Request,customer_id: str, db: Session = Depends(get_db)):
@@ -56,12 +54,7 @@ async def view_statement(request:Request,customer_id: str, db: Session = Depends
     statements = db.query(FinancialStatement).filter(FinancialStatement.customer_id == customer_id).all()
     statement_ids=  [schema.FinancialStatement.model_validate(statement).id for statement in statements]
     statement_data= fs_app.get_statement_data(statement_ids=statement_ids)
-    # return templates.TemplateResponse("statements/partials/view.html", {
-    #     "request": request,
-    #     "customer":customer,
-    #     "statement":jsonable_encoder(statement),
-    #     "data": [jsonable_encoder(li) for li in line_items]
-    # })
+    
     return templates.TemplateResponse("statements/partials/view.html", {
             "request": request,
             "customer":customer,
@@ -71,35 +64,25 @@ async def view_statement(request:Request,customer_id: str, db: Session = Depends
         })
 
 
-    # except ValueError as e:
-    #     raise HTTPException(status_code=404, detail=str(e))
-    # except Exception as e:
-    #     raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")
-@router.post("/statements/{statement_id}/update")
-async def update_statement_old(request: Request, statement_id: str, db: Session = Depends(get_db), field_name: str = Form(...), new_value: float = Form(...)):
-    fs_app = FsApp(db)
-    print("field name is :",field_name)
-    print("field name is :",new_value)
+    
+# @router.post("/statements/{statement_id}/update")
+# async def update_statement_old(request: Request, statement_id: str, db: Session = Depends(get_db), field_name: str = Form(...), new_value: float = Form(...)):
+#     fs_app = FsApp(db)
+#     print("field name is :",field_name)
+#     print("field name is :",new_value)
 
-    try:
-        fs_app = FsApp(db)
-        print("field name is:", field_name)
-        print("new value is:", new_value)
-        updated_values = fs_app.update_field_and_derived_values(statement_id, field_name, new_value)
-        return {"success": True, "updated_values": updated_values}
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")
-    return {"success": True, "updated_values": updated_values}
+#     try:
+#         fs_app = FsApp(db)
+#         print("field name is:", field_name)
+#         print("new value is:", new_value)
+#         updated_values = fs_app.update_field_and_derived_values(statement_id, field_name, new_value)
+#         return {"success": True, "updated_values": updated_values}
+#     except ValueError as e:
+#         raise HTTPException(status_code=400, detail=str(e))
+#     except Exception as e:
+#         raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")
+#     return {"success": True, "updated_values": updated_values}
 
-from pydantic import BaseModel
-from typing import List
-from schema import schema
-class UpdateStatementRequest(BaseModel):
-    customer_id:str
-    multi_statement_ids:List[str]
-    line_items: List[schema.UpdatedValue]
 @router.post("/update_statement")
 async def update_statement(request: UpdateStatementRequest, db: Session = Depends(get_db)):
     fs_app = FsApp(db)
@@ -117,8 +100,3 @@ async def update_statement(request: UpdateStatementRequest, db: Session = Depend
         fs_app.update_statement(statement_id, updates)
     updated_data = fs_app.get_statement_data(request.multi_statement_ids)
     return RedirectResponse(url=f"/statements/{request.customer_id}", status_code=303)
-    # return {"data": jsonable_encoder(updated_data)}
-    # except ValueError as e:
-    #     raise HTTPException(status_code=404, detail=str(e))
-    # except Exception as e:
-    #     raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")

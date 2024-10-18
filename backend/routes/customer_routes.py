@@ -3,7 +3,7 @@ from fastapi.responses import RedirectResponse
 
 
 from fastapi.templating import Jinja2Templates
-from models.models import Customer,FinancialStatement,BusinessUnit,WorkflowAction
+from models.models import Customer,FinancialStatement,BusinessUnit,WorkflowAction,RatingInstance,RatingFactor,RatingFactorScore
 from sqlalchemy.orm import Session
 from db.database import SessionLocal, engine
 
@@ -34,6 +34,21 @@ async def new_customer(request: Request,  db: Session = Depends(get_db)):
     return templates.TemplateResponse("customers/partials/new.html", {"request": request,"business_units": business_units})
 
 
+# @router.get("/customers/{customer_id}")
+# async def customer_detail(request: Request, customer_id: str, db: Session = Depends(get_db)):
+#     customer = db.query(Customer).filter(Customer.id == customer_id).first()
+#     if not customer:
+#         raise HTTPException(status_code=404, detail="Customer not found")
+    
+#     statements = db.query(FinancialStatement).filter(FinancialStatement.customer_id == customer_id).all()
+    
+#     return templates.TemplateResponse("customers/partials/detail.html", {
+#         "request": request, 
+#         "customer": customer,
+#         "statements": statements
+#     })
+
+
 @router.get("/customers/{customer_id}")
 async def customer_detail(request: Request, customer_id: str, db: Session = Depends(get_db)):
     customer = db.query(Customer).filter(Customer.id == customer_id).first()
@@ -42,14 +57,22 @@ async def customer_detail(request: Request, customer_id: str, db: Session = Depe
     
     statements = db.query(FinancialStatement).filter(FinancialStatement.customer_id == customer_id).all()
     
+    # Fetch rating instances for all statements
+    statement_ids = [statement.id for statement in statements]
+    rating_instances = db.query(RatingInstance).filter(RatingInstance.financial_statement_id.in_(statement_ids)).all()
+    
+    # Create a dictionary mapping financial statement IDs to rating instances
+    rating_map = {ri.financial_statement_id: ri for ri in rating_instances}
+    
+    # Attach rating instances to statements
+    for statement in statements:
+        statement.rating_instance = rating_map.get(statement.id)
+    
     return templates.TemplateResponse("customers/partials/detail.html", {
         "request": request, 
         "customer": customer,
         "statements": statements
     })
-
-
-
 
 @router.delete("/customers/{customer_id}")
 async def delete_customer(request: Request, customer_id: str, db: Session = Depends(get_db)):

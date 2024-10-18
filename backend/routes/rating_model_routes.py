@@ -2,6 +2,7 @@ from fastapi import APIRouter, Request, Depends, HTTPException
 from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
+import starlette
 from db.database import SessionLocal
 from models.models import Customer, RatingInstance, RatingModel
 from schema import schema
@@ -21,7 +22,6 @@ from sqlalchemy import and_
 from typing import Dict, List
 from collections import OrderedDict
 from fastapi import BackgroundTasks
-from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from db.database import SessionLocal
@@ -50,6 +50,7 @@ from reportlab.lib import colors
 from reportlab.lib.units import inch
 from pydantic import BaseModel
 
+from rating_model_instance import generate_qualitative_factor_data, score_quantitative_factors, update_qualitative_factor_scores
 
 
 from models.models import RatingFactorScore, RatingFactor, RatingFactorAttribute
@@ -90,10 +91,11 @@ async def new_rating(request: Request, customer_id: str, db: Session = Depends(g
 
 # Add more routes as needed for updating ratings, etc.
 
-@router.get("/rating/{customer_id}")
+@router.get("/ratingView/{customer_id}")
 async def view_customer_rating(
     request: Request, 
     customer_id: str, 
+    rating_instance_id:str=Query(),
     db: Session = Depends(get_db),
     view_type: str = Query("tabbed", description="View type: 'tabbed' or 'single'")
 ):
@@ -101,10 +103,16 @@ async def view_customer_rating(
     if not customer:
         raise HTTPException(status_code=404, detail="Customer not found")
 
-    rating_instance = db.query(RatingInstance)\
-        .filter(RatingInstance.customer_id == customer_id)\
-        .order_by(RatingInstance.created_at.desc())\
-        .first()
+    if rating_instance_id:
+        
+        rating_instance = db.query(RatingInstance)\
+            .filter(RatingInstance.id == rating_instance_id)\
+            .first()
+    else:
+        rating_instance = db.query(RatingInstance)\
+            .filter(RatingInstance.customer_id == customer_id)\
+            .order_by(RatingInstance.created_at.desc())\
+            .first()
 
     if not rating_instance:
         return templates.TemplateResponse("rating/no_rating.html", {
@@ -413,6 +421,7 @@ class FactorUpdateResponse(BaseModel):
     success: bool
     new_score: float
     updated_derived_factors: List[DerivedFactor]
+    new_overall_rating:str
 
 @router.post("/api/update_factor_value", response_model=FactorUpdateResponse)
 async def update_factor_value(request: FactorUpdateRequest, db: Session = Depends(get_db)):
@@ -424,6 +433,7 @@ async def update_factor_value(request: FactorUpdateRequest, db: Session = Depend
             raise HTTPException(status_code=404, detail="Factor score not found")
 
         factor = db.query(RatingFactor).filter(RatingFactor.id == factor_score.rating_factor_id).first()
+        factor = db.query(RatingFactor).filter(RatingFactor.id == factor_score.rating_factor_id).first()
         if not factor:
             raise HTTPException(status_code=404, detail="Rating factor not found")
 
@@ -433,7 +443,8 @@ async def update_factor_value(request: FactorUpdateRequest, db: Session = Depend
         # Update the factor value
         factor_score.raw_value_text = request.new_value
         db.commit()
-
+        rating_instance= db.query(RatingInstance).filter(RatingInstance.id == factor_score.rating_instance_id).first()
+        score_quantitative_factors(db,rating_instance)
         # Recalculate the score for this factor
         new_score = calculate_factor_score(db, factor, request.new_value)
         factor_score.score = new_score
@@ -451,7 +462,8 @@ async def update_factor_value(request: FactorUpdateRequest, db: Session = Depend
         return FactorUpdateResponse(
             success=True,
             new_score=new_score,
-            updated_derived_factors=updated_derived_factors
+            updated_derived_factors=updated_derived_factors,
+            new_overall_rating=rating_instance.overall_rating
         )
     except Exception as e:
         print(f"Error updating factor value: {str(e)}")
@@ -469,8 +481,248 @@ def calculate_factor_score(db: Session, factor: RatingFactor, raw_value: str) ->
         print(f"No matching attribute found for factor {factor.id} and value {raw_value}")
         return 0.0  # Default score if no matching attribute is found
 
-# You'll need to implement this function based on your rating calculation logic
-def recalculate_derived_factors(db: Session, rating_instance_id: str) -> List[RatingFactorScore]:
-    # Implement your logic to recalculate derived factors
-    # This is just a placeholder
-    return []
+
+from sqlalchemy.orm import Session
+from models.models import Customer, FinancialStatement, RatingModel, RatingFactor, RatingFactorAttribute, RatingInstance
+from typing import List,Any
+from sqlalchemy import desc
+
+
+    
+@router.post("/api/rating/create")
+async def create_rating_instance(request: Request, db: Session = Depends(get_db)):
+    data = await request.json()
+    financial_statement_id = data.get('financial_statement_id')
+    customer_id = data.get('customer_id')
+    rating_model_id = data.get('rating_model_id')
+    factors = data.get('factors', {})
+
+    # Create new RatingInstance
+    new_rating_instance = RatingInstance(
+        customer_id=customer_id,
+        financial_statement_id=financial_statement_id,
+        rating_model_id=rating_model_id,
+        workflow_action_type='DRAFT'  # You may want to adjust this based on your workflow
+    )
+    db.add(new_rating_instance)
+    db.flush()  # This will assign an ID to new_rating_instance
+
+    # Create RatingFactorScores for each factor
+    for factor_id, value in factors.items():
+        # You'll need to implement a function to calculate the score based on the value
+        score = calculate_factor_score(db, factor_id, value)
+        new_factor_score = RatingFactorScore(
+            rating_instance_id=new_rating_instance.id,
+            rating_factor_id=factor_id,
+            raw_value_text=value if isinstance(value, str) else None,
+            raw_value_float=value if isinstance(value, (int, float)) else None,
+            score=score
+        )
+        db.add(new_factor_score)
+
+    db.commit()
+    
+    # After creating the instance, you might want to call your scoring functions
+    score_quantitative_factors(db=db, rating_instance=new_rating_instance)
+    
+    return {"success": True, "message": "Rating instance created successfully", "rating_instance_id": new_rating_instance.id}
+
+# def calculate_factor_score(db: Session, factor_id: str, value: Any) -> float:
+#     # Implement your scoring logic here
+#     # This is just a placeholder
+#     return 0.0
+# @router.get("/rating/new/{customer_id}")
+# async def new_rating_instance(request: Request, customer_id: str, db: Session = Depends(get_db)):
+#     customer = db.query(Customer).filter(Customer.id == customer_id).first()
+#     if not customer:
+#         raise HTTPException(status_code=404, detail="Customer not found")
+    
+#     financial_statements = db.query(FinancialStatement).filter(FinancialStatement.customer_id == customer_id).order_by(desc(FinancialStatement.financials_period_year), desc(FinancialStatement.financials_period_month), desc(FinancialStatement.financials_period_date)).all()
+    
+#     rating_model = db.query(RatingModel).first()  # Assuming you have only one rating model, adjust if needed
+    
+#     rating_factors = db.query(RatingFactor).filter(RatingFactor.rating_model_id == rating_model.id).order_by(RatingFactor.module_order, RatingFactor.order_no).all()
+    
+#     factor_attributes = db.query(RatingFactorAttribute).filter(RatingFactorAttribute.rating_model_id == rating_model.id).all()
+    
+#     # Organize rating factors by module
+#     factors_by_module = {}
+#     for factor in rating_factors:
+#         if factor.module_name not in factors_by_module:
+#             factors_by_module[factor.module_name] = []
+#         factors_by_module[factor.module_name].append(factor)
+    
+#     # Organize factor attributes
+#     attributes_by_factor = {}
+#     for attr in factor_attributes:
+#         if attr.rating_factor_id not in attributes_by_factor:
+#             attributes_by_factor[attr.rating_factor_id] = []
+#         attributes_by_factor[attr.rating_factor_id].append(attr)
+    
+#     return templates.TemplateResponse("rating/new_rating.html", {
+#         "request": request,
+#         "customer": customer,
+#         "financial_statements": financial_statements,
+#         "factors_by_module": factors_by_module,
+#         "attributes_by_factor": attributes_by_factor,
+#         "rating_model": rating_model
+#     })
+
+@router.get("/api/check_existing_rating/{financial_statement_id}")
+async def check_existing_rating(financial_statement_id: str, db: Session = Depends(get_db)):
+    existing_rating = db.query(RatingInstance).filter(RatingInstance.financial_statement_id == financial_statement_id).first()
+    if existing_rating:
+        return {"exists": True, "rating_id": str(existing_rating.id)}
+    return {"exists": False}
+
+@router.get("/api/get_quantitative_data/{financial_statement_id}")
+async def get_quantitative_data(financial_statement_id: str, db: Session = Depends(get_db)):
+    # Implement logic to fetch quantitative data from the financial statement
+    # This is a placeholder - you'll need to adjust based on your actual data model
+    quantitative_data = {}
+    # Example: quantitative_data = {"factor_id_1": value1, "factor_id_2": value2, ...}
+    return quantitative_data
+
+
+from starlette import status
+
+@router.get("/rating/{customer_id}")
+async def generate_rating(request: Request, customer_id: str, financial_statement_id: str = Query(), db: Session = Depends(get_db)):
+    customer = db.query(Customer).filter(Customer.id == customer_id).first()
+    if not customer:
+        raise HTTPException(status_code=404, detail="Customer not found")
+    
+    if financial_statement_id:
+        rating_instance = create_rating_instance(db, customer_id, financial_statement_id)
+    else:
+        rating_instance = db.query(RatingInstance).filter(RatingInstance.customer_id == customer_id).order_by(RatingInstance.created_at.desc()).first()
+    
+    if not rating_instance:
+        return templates.TemplateResponse("rating/no_rating.html", {
+            "request": request,
+            "customer": customer
+        })
+    return RedirectResponse( url=request.url_for("view_customer_rating", customer_id=customer_id).include_query_params(rating_instance_id=str(rating_instance.id)), status_code=status.HTTP_303_SEE_OTHER )
+    # factor_scores = get_factor_scores(db, str(rating_instance.id))
+    
+    # return templates.TemplateResponse("rating/view_modules.html", {
+    #     "request": request,
+    #     "customer": customer,
+    #     "rating_instance": rating_instance,
+    #     "quantitative_scores": factor_scores["quantitative"],
+    #     "qualitative_scores": factor_scores["qualitative"],
+    #     "overall_score": factor_scores["overall"]
+    # })
+
+    return RedirectResponse(url=f"/rating/{customer_id}", status_code=303)
+
+from rating_model_instance import process_rating_instance
+def create_rating_instance(db: Session, customer_id: str, financial_statement_id: str) -> RatingInstance:
+    # existing_instance = db.query(RatingInstance).filter(
+    #     RatingInstance.customer_id == customer_id,
+    #     RatingInstance.financial_statement_id == financial_statement_id
+    # ).first()
+
+    # if existing_instance:
+    #     score_quantitative_factors(db, existing_instance)
+    #     return existing_instance
+
+    rating_model = db.query(RatingModel).first()  # Assuming you have only one rating model
+    new_instance = RatingInstance(
+        customer_id=customer_id,
+        financial_statement_id=financial_statement_id,
+        rating_model_id=rating_model.id
+    )
+    db.add(new_instance)
+    db.commit()
+    db.flush()
+    
+    # score_quantitative_factors(db, new_instance)
+    from rating_model_instance import initiate_qualitative_factor_data 
+    initiate_qualitative_factor_data(db=db,rating_instance=new_instance)
+    process_rating_instance(db=db,rating_instance=new_instance)
+    return new_instance
+
+
+@router.delete("/rating/{rating_instance_id}")
+async def delete_rating_instance(rating_instance_id: str, db: Session = Depends(get_db)):
+    # Start a transaction
+    try:
+        # Delete associated RatingFactorScores
+        db.query(RatingFactorScore).filter(
+            RatingFactorScore.rating_instance_id == rating_instance_id
+        ).delete(synchronize_session=False)
+
+        # Delete the RatingInstance
+        deleted_count = db.query(RatingInstance).filter(
+            RatingInstance.id == rating_instance_id
+        ).delete(synchronize_session=False)
+
+        if deleted_count == 0:
+            raise HTTPException(status_code=404, detail="Rating instance not found")
+
+        # Commit the transaction
+        db.commit()
+
+        return {"message": "Rating instance and associated factor scores deleted successfully"}
+
+    except Exception as e:
+        # If any error occurs, rollback the transaction
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")
+    
+    
+def get_factor_scores(db: Session, rating_instance_id: str) -> Dict[str, List[Dict]]:
+    scores = db.query(RatingFactorScore, RatingFactor).join(RatingFactor).filter(
+        RatingFactorScore.rating_instance_id == rating_instance_id
+    ).all()
+
+    result = {
+        "quantitative": [],
+        "qualitative": [],
+        "overall": None
+    }
+
+    for score, factor in scores:
+        score_data = {
+            "id": str(score.id),
+            "label": factor.label,
+            "score": score.score,
+            "raw_value_text": score.raw_value_text,
+            "raw_value_float": score.raw_value_float,
+            "factor_type": factor.factor_type,
+            "module_name": factor.module_name
+        }
+
+        if factor.factor_type == "quantitative":
+            result["quantitative"].append(score_data)
+        elif factor.factor_type == "qualitative":
+            result["qualitative"].append(score_data)
+        elif factor.factor_type == "overall":
+            result["overall"] = score_data
+
+    return result
+
+@router.post("/api/rating/save_module")
+async def save_module(request: Request, db: Session = Depends(get_db)):
+    data = await request.json()
+    rating_instance_id = data.get("rating_instance_id")
+    module_name = data.get("module_name")
+    factors = data.get("factors", {})
+
+    for factor_id, value in factors.items():
+        score = db.query(RatingFactorScore).filter(
+            RatingFactorScore.rating_instance_id == rating_instance_id,
+            RatingFactorScore.rating_factor_id == factor_id
+        ).first()
+
+        if score:
+            if isinstance(value, str):
+                score.raw_value_text = value
+            elif isinstance(value, (int, float)):
+                score.raw_value_float = value
+            # You might want to recalculate the score here based on the new value
+            db.add(score)
+
+    db.commit()
+    return {"success": True, "message": f"Module {module_name} saved successfully"}

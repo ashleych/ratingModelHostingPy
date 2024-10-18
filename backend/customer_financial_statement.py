@@ -73,8 +73,7 @@ class FsApp:
         for l in lag_variables:
             # Get the current value of the lag variable
             new_value=self.get_lag_variable_value(statement=new_statement,lag_meta=l)
-            if new_value:
-                self.update_or_create_lag_line_item_value(statement=new_statement,lag_meta=l,value=new_value)
+            self.update_or_create_lag_line_item_value(statement=new_statement,lag_meta=l,value=new_value)
         derived_fields = self.get_derived_fields(template)
         field_values_map = self.get_all_fields_values(new_statement)
         updated_derived_values_map = self.compute_derived_line_item_values(derived_fields, field_values_map)
@@ -324,10 +323,7 @@ class FsApp:
             "statement_type": statement_type,
             "dates_in_statement": dates_in_statement
         }
-        # return {
-        #     "properties": spreading_properties.__dict__,
-        #     "line_items": [item.__dict__ for item in spreading_line_items]
-        # }
+        
     def compute_derived_line_item_values(
         self,
         derived_fields: List[LineItemMeta],
@@ -366,70 +362,7 @@ class FsApp:
         return updated_derived_fields
 
 
-    # def update_derived_field_values_in_db(self, statement: FinancialStatement, updated_values: Dict[str, float]):
-    #     for name, value in updated_values.items():
-    #         line_item = self.db.query(LineItemValue).join(LineItemMeta).filter(
-    #             LineItemValue.financial_statement_id == statement.id,
-    #             LineItemMeta.name == name
-    #         ).first()
-    #         if line_item:
-    #             line_item.value = value
-    # def update_derived_field_values_in_db(self, statement: FinancialStatement, derived_map: Dict[str, NullableFloat]):
-    #     line_item_input = LineItemValue()
-        
-    #     for key, nullable_value in derived_map.items():
-    #         line_item_input.financial_statement_id = statement.id
-    #         line_item_input.line_item_meta_id = UUID(key)  # Assuming key is a string representation of UUID
-    #         line_item_input.value = nullable_value.value if nullable_value.valid else None
 
-    #         # Using SQLAlchemy's insert ... on conflict do update
-    #         insert_stmt = insert(LineItemValue).values(
-    #             financial_statement_id=line_item_input.financial_statement_id,
-    #             line_item_meta_id=line_item_input.line_item_meta_id,
-    #             value=line_item_input.value
-    #         )
-            
-    #         do_update_stmt = insert_stmt.on_conflict_do_update(
-    #             constraint='lineitemvalue_pkey',  # Assuming this is your primary key constraint name
-    #             set_=dict(value=line_item_input.value)
-    #         )
-
-    #         self.db.execute(do_update_stmt)
-
-    #     self.db.commit()
-    # def update_derived_field_values_in_db(self, statement: FinancialStatement, derived_map: Dict[str, NullableFloat]):
-    #     # Get all derived fields for this statement's template
-    #     derived_fields = self.get_derived_fields(statement.template)
-        
-    #     # Create a mapping of line item meta names to their IDs
-    #     name_to_id_map = {field.name: field.id for field in derived_fields}
-
-    #     line_item_input = LineItemValue()
-        
-    #     for name, nullable_value in derived_map.items():
-    #         if name not in name_to_id_map:
-    #             print(f"Warning: No LineItemMeta found for name: {name}")
-    #             continue
-
-    #         line_item_input.financial_statement_id = statement.id
-    #         line_item_input.line_item_meta_id = name_to_id_map[name]
-    #         line_item_input.value = nullable_value.value if nullable_value.valid else None
-
-    #         # Using SQLAlchemy's insert ... on conflict do update
-    #         insert_stmt = insert(LineItemValue).values(
-    #             financial_statement_id=line_item_input.financial_statement_id,
-    #             line_item_meta_id=line_item_input.line_item_meta_id,
-    #             value=line_item_input.value
-    #         )
-            
-    #         do_update_stmt = insert_stmt.on_conflict_do_update(
-    #             constraint='lineitemvalue_pkey',  # Assuming this is your primary key constraint name
-    #             set_=dict(value=line_item_input.value)
-    #         )
-
-    #         self.db.execute(do_update_stmt)
-
-    #     self.db.commit()
     def update_derived_field_values_in_db(self, statement: FinancialStatement, derived_map: Dict[str, NullableFloat]):
         # Get all derived fields for this statement's template
         derived_fields = self.get_derived_fields(statement.template)
@@ -493,7 +426,6 @@ class FsApp:
             return base_meta.id if base_meta else None
     def get_lag_variable_value(self, statement: FinancialStatement, lag_meta: LineItemMeta) -> float:
 
-
         preceding_statement_id = statement.preceding_statement_id
         
         if preceding_statement_id:
@@ -554,8 +486,8 @@ class FsApp:
         for l in lag_variables:
             # Get the current value of the lag variable
             new_value=self.get_lag_variable_value(statement=statement,lag_meta=l)
-            if new_value:
-                self.update_or_create_lag_line_item_value(statement=statement,lag_meta=l,value=new_value)
+            # if new_value:
+            self.update_or_create_lag_line_item_value(statement=statement,lag_meta=l,value=new_value)
 
         # Get all fields and their current values
         field_values_map = self.get_all_fields_values(statement)
