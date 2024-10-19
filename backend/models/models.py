@@ -206,8 +206,6 @@ class LineItemValue(Base):
     financial_statement_id = Column(UUID, ForeignKey('financialstatement.id'),nullable=False)
     line_item_meta_id = Column(UUID, ForeignKey('lineitemmeta.id'),nullable=False)
     value = Column(Float, nullable=True)
-    is_dirty=Column(Boolean) # used to indicate if the front end has made some changes
-    original_value=Column(Float, nullable=True) # if dirty, then value is copied to original_value. When the user hits save
     financial_statement = relationship("FinancialStatement")
     line_item_meta = relationship("LineItemMeta")
     __table_args__ = ( UniqueConstraint('financial_statement_id', 'line_item_meta_id', name='uix_financial_statement_line_item'), )
