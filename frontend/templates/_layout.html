@@ -1,29 +1,23 @@
 <!DOCTYPE html>
 <html lang="en" class="light">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Financial Statement App{% endblock %}</title>
-    <!-- <script src="https://unpkg.com/htmx.org@1.9.6"></script>
-        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/handsontable/dist/handsontable.full.min.css" />
-        <script src="https://cdn.jsdelivr.net/npm/handsontable/dist/handsontable.full.min.js"></script>
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"> -->
-
+    <title>{% block title %}Rating App{% endblock %}</title>
+    <h4>Rating app</h4>
+    
+    <!-- Add HTMX for smooth navigation -->
+    <script src="https://unpkg.com/htmx.org@1.9.6"></script>
     <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Your existing CSS and JS imports -->
     <link rel="stylesheet" href="/static/src/output.css" />
     <link rel="stylesheet" href="/static/src/formula_tooltip.css" />
-
     <link rel="stylesheet" href="/static/fontawesome-free/css/all.min.css" />
-
-    <link rel="stylesheet" href="/static/src/output.css" />
-    <!-- <link rel="stylesheet" href="/static/css/financialTable.css" /> -->
-
-    <!-- <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@handsontable/pikaday@1.0.0/css/pikaday.min.css"> -->
     <link rel="stylesheet" href="/static/css/pikaday_1.min.css">
-    <script type="text/javascript" src="/static/js/handsontable.full.min.js"></script>
-
+    <script defer type="text/javascript" src="/static/js/handsontable.full.min.js"></script>
     <link rel="stylesheet" href="/static/css/handsontable.full.min.css" />
+
     <script>
         tailwind.config = {
             darkMode: 'class',
@@ -37,7 +31,9 @@
         }
     </script>
 
+    <!-- Your existing styles -->
     <style>
+        /* Your existing styles here */
         /* Consistent form input styling */
         .form-input,
         .form-select {
@@ -107,28 +103,87 @@
         .handsontable .isDirty {
             background: yellow;
         }
-    </style>
+        /* Add a style for active navigation */
+        .nav-link.active {
+            @apply bg-gray-200 dark:bg-gray-700;
+        }
 
+        /* Add transition for content swap */
+        .content-area {
+            transition: opacity 0.2s ease-in-out;
+        }
+        .content-area.htmx-swapping {
+            opacity: 0;
+        }
+    </style>
 </head>
 
 <body class="bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200 transition-colors duration-200 ease-in-out">
     <div class="flex h-screen bg-gray-100 dark:bg-gray-900">
         <!-- Sidebar -->
-        <div
-            class="bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 w-64 space-y-6 py-7 px-2 absolute inset-y-0 left-0 transform -translate-x-full md:relative md:translate-x-0 transition duration-200 ease-in-out">
+        <div class="bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 w-64 space-y-6 py-7 px-2 absolute inset-y-0 left-0 transform -translate-x-full md:relative md:translate-x-0 transition duration-200 ease-in-out">
+            <div class="px-4 py-2 border-b border-gray-200 dark:border-gray-700">
+                <div class="flex items-center space-x-4">
+                    <div class="w-10 h-10 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center">
+                        <span class="text-lg font-semibold">
+                            {% if user %}
+                                {{ user.name[0] | upper }}
+                            {% else %}
+                                G
+                            {% endif %}
+                        </span>
+                    </div>
+                    <div class="flex-1">
+                        <p class="text-sm font-medium">
+                            {% if user %}
+                                {{ user.name }}
+                            {% else %}
+                                Guest
+                            {% endif %}
+                        </p>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">
+                            {% if user %}
+                                Logged In
+                            {% else %}
+                                Not Logged In
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Updated navigation with HTMX -->
             <nav>
-                <a href="/"
-                    class="block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-200 dark:hover:bg-gray-700">Home</a>
-                <a href="/customers"
-                    class="block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-200 dark:hover:bg-gray-700">View
-                    Customers</a>
-                <a href="/customers/new"
-                    class="block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-200 dark:hover:bg-gray-700">Create
-                    Customer</a>
-                <a href="/statements/new"
-                    class="block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-200 dark:hover:bg-gray-700">Create
-                    Statement</a>
+                <a hx-get="/"
+                   hx-target="#main-content"
+                   hx-push-url="true"
+                   hx-indicator=".loading-indicator"
+                   class="nav-link block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-200 dark:hover:bg-gray-700">
+                    Home
+                </a>
+                <a hx-get="/customers"
+                   hx-target="#main-content"
+                   hx-push-url="true"
+                   hx-indicator=".loading-indicator"
+                   class="nav-link block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-200 dark:hover:bg-gray-700">
+                    View Customers
+                </a>
+                <a hx-get="/customers/new"
+                   hx-target="#main-content"
+                   hx-push-url="true"
+                   hx-indicator=".loading-indicator"
+                   class="nav-link block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-200 dark:hover:bg-gray-700">
+                    Create Customer
+                </a>
+                <a hx-get="/statements/new"
+                   hx-target="#main-content"
+                   hx-push-url="true"
+                   hx-indicator=".loading-indicator"
+                   class="nav-link block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-200 dark:hover:bg-gray-700">
+                    Create Statement
+                </a>
             </nav>
+
             <div class="px-4 mt-6">
                 <button id="darkModeToggle"
                     class="px-4 py-2 bg-gray-200 dark:bg-gray-700 rounded-md transition-colors duration-200">
@@ -137,15 +192,45 @@
             </div>
         </div>
 
-        <!-- Content -->
-        <div class="flex-1 p-10 text-2xl font-bold overflow-y-auto">
-            {% block content %}
-            {% endblock %}
+        <!-- Content with loading indicator -->
+        <div class="flex-1 p-10 overflow-y-auto relative">
+            <!-- Loading indicator -->
+            <div class="loading-indicator fixed top-4 right-4 hidden">
+                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 dark:border-white"></div>
+            </div>
+            
+            <!-- Main content area -->
+            <div id="main-content" class="content-area">
+                {% block content %}
+                {% endblock %}
+            </div>
         </div>
     </div>
 
+    <!-- HTMX specific scripts -->
     <script>
-        // Dark mode toggle functionality
+        // Handle active navigation
+        document.body.addEventListener('htmx:afterOnLoad', function(evt) {
+            // Remove active class from all links
+            document.querySelectorAll('.nav-link').forEach(link => {
+                link.classList.remove('active');
+            });
+            
+            // Add active class to current link
+            const currentPath = window.location.pathname;
+            document.querySelector(`a[hx-get="${currentPath}"]`)?.classList.add('active');
+        });
+
+        // Show/hide loading indicator
+        document.body.addEventListener('htmx:beforeRequest', function(evt) {
+            document.querySelector('.loading-indicator').classList.remove('hidden');
+        });
+        
+        document.body.addEventListener('htmx:afterRequest', function(evt) {
+            document.querySelector('.loading-indicator').classList.add('hidden');
+        });
+
+        // Your existing dark mode script
         const darkModeToggle = document.getElementById('darkModeToggle');
         const html = document.documentElement;
 
@@ -154,11 +239,9 @@
             localStorage.setItem('darkMode', html.classList.contains('dark') ? 'true' : 'false');
         });
 
-        // Check for saved dark mode preference
         if (localStorage.getItem('darkMode') === 'true') {
             html.classList.add('dark');
         }
     </script>
 </body>
-
 </html>

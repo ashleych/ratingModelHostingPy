@@ -1,7 +1,7 @@
 
 from sqlalchemy.orm import Session
 from typing import Tuple
-from models.models import Customer, WorkflowAction, FinancialsPeriod, Template, FinancialStatement, LineItemMeta, LineItemValue
+from models.models import Customer, FinancialsPeriod, Template, FinancialStatement, LineItemMeta, LineItemValue
 import csv
 from typing import List, Dict
 from main import create_engine_and_session
@@ -29,10 +29,9 @@ class FsApp:
         self.db = db
 
 
-    def generate_statement_data_for_customer(self, year_no_index: int,year:int, month:int, date:int,
-                                             workflow_action: WorkflowAction, customer: Customer):
+    def generate_statement_data_for_customer(self, year_no_index: int,year:int, month:int, date:int, customer: Customer):
         template = self.db.query(Template).filter(Template.name == "FinTemplate").first()
-        new_statement = FinancialStatement( financials_period_year=year, financials_period_month=month, financials_period_date=date,workflow_action=workflow_action, 
+        new_statement = FinancialStatement( financials_period_year=year, financials_period_month=month, financials_period_date=date, 
                                        customer=customer, template=template, is_dirty=True)
 
     # Find the preceding statement
@@ -113,7 +112,7 @@ class FsApp:
 
     def create_statement_data_for_customer(self, cif_number: str) -> Customer:
         customer = self.db.query(Customer).filter(Customer.cif_number == cif_number).first()
-        workflow_action = customer.workflow_action
+        # workflow_action = customer.workflow_action
 
         column_index_in_csv = 1
         for year in [2021, 2022, 2023]:
@@ -124,7 +123,7 @@ class FsApp:
             ).first()
             month=12
             date=31 
-            self.generate_statement_data_for_customer(column_index_in_csv,year,month, date, workflow_action, customer)
+            self.generate_statement_data_for_customer(column_index_in_csv,year,month, date, customer)
             column_index_in_csv += 1
 
         return customer
@@ -437,16 +436,7 @@ class FsApp:
                 ).first()
                 if line_item_value:
                     return line_item_value.value
-            # line_item_value = self.db.query(LineItemValue).filter(
-            #     LineItemValue.financial_statement_id == preceding_statement_id,
-            #     LineItemValue.name == base_name
-            # ).first()
-            # line_item_value = self.db.query(LineItemValue).filter(
-            #     LineItemValue.financial_statement_id == preceding_statement_id,
-            #     LineItemValue.line_item_meta_id == lag_meta.id
-            # ).first()
-            # if line_item_value:
-            #     return line_item_value.value
+
         return None
 
     def update_or_create_lag_line_item_value(self, statement: FinancialStatement, lag_meta: LineItemMeta, value: float):

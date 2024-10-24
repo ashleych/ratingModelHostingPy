@@ -1,6 +1,8 @@
 
 
+{% if not is_htmx %}
 {% extends "_layout.html" %}
+{% endif %}
 {% block content %}
 <div class="bg-white dark:bg-gray-800 shadow overflow-hidden sm:rounded-lg">
   <div class="px-4 py-5 sm:px-6">
@@ -47,9 +49,12 @@
                 </div>
                 <div class="mt-2 flex items-center text-sm text-gray-500 sm:mt-0">
                   {% if statement.rating_instance %}
-                      <a href="{{ url_for('view_customer_rating', customer_id=customer.id ).include_query_params(rating_instance_id=statement.rating_instance.id) }}" class="inline-flex items-center px-3 py-1 border border-transparent text-sm leading-5 font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-500 focus:outline-none focus:border-indigo-700 focus:shadow-outline-indigo active:bg-indigo-700 transition ease-in-out duration-150">
-                      View Rating
-                    </a>
+
+                        <a hx-get="{{ url_for('view_customer_rating', customer_id=customer.id).include_query_params(rating_instance_id=statement.rating_instance.id) }}" hx-target="#main-content"
+                            hx-push-url="true" hx-indicator=".loading-indicator"
+                            class="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-200 hover:underline">
+                            View Rating
+                        </a>
                     <button 
                       onclick="deleteRating('{{ statement.rating_instance.id }}')" 
                       class="inline-flex items-center px-3 py-1 border border-transparent text-sm leading-5 font-medium rounded-md text-white bg-red-600 hover:bg-red-500 focus:outline-none focus:border-red-700 focus:shadow-outline-red active:bg-red-700 transition ease-in-out duration-150">

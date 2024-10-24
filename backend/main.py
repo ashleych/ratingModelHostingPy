@@ -3,7 +3,7 @@ import csv
 from datetime import datetime, timedelta
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from models.models import Base, BusinessUnit, MasterRatingScale, Customer, FinancialsPeriod,LineItemMeta, Template, TemplateSourceCSV, WorkflowAction
+from models.models import Base, BusinessUnit, MasterRatingScale, Customer, FinancialsPeriod,LineItemMeta, Template, TemplateSourceCSV
 from enum import Enum
 
 DB_NAME = "rating_model_py_app"
@@ -48,25 +48,7 @@ def init_db(db_path):
     def drop_tables_in_order(engine):
         # Define the order to drop tables
         # Start with tables that have the most dependencies and work backwards
-        tables = [
-'businessunit',
-'customer',
-'financialsperiod',
-'financialstatement',
-'lineitemmeta',
-'lineitemvalue',
-'masterratingscale',
-'ratingfactor',
-'ratingfactorattribute',
-'ratingfactorscore',
-'ratinginstance',
-'ratingmodel',
-'template',
-'templatesourcecsv',
-'workflowaction',
-            # Add any other tables that might be in your schema
-        ]
-    
+        tables = ['businessunit','users', 'customer', 'financialsperiod', 'financialstatement', 'lineitemmeta', 'lineitemvalue', 'masterratingscale', 'ratingfactor', 'ratingfactorattribute', 'ratingfactorscore', 'ratinginstance', 'ratingmodel', 'template', 'templatesourcecsv', 'workflowaction', 'workflow_step', 'ratinginstance_version', 'workflow_assignment'] # Add any other tables that might be in your schema ]
         with engine.begin() as conn:
             # Disable triggers temporarily
             conn.execute(text("SET session_replication_role = 'replica';"))
@@ -113,7 +95,7 @@ def init_db(db_path):
         business_unit_id=business_units["Large Corporate"].id,
         relationship_type="Prospect",
         internal_risk_rating="2",
-        workflow_action_type=WorkflowActionType.DRAFT.value
+        
     ),
     Customer(
         customer_name="XYZ Enterprises",
@@ -122,7 +104,7 @@ def init_db(db_path):
         business_unit_id=business_units["Mid Corporate"].id,
         relationship_type="Existing",
         internal_risk_rating="2",
-        workflow_action_type=WorkflowActionType.DRAFT.value
+        
     ),
     Customer(
         customer_name="DEF Ltd",
@@ -131,7 +113,7 @@ def init_db(db_path):
         business_unit_id=business_units["Large Corporate"].id,
         relationship_type="Prospect",
         internal_risk_rating="5",
-        workflow_action_type=WorkflowActionType.DRAFT.value
+        
     ),
     Customer(
         customer_name="PQR Inc",
@@ -140,7 +122,7 @@ def init_db(db_path):
         business_unit_id=business_units["Large Corporate"].id,
         relationship_type="Existing",
         internal_risk_rating="5+",
-        workflow_action_type=WorkflowActionType.DRAFT.value
+        
     ),
     Customer(
         customer_name="GHI Corporation",
@@ -149,7 +131,7 @@ def init_db(db_path):
         business_unit_id=business_units["Large Corporate"].id,
         relationship_type="Prospect",
         internal_risk_rating="2-",
-        workflow_action_type=WorkflowActionType.DRAFT.value
+        
     ),
     Customer(
         customer_name="LMN Enterprises",
@@ -158,7 +140,7 @@ def init_db(db_path):
         business_unit_id=business_units["Large Corporate"].id,
         relationship_type="Existing",
         internal_risk_rating="2",
-        workflow_action_type=WorkflowActionType.DRAFT.value
+        
     ),
     Customer(
         customer_name="JKL Ltd",
@@ -167,14 +149,14 @@ def init_db(db_path):
         business_unit_id=business_units["Large Corporate"].id,
         relationship_type="Prospect",
         internal_risk_rating="2",
-        workflow_action_type=WorkflowActionType.DRAFT.value
+        
     )
 ]
 
     # After defining the customers list
     for customer in customers:
-        workflow_action = create_update_workflow_action(session, customer.cif_number, WorkflowActionType.DRAFT)
-        customer.workflow_action = workflow_action
+        # workflow_action = create_update_workflow_action(session, customer.cif_number, WorkflowActionType.DRAFT)
+        # customer.workflow_action = workflow_action
         session.add(customer)
 
     session.commit()

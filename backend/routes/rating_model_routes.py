@@ -55,7 +55,11 @@ from rating_model_instance import generate_qualitative_factor_data, score_quanti
 
 from models.models import RatingFactorScore, RatingFactor, RatingFactorAttribute
 from calculate_derived_scores import DerivedFactor, calculate_derived_scores
+
 import os
+from rating_workflow_processing import process_rating_instance
+from schema.schema import User
+from dependencies import get_db,auth_handler
 router = APIRouter()
 
 templates = Jinja2Templates(directory="../frontend/templates")
@@ -68,7 +72,7 @@ def get_db():
         db.close()
 
 @router.get("/rating/{customer_id}/new")
-async def new_rating(request: Request, customer_id: str, db: Session = Depends(get_db)):
+async def new_rating(request: Request, customer_id: str, current_user:User = Depends(auth_handler.auth_wrapper),db: Session = Depends(get_db)):
     customer = db.query(Customer).filter(Customer.id == customer_id).first()
     if not customer:
         raise HTTPException(status_code=404, detail="Customer not found")
@@ -76,7 +80,7 @@ async def new_rating(request: Request, customer_id: str, db: Session = Depends(g
     rating_models = db.query(RatingModel).all()
 
     return templates.TemplateResponse("rating/new.html", {
-        "request": request,
+        "request": request,'user':current_user,
         "customer": customer,
         "rating_models": rating_models
     })
@@ -96,7 +100,7 @@ async def view_customer_rating(
     request: Request, 
     customer_id: str, 
     rating_instance_id:str=Query(),
-    db: Session = Depends(get_db),
+    current_user:User = Depends(auth_handler.auth_wrapper),db: Session = Depends(get_db),
     view_type: str = Query("tabbed", description="View type: 'tabbed' or 'single'")
 ):
     customer = db.query(Customer).filter(Customer.id == customer_id).first()
@@ -116,7 +120,7 @@ async def view_customer_rating(
 
     if not rating_instance:
         return templates.TemplateResponse("rating/no_rating.html", {
-            "request": request,
+            "request": request,'user':current_user,
             "customer": customer
         })
 
@@ -155,13 +159,16 @@ async def view_customer_rating(
         factors.append(factor_data)
 
     structured_data = structure_rating_data(factors)
-
+    
+    is_htmx = request.headers.get("HX-Request") == "true"
+    # Render the updated.html template with the updated customer information
     return templates.TemplateResponse("rating/view_modules.html", {
-        "request": request,
+        "request": request,'user':current_user,
         "customer": customer,
         "rating_instance": rating_instance,
         "structured_data": structured_data,
-        "view_type": view_type
+        "view_type": view_type,
+        "is_htmx":is_htmx
     })
 
 
@@ -170,7 +177,7 @@ async def view_customer_rating(
 # async def view_customer_rating(
 #     request: Request, 
 #     customer_id: str, 
-#     db: Session = Depends(get_db),
+#     current_user:User = Depends(auth_handler.auth_wrapper),db: Session = Depends(get_db),
 #     view_type: str = Query("tabbed", description="View type: 'tabbed' or 'single'")
 # ):
 #     customer = db.query(Customer).filter(Customer.id == customer_id).first()
@@ -184,7 +191,7 @@ async def view_customer_rating(
 
 #     if not rating_instance:
 #         return templates.TemplateResponse("rating/no_rating.html", {
-#             "request": request,
+#             "request": request,'user':current_user,
 #             "customer": customer
 #         })
 
@@ -213,7 +220,7 @@ async def view_customer_rating(
 #     structured_data = structure_rating_data(factors)
 
 #     return templates.TemplateResponse("rating/view_modules.html", {
-#         "request": request,
+#         "request": request,'user':current_user,
 #         "customer": customer,
 #         "rating_instance": rating_instance,
 #         "structured_data": structured_data,
@@ -355,7 +362,7 @@ def remove_file(path: str):
     os.unlink(path)
 
 @router.get("/rating/{customer_id}/download/{format}")
-async def download_rating_report(customer_id: str, format: str,  background_tasks: BackgroundTasks,db: Session = Depends(get_db)):
+async def download_rating_report(customer_id: str, format: str,  background_tasks: BackgroundTasks,current_user:User = Depends(auth_handler.auth_wrapper),db: Session = Depends(get_db)):
 
     customer = db.query(Customer).filter(Customer.id == customer_id).first()
     if not customer:
@@ -424,7 +431,7 @@ class FactorUpdateResponse(BaseModel):
     new_overall_rating:str
 
 @router.post("/api/update_factor_value", response_model=FactorUpdateResponse)
-async def update_factor_value(request: FactorUpdateRequest, db: Session = Depends(get_db)):
+async def update_factor_value(request: FactorUpdateRequest, current_user:User = Depends(auth_handler.auth_wrapper),db: Session = Depends(get_db)):
     try:
         print(f"Updating factor {request.factor_id} with new value {request.new_value}")
         
@@ -490,7 +497,7 @@ from sqlalchemy import desc
 
     
 @router.post("/api/rating/create")
-async def create_rating_instance(request: Request, db: Session = Depends(get_db)):
+async def create_rating_instance(request: Request, current_user:User = Depends(auth_handler.auth_wrapper),db: Session = Depends(get_db)):
     data = await request.json()
     financial_statement_id = data.get('financial_statement_id')
     customer_id = data.get('customer_id')
@@ -532,7 +539,7 @@ async def create_rating_instance(request: Request, db: Session = Depends(get_db)
 #     # This is just a placeholder
 #     return 0.0
 # @router.get("/rating/new/{customer_id}")
-# async def new_rating_instance(request: Request, customer_id: str, db: Session = Depends(get_db)):
+# async def new_rating_instance(request: Request, customer_id: str, current_user:User = Depends(auth_handler.auth_wrapper),db: Session = Depends(get_db)):
 #     customer = db.query(Customer).filter(Customer.id == customer_id).first()
 #     if not customer:
 #         raise HTTPException(status_code=404, detail="Customer not found")
@@ -560,7 +567,7 @@ async def create_rating_instance(request: Request, db: Session = Depends(get_db)
 #         attributes_by_factor[attr.rating_factor_id].append(attr)
     
 #     return templates.TemplateResponse("rating/new_rating.html", {
-#         "request": request,
+#         "request": request,'user':current_user,
 #         "customer": customer,
 #         "financial_statements": financial_statements,
 #         "factors_by_module": factors_by_module,
@@ -569,14 +576,14 @@ async def create_rating_instance(request: Request, db: Session = Depends(get_db)
 #     })
 
 @router.get("/api/check_existing_rating/{financial_statement_id}")
-async def check_existing_rating(financial_statement_id: str, db: Session = Depends(get_db)):
+async def check_existing_rating(financial_statement_id: str, current_user:User = Depends(auth_handler.auth_wrapper),db: Session = Depends(get_db)):
     existing_rating = db.query(RatingInstance).filter(RatingInstance.financial_statement_id == financial_statement_id).first()
     if existing_rating:
         return {"exists": True, "rating_id": str(existing_rating.id)}
     return {"exists": False}
 
 @router.get("/api/get_quantitative_data/{financial_statement_id}")
-async def get_quantitative_data(financial_statement_id: str, db: Session = Depends(get_db)):
+async def get_quantitative_data(financial_statement_id: str, current_user:User = Depends(auth_handler.auth_wrapper),db: Session = Depends(get_db)):
     # Implement logic to fetch quantitative data from the financial statement
     # This is a placeholder - you'll need to adjust based on your actual data model
     quantitative_data = {}
@@ -587,7 +594,7 @@ async def get_quantitative_data(financial_statement_id: str, db: Session = Depen
 from starlette import status
 
 @router.get("/rating/{customer_id}")
-async def generate_rating(request: Request, customer_id: str, financial_statement_id: str = Query(), db: Session = Depends(get_db)):
+async def generate_rating(request: Request, customer_id: str, financial_statement_id: str = Query(), current_user:User = Depends(auth_handler.auth_wrapper),db: Session = Depends(get_db)):
     customer = db.query(Customer).filter(Customer.id == customer_id).first()
     if not customer:
         raise HTTPException(status_code=404, detail="Customer not found")
@@ -599,14 +606,14 @@ async def generate_rating(request: Request, customer_id: str, financial_statemen
     
     if not rating_instance:
         return templates.TemplateResponse("rating/no_rating.html", {
-            "request": request,
+            "request": request,'user':current_user,
             "customer": customer
         })
     return RedirectResponse( url=request.url_for("view_customer_rating", customer_id=customer_id).include_query_params(rating_instance_id=str(rating_instance.id)), status_code=status.HTTP_303_SEE_OTHER )
     # factor_scores = get_factor_scores(db, str(rating_instance.id))
     
     # return templates.TemplateResponse("rating/view_modules.html", {
-    #     "request": request,
+    #     "request": request,'user':current_user,
     #     "customer": customer,
     #     "rating_instance": rating_instance,
     #     "quantitative_scores": factor_scores["quantitative"],
@@ -616,7 +623,6 @@ async def generate_rating(request: Request, customer_id: str, financial_statemen
 
     return RedirectResponse(url=f"/rating/{customer_id}", status_code=303)
 
-from rating_model_instance import process_rating_instance
 def create_rating_instance(db: Session, customer_id: str, financial_statement_id: str) -> RatingInstance:
     # existing_instance = db.query(RatingInstance).filter(
     #     RatingInstance.customer_id == customer_id,
@@ -645,7 +651,7 @@ def create_rating_instance(db: Session, customer_id: str, financial_statement_id
 
 
 @router.delete("/rating/{rating_instance_id}")
-async def delete_rating_instance(rating_instance_id: str, db: Session = Depends(get_db)):
+async def delete_rating_instance(rating_instance_id: str, current_user:User = Depends(auth_handler.auth_wrapper),db: Session = Depends(get_db)):
     # Start a transaction
     try:
         # Delete associated RatingFactorScores
@@ -704,7 +710,7 @@ def get_factor_scores(db: Session, rating_instance_id: str) -> Dict[str, List[Di
     return result
 
 @router.post("/api/rating/save_module")
-async def save_module(request: Request, db: Session = Depends(get_db)):
+async def save_module(request: Request, current_user:User = Depends(auth_handler.auth_wrapper),db: Session = Depends(get_db)):
     data = await request.json()
     rating_instance_id = data.get("rating_instance_id")
     module_name = data.get("module_name")

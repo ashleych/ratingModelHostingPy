@@ -7,90 +7,17 @@ import enum
 from decimal import Decimal
 
 from rating_model import configure_rating_model_factors, get_or_create_rating_model
-from models.models import RatingFactorAttribute, RatingInstance,RatingFactorScore,RatingModel,RatingFactor,FinancialStatement,FactorInputSource
+from models.models import RatingFactorAttribute, RatingInstance,RatingFactorScore,RatingModel,RatingFactor,FinancialStatement
 
 from calculate_derived_scores import calculate_derived_scores
+from typing import List, Tuple
+from sqlalchemy.orm import Session
+from uuid import UUID
+import json
 
 
 from customer_financial_statement import FsApp
 
-#             .first())
-
-# Usage example
-# def score_quantitative_factors(db,rating_instance: RatingInstance) -> None:
-#         # Fetch the financial statement
-#         stmt = db.query(FinancialStatement).filter(
-#             FinancialStatement.customer_id == rating_instance.customer_id,
-#             FinancialStatement.id == rating_instance.financial_statement_id,
-#             FinancialStatement.template_id == rating_instance.rating_model.template_id
-#         ).first()
-
-#         if not stmt:
-#             raise ValueError("No matching financial statement found")
-#         app = FsApp(db)
-#         # Get line item values from the statement
-#         line_item_values = app.get_all_fields_values(stmt)
-
-#         derived_quant_factors = []
-
-#         def get_raw_factor_values() -> List[RatingFactorScore]:
-#             quant_factors = db.query(RatingFactor).filter(
-#                 RatingFactor.rating_model_id == rating_instance.rating_model_id,
-#                 RatingFactor.factor_type == 'quantitative'
-#             ).all()
-
-#             quant_factor_scores = []
-#             for qf in quant_factors:
-#                 if qf.input_source == FactorInputSource.FINANCIAL_STATEMENT.value:
-#                     if qf.name not in line_item_values or line_item_values[qf.name] is None:
-#                         raise ValueError(f"Missing value for factor: {qf.name}")
-                    
-#                     raw_factor_value = line_item_values[qf.name]
-#                     rf_score = RatingFactorScore(
-#                         rating_instance_id=rating_instance.id,
-#                         rating_factor_id=qf.id,
-#                         raw_value_float=raw_factor_value.value,
-#                         score_dirty=True
-#                     )
-#                     quant_factor_scores.append(rf_score)
-#                 else:
-#                     derived_quant_factors.append(qf)
-
-#             return quant_factor_scores
-
-#         quant_factor_scores = get_raw_factor_values()
-#         db.add_all(quant_factor_scores)
-#         db.flush()
-
-#         # Sort derived quantitative factors
-#         derived_quant_factors.sort(key=lambda x: x.order_no)
-
-#         # Get factor attributes
-#         factor_attributes = db.query(RatingFactorAttribute).filter(
-#             RatingFactorAttribute.rating_model_id == rating_instance.rating_model_id
-#         ).all()
-
-#         def get_factor_wise_scores(rfs: RatingFactorScore) -> RatingFactorAttribute:
-#             return next(
-#                 (attr for attr in factor_attributes
-#                  if attr.rating_factor_id == rfs.rating_factor_id
-#                  and attr.bin_start < rfs.raw_value_float <= attr.bin_end),
-#                 None
-#             )
-#         def check_if_all_raw_values_available():
-#             for rf in quant_factor_scores:
-#         # Calculate scores
-#         for rfs in quant_factor_scores:
-#             attrib = get_factor_wise_scores(rfs)
-#             if attrib:
-#                 rfs.score = attrib.score
-
-#         db.add_all(quant_factor_scores)
-#         db.commit()
-
-#         # TODO: Handle derived factors here
-
-#         print("Quantitative factors scored successfully")
 
 def generate_qualitative_factor_data(db: Session, rating_instance: RatingInstance):
     rating_factor_values: Dict[str, str] = {
@@ -137,10 +64,6 @@ def generate_qualitative_factor_data(db: Session, rating_instance: RatingInstanc
 def initiate_qualitative_factor_data(db: Session, rating_instance: RatingInstance):
     ## this will initiate the rating instance, by adding all qualitative fields that are needed in the RatingFactorScore table
     ## it will initiate with NULL
-
-
-    # Assuming you have a method to get qualitative factors
-    # rating_instance.rating_model.get_qualitative_factors(app, enums.USER_INPUT)
     rating_factors = db.query(RatingFactor).filter(
         RatingFactor.rating_model_id == rating_instance.rating_model_id
     ).all()
@@ -154,10 +77,9 @@ def initiate_qualitative_factor_data(db: Session, rating_instance: RatingInstanc
                 rating_factor_id=rating_factor.id,
                 score_dirty=True
             ))
-
-
     db.add_all(factor_scores)
     db.commit()
+
 def update_qualitative_factor_scores(db: Session, rating_instance: RatingInstance):
     # Get all RatingFactorScore entries for this rating instance
     factor_scores = db.query(RatingFactorScore).filter(
@@ -167,6 +89,8 @@ def update_qualitative_factor_scores(db: Session, rating_instance: RatingInstanc
     # Get all RatingFactorAttribute entries for this rating model
     factor_attributes = db.query(RatingFactorAttribute).filter(
         RatingFactorAttribute.rating_model_id == rating_instance.rating_model_id
+    ).filter(
+        RatingFactorAttribute.attribute_type == 'lookup'
     ).all()
 
     # Create a dictionary for quick lookup of RatingFactorAttributes
@@ -188,10 +112,6 @@ def update_qualitative_factor_scores(db: Session, rating_instance: RatingInstanc
 
     # Commit the changes
     db.commit()
-from typing import List, Tuple
-from sqlalchemy.orm import Session
-from uuid import UUID
-import json
 # Assuming these are defined elsewhere in your code
 
 class FactorInputSource:
@@ -243,7 +163,7 @@ def get_quant_factor_inputs(db: Session, rating_instance: RatingInstance) -> Tup
                         rating_instance_id=rating_instance.id,
                         rating_factor_id=qf.id,
                         raw_value_float=raw_factor_value.value,
-                        score_dirty=True
+                        score_dirty=True,
                     )
                     updated_or_new_scores.append(new_score)
     
@@ -326,27 +246,28 @@ def score_quantitative_factors(db: Session, rating_instance: RatingInstance) -> 
     print("Quantitative factors scored successfully")
 
 
-def process_rating_instance(db: Session, rating_instance: RatingInstance):
-    try:
-        quant_factor_scores, incomplete_financial_information,missing_fields = get_quant_factor_inputs(db, rating_instance)
+# def process_rating_instance(db: Session, rating_instance: RatingInstance):
+#     try:
+#         quant_factor_scores, incomplete_financial_information,missing_fields = get_quant_factor_inputs(db, rating_instance)
         
-        if incomplete_financial_information:
-            rating_instance.incomplete_financial_information = True
-            db.commit()
-            print("Incomplete financial information. No further processing.")
-            return
+#         if incomplete_financial_information:
+#             rating_instance.incomplete_financial_information = True
+#             db.commit()
+#             print("Incomplete financial information. No further processing.")
+#             return
 
-        if check_all_user_inputs_factor_availability(db, rating_instance):
-            score_quantitative_factors(db, rating_instance)
-            update_qualitative_factor_scores(db, rating_instance)
-            calculate_derived_scores(db,rating_instance)
+#         if check_all_user_inputs_factor_availability(db, rating_instance):
+#             score_quantitative_factors(db, rating_instance)
+#             update_qualitative_factor_scores(db, rating_instance)
+#             calculate_derived_scores(db,rating_instance)
             
-        else:
-            print("Not all user inputs are available. Waiting for completion.")
+#         else:
+#             print("Not all user inputs are available. Waiting for completion.")
 
-    except Exception as e:
-        print(f"Error processing rating instance: {str(e)}")
-        # Handle the error appropriately (e.g., logging, rolling back transaction)
+#     except Exception as e:
+#         print(f"Error processing rating instance: {str(e)}")
+#         # Handle the error appropriately (e.g., logging, rolling back transaction)
+
 if __name__ == "__main__":
     from sqlalchemy import create_engine
     from sqlalchemy.orm import sessionmaker
@@ -409,9 +330,3 @@ if __name__ == "__main__":
     db.commit()
     db.flush()
     process_rating_instance(db, rating_instance)
-    # score_quantitative_factors(db=db,rating_instance=rating_instance)
-    # generate_qualitative_factor_data(db,rating_instance=rating_instance)
-    # update_qualitative_factor_scores(db, rating_instance)
-
-        # rating_model_app.check_quant_factors_presence_in_financial_template(
-        #     rating_model)

@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100">
+    <div class="container mx-auto px-4 py-8">
+        <h1 class="text-3xl font-bold mb-8">Admin Dashboard</h1>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <a href="{{ health_check_url }}" class="block p-6 bg-white rounded-lg border border-gray-200 shadow-md hover:bg-gray-100">
+                <h5 class="mb-2 text-2xl font-bold tracking-tight text-gray-900">Health Check</h5>
+                <p class="font-normal text-gray-700">View system health including database status and disk usage.</p>
+            </a>
+            
+            <a href="{{ cleanup_url }}" class="block p-6 bg-white rounded-lg border border-gray-200 shadow-md hover:bg-gray-100">
+                <h5 class="mb-2 text-2xl font-bold tracking-tight text-gray-900">Cleanup Old Folders</h5>
+                <p class="font-normal text-gray-700">Run the cleanup process for old folders.</p>
+            </a>
+        </div>
+    </div>
+</body>
+</html>

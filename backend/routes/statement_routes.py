@@ -13,6 +13,8 @@ from fastapi.encoders import jsonable_encoder
 from pydantic import BaseModel
 from typing import List
 from schema import schema
+from schema.schema import User
+from dependencies import get_db,auth_handler
 class UpdateStatementRequest(BaseModel):
     customer_id:str
     multi_statement_ids:List[str]
@@ -20,21 +22,16 @@ class UpdateStatementRequest(BaseModel):
 router = APIRouter()
 
 templates = Jinja2Templates(directory="../frontend/templates")
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+
 router = APIRouter()
 
 @router.get("/statements/new")
-async def new_statement(request: Request, db: Session = Depends(get_db)):
+async def new_statement(request: Request, current_user:User = Depends(auth_handler.auth_wrapper),db: Session = Depends(get_db)):
     customers = db.query(Customer).all()
-    return templates.TemplateResponse("statements/new.html", {"request": request, "customers": customers})
+    return templates.TemplateResponse("statements/new.html", {"request": request,'user':current_user, "customers": customers})
 
 @router.post("/statements/new")
-async def create_statement(request: Request, db: Session = Depends(get_db), customer_id: int = Form(...)):
+async def create_statement(request: Request, current_user:User = Depends(auth_handler.auth_wrapper),db: Session = Depends(get_db), customer_id: int = Form(...)):
     customer = db.query(Customer).filter(Customer.id == customer_id).first()
     if not customer:
         raise HTTPException(status_code=404, detail="Customer not found")
@@ -42,12 +39,12 @@ async def create_statement(request: Request, db: Session = Depends(get_db), cust
     fs_app = FsApp(db)
     statement = fs_app.create_statement_data_for_customer(customer.cif_number)
     
-    return templates.TemplateResponse("statements/created.html", {"request": request, "statement": statement})
+    return templates.TemplateResponse("statements/created.html", {"request": request,'user':current_user, "statement": statement})
 
 
 
 @router.get("/statements/{customer_id}")
-async def view_statement(request:Request,customer_id: str, db: Session = Depends(get_db)):
+async def view_statement(request:Request,customer_id: str, current_user:User = Depends(auth_handler.auth_wrapper),db: Session = Depends(get_db)):
     # try:
     fs_app = FsApp(db)
     customer = db.query(Customer).filter(Customer.id == customer_id).first()
@@ -56,7 +53,7 @@ async def view_statement(request:Request,customer_id: str, db: Session = Depends
     statement_data= fs_app.get_statement_data(statement_ids=statement_ids)
     
     return templates.TemplateResponse("statements/partials/view.html", {
-            "request": request,
+            "request": request,'user':current_user,
             "customer":customer,
             "data": jsonable_encoder(statement_data["data"]),
             "statement_type": statement_data["statement_type"],
@@ -66,7 +63,7 @@ async def view_statement(request:Request,customer_id: str, db: Session = Depends
 
     
 # @router.post("/statements/{statement_id}/update")
-# async def update_statement_old(request: Request, statement_id: str, db: Session = Depends(get_db), field_name: str = Form(...), new_value: float = Form(...)):
+# async def update_statement_old(request: Request, statement_id: str, current_user:User = Depends(auth_handler.auth_wrapper),db: Session = Depends(get_db), field_name: str = Form(...), new_value: float = Form(...)):
 #     fs_app = FsApp(db)
 #     print("field name is :",field_name)
 #     print("field name is :",new_value)
@@ -83,8 +80,8 @@ async def view_statement(request:Request,customer_id: str, db: Session = Depends
 #         raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")
 #     return {"success": True, "updated_values": updated_values}
 
-@router.post("/update_statement")
-async def update_statement(request: UpdateStatementRequest, db: Session = Depends(get_db)):
+@router.post("statements/update_statement")
+async def update_statement(request: UpdateStatementRequest, current_user:User = Depends(auth_handler.auth_wrapper),db: Session = Depends(get_db)):
     fs_app = FsApp(db)
     
         # Group updates by statement_id

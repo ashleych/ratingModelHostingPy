@@ -3,39 +3,34 @@ from fastapi.responses import RedirectResponse
 
 
 from fastapi.templating import Jinja2Templates
-from models.models import Customer,FinancialStatement,BusinessUnit,WorkflowAction,RatingInstance,RatingFactor,RatingFactorScore
+from models.models import Customer,FinancialStatement,BusinessUnit,RatingInstance,RatingFactor,RatingFactorScore
 from sqlalchemy.orm import Session
 from db.database import SessionLocal, engine
-
+from schema.schema import User
+from dependencies import get_db,auth_handler
 router = APIRouter()
 
 templates = Jinja2Templates(directory="../frontend/templates")
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
-@router.get("/")
-async def index(request: Request, db: Session = Depends(get_db)):
-    return RedirectResponse(url="/customers", status_code=303)
-
 @router.get("/customers")
-async def list_customers(request: Request, db: Session = Depends(get_db)):
+async def list_customers(request: Request,  current_user:User = Depends(auth_handler.auth_wrapper),db: Session = Depends(get_db)):
     customers = db.query(Customer).all()
-    return templates.TemplateResponse("customers/partials/list.html", {"request": request, "customers": customers})
+  # Check if it's an HTMX request
+    is_htmx = request.headers.get("HX-Request") == "true"
+    
+    # Choose template based on request type
+    return templates.TemplateResponse("customers/partials/list.html", {"request": request,'user':current_user, "customers": customers,"is_htmx":is_htmx})
 
 
 @router.get("/customers/new")
-async def new_customer(request: Request,  db: Session = Depends(get_db)):
+async def new_customer(request: Request,  current_user:User = Depends(auth_handler.auth_wrapper),db: Session = Depends(get_db)):
     business_units = db.query(BusinessUnit).all()
 
-    return templates.TemplateResponse("customers/partials/new.html", {"request": request,"business_units": business_units})
+    is_htmx = request.headers.get("HX-Request") == "true"
+    return templates.TemplateResponse("customers/partials/new.html", {"request": request,'user':current_user,"business_units": business_units,"is_htmx":is_htmx})
 
 
 # @router.get("/customers/{customer_id}")
-# async def customer_detail(request: Request, customer_id: str, db: Session = Depends(get_db)):
+# async def customer_detail(request: Request, customer_id: str, current_user:User:User = Depends(auth_handler.auth_wrapper),db: Session = Depends(get_db)):
 #     customer = db.query(Customer).filter(Customer.id == customer_id).first()
 #     if not customer:
 #         raise HTTPException(status_code=404, detail="Customer not found")
@@ -43,14 +38,14 @@ async def new_customer(request: Request,  db: Session = Depends(get_db)):
 #     statements = db.query(FinancialStatement).filter(FinancialStatement.customer_id == customer_id).all()
     
 #     return templates.TemplateResponse("customers/partials/detail.html", {
-#         "request": request, 
+#         "request": request,'user':current_user, 
 #         "customer": customer,
 #         "statements": statements
 #     })
 
 
 @router.get("/customers/{customer_id}")
-async def customer_detail(request: Request, customer_id: str, db: Session = Depends(get_db)):
+async def customer_detail(request: Request, customer_id: str, current_user:User = Depends(auth_handler.auth_wrapper),db: Session = Depends(get_db)):
     customer = db.query(Customer).filter(Customer.id == customer_id).first()
     if not customer:
         raise HTTPException(status_code=404, detail="Customer not found")
@@ -68,14 +63,16 @@ async def customer_detail(request: Request, customer_id: str, db: Session = Depe
     for statement in statements:
         statement.rating_instance = rating_map.get(statement.id)
     
+    is_htmx = request.headers.get("HX-Request") == "true"
     return templates.TemplateResponse("customers/partials/detail.html", {
-        "request": request, 
+        "request": request,'user':current_user, 
         "customer": customer,
-        "statements": statements
+        "statements": statements,
+        "is_htmx":is_htmx
     })
 
 @router.delete("/customers/{customer_id}")
-async def delete_customer(request: Request, customer_id: str, db: Session = Depends(get_db)):
+async def delete_customer(request: Request, customer_id: str, current_user:User = Depends(auth_handler.auth_wrapper),db: Session = Depends(get_db)):
     customer = db.query(Customer).filter(Customer.id == customer_id).first()
     if not customer:
         raise HTTPException(status_code=404, detail="Customer not found")
@@ -90,7 +87,7 @@ async def delete_customer(request: Request, customer_id: str, db: Session = Depe
 @router.post("/customers/new")
 async def create_customer(
     request: Request,
-    db: Session = Depends(get_db),
+    current_user:User = Depends(auth_handler.auth_wrapper),db: Session = Depends(get_db),
     customer_name: str = Form(...),
     group_name: str = Form(...),
     cif_number: str = Form(...),
@@ -111,25 +108,25 @@ async def create_customer(
         business_unit_id=business_unit,
         relationship_type=relationship_type,
         internal_risk_rating=internal_risk_rating,
-        workflow_action_type="Create"  # Set the initial workflow action type
+        # workflow_action_type="Create"  # Set the initial workflow action type
     )
     db.add(new_customer)
     db.flush()  # This will assign an ID to the new customer
 
     # Now create the corresponding WorkflowAction
-    new_workflow_action = WorkflowAction(
-        customer_id=new_customer.id,
-        action_count_customer_level=1,
-        action_by='user',
-        action_type="Create",
-        head=True
-    )
-    db.add(new_workflow_action)
-    db.flush()  # This will assign an ID to the new workflow action
+    # new_workflow_action = WorkflowAction(
+    #     customer_id=new_customer.id,
+    #     action_count_customer_level=1,
+    #     action_by='user',
+    #     action_type="Create",
+    #     head=True
+    # )
+    # db.add(new_workflow_action)
+    # db.flush()  # This will assign an ID to the new workflow action
 
     # Update the customer with the workflow action ID
-    new_customer.workflow_action_id = new_workflow_action.id
-    new_customer.workflow_action = new_workflow_action
+    # new_customer.workflow_action_id = new_workflow_action.id
+    # new_customer.workflow_action = new_workflow_action
 
     try:
         db.commit()
@@ -137,20 +134,23 @@ async def create_customer(
         db.rollback()
         raise HTTPException(status_code=500, detail=f"An error occurred while creating the customer: {str(e)}")
 
-    return {"message": "Customer created successfully", "customer_id": new_customer.id}
+    is_htmx = request.headers.get("HX-Request") == "true"
+    return {"message": "Customer created successfully", "customer_id": new_customer.id,"is_htmx":is_htmx}
 @router.get("/customers/{customer_id}/edit")
-async def edit_customer(request: Request, customer_id: str, db: Session = Depends(get_db)):
+async def edit_customer(request: Request, customer_id: str, current_user:User = Depends(auth_handler.auth_wrapper),db: Session = Depends(get_db)):
     customer = db.query(Customer).filter(Customer.id == customer_id).first()
     if not customer:
         raise HTTPException(status_code=404, detail="Customer not found")
     business_units = db.query(BusinessUnit).all()
-    return templates.TemplateResponse("customers/partials/edit.html", {"request": request, "customer": customer, "business_units": business_units})
+
+    is_htmx = request.headers.get("HX-Request") == "true"
+    return templates.TemplateResponse("customers/partials/edit.html", {"request": request,"is_htmx":is_htmx,'user':current_user, "customer": customer, "business_units": business_units})
 
 @router.post("/customers/{customer_id}/edit")
 async def update_customer(
     request: Request,
     customer_id: str,
-    db: Session = Depends(get_db),
+    current_user:User = Depends(auth_handler.auth_wrapper),db: Session = Depends(get_db),
     cif_number: str = Form(...),
     customer_name: str = Form(...),
     group_name: str = Form(...),
@@ -187,12 +187,14 @@ async def update_customer(
     # Fetch all business units to pass to the template
     business_units = db.query(BusinessUnit).all()
     
+    is_htmx = request.headers.get("HX-Request") == "true"
     # Render the updated.html template with the updated customer information
     return templates.TemplateResponse(
         "customers/partials/updated.html",
         {
-            "request": request,
+            "request": request,'user':current_user,
             "customer": customer,
-            "business_units": business_units
+            "business_units": business_units,
+            "is_htmx":is_htmx
         }
     )

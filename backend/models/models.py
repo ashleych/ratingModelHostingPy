@@ -1,4 +1,6 @@
+import string
 from pydantic import ConfigDict, BaseModel
+from sqlalchemy import ForeignKeyConstraint
 from sqlalchemy import Column, DateTime, UUID, null
 
 from sqlalchemy.sql import func
@@ -15,6 +17,7 @@ from .base import Base
 from typing import List
 from sqlalchemy.orm import Session
 
+from schema.schema import WorkflowStatus
 class FactorInputSource(enum.Enum):
     USER_INPUT = "user_input"
     FINANCIAL_STATEMENT = "financial_statement"
@@ -44,13 +47,79 @@ class Template(Base):
     template_source_csv = relationship("TemplateSourceCSV")
 
 class WorkflowAction(Base):
-    customer_id = Column(String, nullable=False)
+    __tablename__ = 'workflowaction'
+
+    workflow_cycle_id=Column(UUID, nullable=False) 
+    customer_id = Column(UUID, nullable=False)
     action_count_customer_level = Column(Integer)
-    action_by = Column(String)
-    action_type = Column(String)
+    action_by = Column(UUID)
+    description=Column(String)
+    action_type = Column(SQLAlchemyEnum(WorkflowStatus), nullable=False, default=WorkflowStatus.DRAFT)
     preceding_action_id = Column(UUID, ForeignKey('workflowaction.id'))
     succeeding_action_id = Column(UUID, ForeignKey('workflowaction.id'))
-    head = Column(Boolean)
+    # rating_instance_id_received = Column(UUID(as_uuid=True), ForeignKey('ratinginstance.id'), nullable=True)
+    rating_instance_id = Column(UUID(as_uuid=True), ForeignKey('ratinginstance.id'), nullable=True)
+    head = Column(Boolean,default=True)
+
+    # rating_instance = relationship("RatingInstance")
+    rating_instance = relationship("RatingInstance", back_populates="workflow_actions")  # not workflow_actions
+
+    # Define the relationship with explicit foreign keys
+    # rating_instance = relationship(
+    #     "RatingInstance",
+    #     foreign_keys=[rating_instance_id],
+    #     back_populates="workflowaction"
+    # )
+
+class RatingInstance(Base):
+    # rating_instance_front_end_id = Column(String)
+    customer_id = Column(UUID, ForeignKey('customer.id'),nullable=False)
+
+    financial_statement_id = Column(UUID, ForeignKey('financialstatement.id'),nullable=False)
+    rating_model_id = Column(UUID, ForeignKey('ratingmodel.id'))
+    # workflow_action_id = Column(UUID, ForeignKey('workflowaction.id'))
+    # workflow_action_type = Column(String)
+    inputs_completion_status=Column(Boolean,default=False)
+    incomplete_financial_information =Column(Boolean,default=False)
+    missing_financial_fields = Column(JSON, default={})
+    overall_score=Column(Float,nullable=True)
+    overall_rating=Column(String,nullable=True)
+    overall_status = Column(SQLAlchemyEnum(WorkflowStatus), nullable=False, default=WorkflowStatus.DRAFT)
+
+    customer = relationship("Customer")
+    rating_model = relationship("RatingModel")
+    workflow_actions = relationship("WorkflowAction",back_populates='rating_instance')
+    
+    @property
+    def current_workflow_action(self):
+        """Get the most recent workflow action"""
+        return max(self.workflow_actions, key=lambda x: x.action_count_customer_level) if self.workflow_actions else None
+    # workflow_action = relationship("WorkflowAction",back_populates='ratinginstance')
+# class WorkflowAssignment(Base):
+#     __tablename__ = 'workflow_assignment'
+
+#     workflow_step_id = Column(UUID, ForeignKey('workflow_step.id'), nullable=False)
+#     user_id = Column(UUID, ForeignKey('user.id'), nullable=False)
+#     rating_instance_id = Column(UUID, ForeignKey('ratinginstance.id'), nullable=False)
+#     status = Column(SQLAlchemyEnum(WorkflowStatus), nullable=False, default=WorkflowStatus.DRAFT)
+#     comments = Column(String)
+
+#     workflow_step = relationship("WorkflowStep")
+#     user = relationship("User")
+#     rating_instance = relationship("RatingInstance")
+
+# class RatingInstanceVersion(Base):
+#     __tablename__ = 'ratinginstance_version'
+
+#     rating_instance_id = Column(UUID, ForeignKey('ratinginstance.id'), nullable=False)
+#     version_number = Column(Integer, nullable=False)
+#     created_at = Column(DateTime(timezone=True), server_default=func.now())
+#     created_by = Column(UUID, ForeignKey('user.id'), nullable=False)
+#     workflow_status = Column(SQLAlchemyEnum(WorkflowStatus), nullable=False)
+#     data = Column(JSON, nullable=False)  # Stores the entire state of the RatingInstance
+
+#     rating_instance = relationship("RatingInstance")
+#     creator = relationship("User")
 
 class BusinessUnit(Base):
     name = Column(String, unique=True, nullable=False)
@@ -69,7 +138,7 @@ class Customer(Base):
     master_rating_scale = relationship("MasterRatingScale")
     workflow_action_id = Column(UUID, ForeignKey('workflowaction.id'))
     workflow_action = relationship("WorkflowAction")
-    workflow_action_type = Column(String)
+    # workflow_action_type = Column(String)
 
 class FinancialsPeriod(Base):
     year = Column(Integer, nullable=False)
@@ -126,22 +195,16 @@ class RatingModel(Base):
 
     template = relationship("Template")
 
-class RatingInstance(Base):
-    # rating_instance_front_end_id = Column(String)
-    customer_id = Column(UUID, ForeignKey('customer.id'),nullable=False)
 
-    financial_statement_id = Column(UUID, ForeignKey('financialstatement.id'),nullable=False)
-    rating_model_id = Column(UUID, ForeignKey('ratingmodel.id'))
-    workflow_action_id = Column(UUID, ForeignKey('workflowaction.id'))
-    workflow_action_type = Column(String)
-    customer = relationship("Customer")
-    rating_model = relationship("RatingModel")
-    workflow_action = relationship("WorkflowAction")
-    inputs_completion_status=Column(Boolean,default=False)
-    incomplete_financial_information =Column(Boolean,default=False)
-    missing_financial_fields = Column(JSON, default={})
-    overall_score=Column(Float,nullable=True)
-    overall_rating=Column(String,nullable=True)
+
+
+from dataclasses import dataclass
+from dataclasses import dataclass
+
+
+
+    # workflow_assignments = relationship("WorkflowAssignment")
+
 
 class LineItemMeta(Base):
 
@@ -157,8 +220,21 @@ class LineItemMeta(Base):
     display = Column(Boolean)
     order_no = Column(Integer)
     display_order_no = Column(Integer)
-    
 
+# class User(Base):
+#     __tablename__ = 'user'
+
+#     # id = Column(UUID, primary_key=True)
+#     username = Column(String, unique=True, nullable=False)
+#     email = Column(String, unique=True, nullable=False)
+#     role = Column(String, nullable=False)  # e.g., 'creator', 'reviewer', 'approver'
+class User(Base):
+    __table__name= 'users'
+    model_config = ConfigDict(from_attributes=True)
+    email = Column(String, unique=True)
+    password = Column(String, nullable=False)   
+    name = Column(String )
+    role = Column(String)
 class FinancialStatement(Base):
 
     actuals = Column(Boolean)
@@ -171,8 +247,8 @@ class FinancialStatement(Base):
     financials_period_date = Column( Integer)
     customer_id = Column(UUID, ForeignKey('customer.id'),nullable=False)
     template_id = Column(UUID, ForeignKey('template.id'),nullable=False)
-    workflow_action_id = Column(UUID, ForeignKey('workflowaction.id'), nullable=False)
-    workflow_action_type = Column(String, default=WorkflowActionType.DRAFT.value)
+    # workflow_action_id = Column(UUID, ForeignKey('workflowaction.id'), nullable=False)
+    # workflow_action_type = Column(String, default=WorkflowActionType.DRAFT.value)
     is_dirty = Column(Boolean, default=True)
     preferred_statement = Column(Boolean)
     source_of_lag_variables = Column(Integer)
@@ -180,8 +256,7 @@ class FinancialStatement(Base):
     
     customer = relationship("Customer")
     template = relationship("Template")
-    workflow_action = relationship("WorkflowAction")
-
+    # workflow_action = relationship("WorkflowAction")
 
 class RatingFactorScore(Base):
 
@@ -199,7 +274,6 @@ class RatingFactorScore(Base):
     __table_args__ = ( UniqueConstraint('rating_instance_id', 'rating_factor_id', name='uix_ratinginstance_ratingfactor'), )
 
 
-from sqlalchemy import ForeignKeyConstraint
 
 class LineItemValue(Base):
 

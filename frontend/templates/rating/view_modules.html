@@ -1,5 +1,7 @@
-{% extends "_layout.html" %}
 
+{% if not is_htmx %}
+{% extends "_layout.html" %}
+{% endif %}
 {% macro render_factor(factor) %}
 {% include "rating/render_factor_macro.html" %}
 {% endmacro %}
