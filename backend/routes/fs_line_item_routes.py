@@ -122,8 +122,13 @@ async def edit_line_item_form(
         LineItemMeta.template_id == template_id
     ).first()
     
+    template = db.query(Template).filter(Template.id == template_id).first()
     if not line_item:
         raise HTTPException(status_code=404, detail="Line item not found")
+    available_items = db.query(LineItemMeta).filter(
+        LineItemMeta.template_id == template_id,
+        LineItemMeta.id != item_id  # Exclude current item
+    ).order_by(LineItemMeta.order_no).all()
     
     is_htmx = request.headers.get("HX-Request") == "true"
     return templates.TemplateResponse(
@@ -131,7 +136,9 @@ async def edit_line_item_form(
         {
             "request": request,
             "line_item": line_item,
-            "is_htmx": is_htmx
+            "is_htmx": is_htmx,
+            "template":template,
+            "available_items":available_items
         }
     )
 
