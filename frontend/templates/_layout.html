@@ -115,7 +115,12 @@
         .content-area.htmx-swapping {
             opacity: 0;
         }
-    </style>
+
+
+
+</style>
+<!-- Add this to your _layout.html in the style section -->
+
 </head>
 
 <body class="bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200 transition-colors duration-200 ease-in-out">
@@ -182,6 +187,19 @@
                    class="nav-link block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-200 dark:hover:bg-gray-700">
                     Create Statement
                 </a>
+
+    <a hx-get="/business-units"
+       hx-target="#main-content"
+       hx-push-url="true"
+       class="block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-200 dark:hover:bg-gray-700">
+        Business Units
+    </a>
+    <a hx-get="/rating-scales"
+       hx-target="#main-content"
+       hx-push-url="true"
+       class="block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-200 dark:hover:bg-gray-700">
+        Rating Scales
+    </a>
             </nav>
 
             <div class="px-4 mt-6">

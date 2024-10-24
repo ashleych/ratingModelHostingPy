@@ -1,5 +1,7 @@
 
-
+{% if not is_htmx %}
+{% extends "_layout.html" %}
+{% endif %}
 {% block content %}
 
 
@@ -14,7 +16,7 @@
             </div>
         </div>
         <div class="mt-5 md:mt-0 md:col-span-2">
-            <form action="{{ url_for('update_customer', customer_id=customer.id) }}" method="POST">
+            <form hx-post="{{ url_for('update_customer', customer_id=customer.id) }}" hx-target="#main-content" hx-push-url="true" hx-indicator=".loading-indicator" method="POST">
                 <div class="shadow sm:rounded-md sm:overflow-hidden">
                     <div class="px-4 py-5 bg-white dark:bg-gray-800 space-y-6 sm:p-6">
                         <div class="grid grid-cols-6 gap-6">

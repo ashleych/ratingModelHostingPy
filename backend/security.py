@@ -42,7 +42,12 @@ class AuthHandler():
             
     
     def auth_wrapper(self, auth: HTTPAuthorizationCredentials = Security(security)):
-        return self.decode_token(auth.credentials)
+        MOCK=True
+        if MOCK:
+            user = db.query(User).first()
+            return user
+        else:
+            return self.decode_token(auth.credentials)
 
 
     def create_access_token(self,

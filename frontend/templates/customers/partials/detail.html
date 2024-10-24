@@ -24,7 +24,7 @@
 </div>
 <div class="mt-8">
   <h3 class="text-lg leading-6 font-medium text-gray-900 dark:text-gray-100 mb-4">Financial Statements and Ratings</h3>
-  <a href="/statements/{{customer.id}}">View Statement</a>
+  <a hx-get="/statements/{{customer.id}}" hx-target="#main-content" hx-push-url="true" hx-indicator=".loading-indicator">View Statement</a>
   {% if statements %}
     <div class="bg-white dark:bg-gray-800 shadow overflow-hidden sm:rounded-md">
       <ul class="divide-y divide-gray-200 dark:divide-gray-700">

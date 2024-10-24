@@ -113,21 +113,6 @@ async def create_customer(
     db.add(new_customer)
     db.flush()  # This will assign an ID to the new customer
 
-    # Now create the corresponding WorkflowAction
-    # new_workflow_action = WorkflowAction(
-    #     customer_id=new_customer.id,
-    #     action_count_customer_level=1,
-    #     action_by='user',
-    #     action_type="Create",
-    #     head=True
-    # )
-    # db.add(new_workflow_action)
-    # db.flush()  # This will assign an ID to the new workflow action
-
-    # Update the customer with the workflow action ID
-    # new_customer.workflow_action_id = new_workflow_action.id
-    # new_customer.workflow_action = new_workflow_action
-
     try:
         db.commit()
     except Exception as e:

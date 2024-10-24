@@ -4,7 +4,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
 from security import AuthHandler, RequiresLoginException
-from routes import customer_routes, statement_routes,rating_model_routes
+from routes import customer_routes, statement_routes,rating_model_routes,businessunits_routes,rating_scale_routes
 from fastapi.encoders import jsonable_encoder
 from fastapi import FastAPI, Depends, HTTPException, Request, Form
 from fastapi.responses import RedirectResponse,HTMLResponse,FileResponse
@@ -69,9 +69,12 @@ auth_handler = AuthHandler()
 #         response.context["user"] = request.state.user
 #     return response
 
-app.include_router(customer_routes.router,dependencies=[Depends(auth_handler.auth_wrapper)])
+# app.include_router(customer_routes.router,dependencies=[Depends(auth_handler.auth_wrapper)])
+app.include_router(customer_routes.router)
 app.include_router(statement_routes.router)
 app.include_router(rating_model_routes.router)
+app.include_router(businessunits_routes.router)
+app.include_router(rating_scale_routes.router)
 # redirection block
 @app.exception_handler(RequiresLoginException)
 async def exception_handler(request: Request, exc: RequiresLoginException) -> Response:

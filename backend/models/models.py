@@ -40,6 +40,13 @@ class WorkflowActionType(enum.Enum):
 class TemplateSourceCSV(Base):
     source_path = Column(String)
 
+class User(Base):
+    __table__name= 'users'
+    model_config = ConfigDict(from_attributes=True)
+    email = Column(String, unique=True)
+    password = Column(String, nullable=False)   
+    name = Column(String )
+    role = Column(String)
 class Template(Base):
     name = Column(String, nullable=False)
     description = Column(String)
@@ -61,15 +68,8 @@ class WorkflowAction(Base):
     rating_instance_id = Column(UUID(as_uuid=True), ForeignKey('ratinginstance.id'), nullable=True)
     head = Column(Boolean,default=True)
 
-    # rating_instance = relationship("RatingInstance")
     rating_instance = relationship("RatingInstance", back_populates="workflow_actions")  # not workflow_actions
 
-    # Define the relationship with explicit foreign keys
-    # rating_instance = relationship(
-    #     "RatingInstance",
-    #     foreign_keys=[rating_instance_id],
-    #     back_populates="workflowaction"
-    # )
 
 class RatingInstance(Base):
     # rating_instance_front_end_id = Column(String)
@@ -94,32 +94,6 @@ class RatingInstance(Base):
     def current_workflow_action(self):
         """Get the most recent workflow action"""
         return max(self.workflow_actions, key=lambda x: x.action_count_customer_level) if self.workflow_actions else None
-    # workflow_action = relationship("WorkflowAction",back_populates='ratinginstance')
-# class WorkflowAssignment(Base):
-#     __tablename__ = 'workflow_assignment'
-
-#     workflow_step_id = Column(UUID, ForeignKey('workflow_step.id'), nullable=False)
-#     user_id = Column(UUID, ForeignKey('user.id'), nullable=False)
-#     rating_instance_id = Column(UUID, ForeignKey('ratinginstance.id'), nullable=False)
-#     status = Column(SQLAlchemyEnum(WorkflowStatus), nullable=False, default=WorkflowStatus.DRAFT)
-#     comments = Column(String)
-
-#     workflow_step = relationship("WorkflowStep")
-#     user = relationship("User")
-#     rating_instance = relationship("RatingInstance")
-
-# class RatingInstanceVersion(Base):
-#     __tablename__ = 'ratinginstance_version'
-
-#     rating_instance_id = Column(UUID, ForeignKey('ratinginstance.id'), nullable=False)
-#     version_number = Column(Integer, nullable=False)
-#     created_at = Column(DateTime(timezone=True), server_default=func.now())
-#     created_by = Column(UUID, ForeignKey('user.id'), nullable=False)
-#     workflow_status = Column(SQLAlchemyEnum(WorkflowStatus), nullable=False)
-#     data = Column(JSON, nullable=False)  # Stores the entire state of the RatingInstance
-
-#     rating_instance = relationship("RatingInstance")
-#     creator = relationship("User")
 
 class BusinessUnit(Base):
     name = Column(String, unique=True, nullable=False)
@@ -197,15 +171,6 @@ class RatingModel(Base):
 
 
 
-
-from dataclasses import dataclass
-from dataclasses import dataclass
-
-
-
-    # workflow_assignments = relationship("WorkflowAssignment")
-
-
 class LineItemMeta(Base):
 
     template_id = Column(UUID, ForeignKey('template.id'),nullable=False)
@@ -221,20 +186,7 @@ class LineItemMeta(Base):
     order_no = Column(Integer)
     display_order_no = Column(Integer)
 
-# class User(Base):
-#     __tablename__ = 'user'
 
-#     # id = Column(UUID, primary_key=True)
-#     username = Column(String, unique=True, nullable=False)
-#     email = Column(String, unique=True, nullable=False)
-#     role = Column(String, nullable=False)  # e.g., 'creator', 'reviewer', 'approver'
-class User(Base):
-    __table__name= 'users'
-    model_config = ConfigDict(from_attributes=True)
-    email = Column(String, unique=True)
-    password = Column(String, nullable=False)   
-    name = Column(String )
-    role = Column(String)
 class FinancialStatement(Base):
 
     actuals = Column(Boolean)
@@ -272,7 +224,6 @@ class RatingFactorScore(Base):
     rating_instance = relationship("RatingInstance")
     rating_factor = relationship("RatingFactor")
     __table_args__ = ( UniqueConstraint('rating_instance_id', 'rating_factor_id', name='uix_ratinginstance_ratingfactor'), )
-
 
 
 class LineItemValue(Base):
