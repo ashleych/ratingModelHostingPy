@@ -1,0 +1,69 @@
+<!-- templates/templates/partials/create.html -->
+{% if not is_htmx %}
+{% extends "_layout.html" %}
+{% endif %}
+
+{% block content %}
+<div class="bg-white dark:bg-gray-800 shadow-md rounded-lg p-6">
+    <h1 class="text-3xl font-bold mb-6 text-gray-900 dark:text-gray-100">
+        {% if template %}Edit Template{% else %}Create Template{% endif %}
+    </h1>
+    
+    <form hx-{% if template %}post{% else %}post{% endif %}="{% if template %}/templates/{{ template.id }}/edit{% else %}/templates/new{% endif %}"
+          hx-target="#main-content"
+          class="space-y-6">
+        <div>
+            <label for="name" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Name
+            </label>
+            <input type="text"
+                   name="name"
+                   id="name"
+                   value="{{ template.name if template else '' }}"
+                   required
+                   class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white sm:text-sm">
+        </div>
+
+        <div>
+            <label for="description" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Description
+            </label>
+            <textarea name="description"
+                      id="description"
+                      rows="3"
+                      class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white sm:text-sm">{{ template.description if template else '' }}</textarea>
+        </div>
+
+        <div>
+            <label for="template_source_csv_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Source CSV
+            </label>
+            <select name="template_source_csv_id"
+                    id="template_source_csv_id"
+                    required
+                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white sm:text-sm">
+                <option value="">Select a source CSV</option>
+                {% for csv in source_csvs %}
+                <option value="{{ csv.id }}"
+                        {% if template and template.template_source_csv_id == csv.id %}selected{% endif %}>
+                    {{ csv.name }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="flex justify-end space-x-4">
+            <a hx-get="/templates"
+               hx-target="#main-content"
+               hx-push-url="true"
+               class="px-4 py-2 text-sm font-medium text-gray-700 bg-white dark:bg-gray-700 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm hover:bg-gray-50 dark:hover:bg-gray-600">
+                Cancel
+            </a>
+            <button type="submit"
+                    class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                {% if template %}Save Changes{% else %}Create Template{% endif %}
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}

@@ -1,0 +1,73 @@
+<!-- templates/templates/partials/list.html -->
+{% if not is_htmx %}
+{% extends "_layout.html" %}
+{% endif %}
+
+{% block content %}
+<div class="bg-white dark:bg-gray-800 shadow-md rounded-lg p-6">
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-3xl font-bold text-gray-900 dark:text-gray-100">Templates</h1>
+        <a hx-get="/templates/new"
+           hx-target="#main-content"
+           hx-push-url="true"
+           class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700">
+            Add Template
+        </a>
+    </div>
+    
+    <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+            <thead>
+                <tr class="bg-gray-50 dark:bg-gray-700">
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                        Name
+                    </th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                        Description
+                    </th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                        Source CSV
+                    </th>
+                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                        Actions
+                    </th>
+                </tr>
+            </thead>
+            <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                {% for template in templates %}
+                <tr>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">
+                        <a hx-get="/templates/{{ template.id }}"
+                           hx-target="#main-content"
+                           hx-push-url="true"
+                           class="hover:text-indigo-600 dark:hover:text-indigo-400">
+                            {{ template.name }}
+                        </a>
+                    </td>
+                    <td class="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
+                        {{ template.description or '' }}
+                    </td>
+                    <td class="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
+                        {{ template.template_source_csv.name if template.template_source_csv else 'N/A' }}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <div class="flex justify-end space-x-3">
+                            <a hx-get="/templates/{{ template.id }}/edit"
+                               hx-target="#main-content"
+                               hx-push-url="true"
+                               class="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300">
+                                Edit
+                            </a>
+                            <button onclick="showDeleteModal('{{ template.id }}', '{{ template.name | escape }}', 'templates')"
+                                    class="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300">
+                                Delete
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

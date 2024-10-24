@@ -1,0 +1,132 @@
+<!-- templates/templates/partials/edit.html -->
+{% if not is_htmx %}
+{% extends "_layout.html" %}
+{% endif %}
+
+{% block content %}
+<div class="bg-white dark:bg-gray-800 shadow-md rounded-lg p-6">
+    <div class="flex items-center justify-between mb-6">
+        <h1 class="text-3xl font-bold text-gray-900 dark:text-gray-100">
+            Edit Template
+        </h1>
+        <a hx-get="/templates"
+           hx-target="#main-content"
+           hx-push-url="true"
+           class="text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300">
+            Back to Templates
+        </a>
+    </div>
+    
+    <form hx-post="/templates/{{ template.id }}/edit"
+          hx-target="#main-content"
+          class="space-y-6">
+        
+        <!-- Name Field -->
+        <div class="space-y-1">
+            <label for="name" 
+                   class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Name
+                <span class="text-red-500">*</span>
+            </label>
+            <input type="text"
+                   name="name"
+                   id="name"
+                   value="{{ template.name }}"
+                   required
+                   class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white sm:text-sm"
+                   placeholder="Enter template name">
+            <p class="text-xs text-gray-500 dark:text-gray-400">
+                Give your template a descriptive name
+            </p>
+        </div>
+
+        <!-- Description Field -->
+        <div class="space-y-1">
+            <label for="description" 
+                   class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Description
+            </label>
+            <textarea name="description"
+                      id="description"
+                      rows="3"
+                      class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white sm:text-sm"
+                      placeholder="Enter template description">{{ template.description or '' }}</textarea>
+            <p class="text-xs text-gray-500 dark:text-gray-400">
+                Optional: Add details about the template's purpose and usage
+            </p>
+        </div>
+
+        <!-- Source CSV Selection -->
+        <div class="space-y-1">
+            <label for="template_source_csv_id" 
+                   class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Source CSV
+                <span class="text-red-500">*</span>
+            </label>
+            <select name="template_source_csv_id"
+                    id="template_source_csv_id"
+                    required
+                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white sm:text-sm">
+                <option value="">Select a source CSV</option>
+                {% for csv in source_csvs %}
+                <option value="{{ csv.id }}"
+                        {% if template.template_source_csv_id == csv.id %}selected{% endif %}>
+                    {{ csv.name }}
+                </option>
+                {% endfor %}
+            </select>
+            <p class="text-xs text-gray-500 dark:text-gray-400">
+                Select the CSV file that this template will use
+            </p>
+        </div>
+
+        <!-- Form Actions -->
+        <div class="flex justify-end space-x-4 pt-4 border-t dark:border-gray-700">
+            <button type="button"
+                    hx-get="/templates"
+                    hx-target="#main-content"
+                    hx-push-url="true"
+                    class="px-4 py-2 text-sm font-medium text-gray-700 bg-white dark:bg-gray-700 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500">
+                Cancel
+            </button>
+            <button type="submit"
+                    class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                Save Changes
+            </button>
+        </div>
+    </form>
+</div>
+
+<!-- Error Message Toast (hidden by default) -->
+<div id="errorToast" 
+     class="fixed bottom-4 right-4 px-4 py-2 bg-red-500 text-white rounded-md shadow-lg hidden transform transition-all duration-300">
+</div>
+
+<script>
+    // Form validation and error handling
+    document.querySelector('form').addEventListener('submit', function(e) {
+        const name = document.getElementById('name').value.trim();
+        const sourceCSV = document.getElementById('template_source_csv_id').value;
+        
+        if (!name || !sourceCSV) {
+            e.preventDefault();
+            const errorToast = document.getElementById('errorToast');
+            errorToast.textContent = 'Please fill in all required fields';
+            errorToast.classList.remove('hidden');
+            setTimeout(() => {
+                errorToast.classList.add('hidden');
+            }, 3000);
+        }
+    });
+
+    // Handle HTMX error responses
+    document.body.addEventListener('htmx:error', function(evt) {
+        const errorToast = document.getElementById('errorToast');
+        errorToast.textContent = evt.detail.error || 'An error occurred';
+        errorToast.classList.remove('hidden');
+        setTimeout(() => {
+            errorToast.classList.add('hidden');
+        }, 3000);
+    });
+</script>
+{% endblock %}
