@@ -1,0 +1,114 @@
+<!-- templates/lineitems/partials/detail.html -->
+{% if not is_htmx %}
+{% extends "_layout.html" %}
+{% endif %}
+
+{% block content %}
+<div class="bg-white dark:bg-gray-800 shadow-md rounded-lg p-6">
+    <div class="flex justify-between items-center mb-6">
+        <div>
+            <h1 class="text-3xl font-bold text-gray-900 dark:text-gray-100">
+                {{ line_item.name }}
+            </h1>
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                Line Item Details - {{ line_item.template.name }}
+            </p>
+        </div>
+        <div class="flex space-x-4">
+            <a hx-get="/templates/{{ line_item.template_id }}/lineitems/{{ line_item.id }}/edit"
+               hx-target="#main-content"
+               hx-push-url="true"
+               class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700">
+                Edit Line Item
+            </a>
+            <a hx-get="/templates/{{ line_item.template_id }}/lineitems"
+               hx-target="#main-content"
+               hx-push-url="true"
+               class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600 dark:hover:bg-gray-600">
+                Back to List
+            </a>
+        </div>
+    </div>
+
+    <div class="mt-6 border-t border-gray-200 dark:border-gray-700">
+        <dl class="divide-y divide-gray-200 dark:divide-gray-700">
+            <!-- Basic Information -->
+            <div class="py-4 sm:grid sm:grid-cols-3 sm:gap-4">
+                <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Label</dt>
+                <dd class="mt-1 text-sm text-gray-900 dark:text-gray-100 sm:col-span-2 sm:mt-0">
+                    {{ line_item.label }}
+                </dd>
+            </div>
+
+            <div class="py-4 sm:grid sm:grid-cols-3 sm:gap-4">
+                <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Type</dt>
+                <dd class="mt-1 text-sm text-gray-900 dark:text-gray-100 sm:col-span-2 sm:mt-0">
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                        {% if line_item.type == 'calculated' %}bg-purple-100 text-purple-800 dark:bg-purple-800 dark:text-purple-100
+                        {% elif line_item.type == 'number' %}bg-blue-100 text-blue-800 dark:bg-blue-800 dark:text-blue-100
+                        {% elif line_item.type == 'percentage' %}bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100
+                        {% else %}bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-100{% endif %}">
+                        {{ line_item.type | title }}
+                    </span>
+                </dd>
+            </div>
+
+            <div class="py-4 sm:grid sm:grid-cols-3 sm:gap-4">
+                <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Financial Statement Type</dt>
+                <dd class="mt-1 text-sm text-gray-900 dark:text-gray-100 sm:col-span-2 sm:mt-0">
+                    {{ line_item.fin_statement_type | replace('_', ' ') | title }}
+                </dd>
+            </div>
+
+            <!-- Ordering -->
+            <div class="py-4 sm:grid sm:grid-cols-3 sm:gap-4">
+                <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Order Numbers</dt>
+                <dd class="mt-1 text-sm text-gray-900 dark:text-gray-100 sm:col-span-2 sm:mt-0">
+                    <div class="space-y-1">
+                        <p>Internal Order: {{ line_item.order_no }}</p>
+                        <p>Display Order: {{ line_item.display_order_no }}</p>
+                    </div>
+                </dd>
+            </div>
+
+            <!-- Formula and Calculations -->
+            {% if line_item.type == 'calculated' %}
+            <div class="py-4 sm:grid sm:grid-cols-3 sm:gap-4">
+                <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Formula</dt>
+                <dd class="mt-1 text-sm text-gray-900 dark:text-gray-100 sm:col-span-2 sm:mt-0">
+                    <code class="px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded">
+                        {{ line_item.formula }}
+                    </code>
+                </dd>
+            </div>
+            {% endif %}
+
+            <!-- Flags and Settings -->
+            <div class="py-4 sm:grid sm:grid-cols-3 sm:gap-4">
+                <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Settings</dt>
+                <dd class="mt-1 text-sm text-gray-900 dark:text-gray-100 sm:col-span-2 sm:mt-0">
+                    <div class="space-y-2">
+                        <div class="flex items-center">
+                            <svg class="h-5 w-5 {{ 'text-green-500' if line_item.header else 'text-gray-400' }}" 
+                                 fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                            </svg>
+                            <span class="ml-2">Is Header</span>
+                        </div>
+                        <div class="flex items-center">
+                            <svg class="h-5 w-5 {{ 'text-green-500' if line_item.display else 'text-gray-400' }}" 
+                                 fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                            </svg>
+                            <span class="ml-2">Display in Reports</span>
+                        </div>
+                        <div class="flex items-center">
+                            <span class="text-sm">Lag Months: {{ line_item.lag_months }}</span>
+                        </div>
+                    </div>
+                </dd>
+            </div>
+        </dl>
+    </div>
+</div>
+{% endblock %}
