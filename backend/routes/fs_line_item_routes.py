@@ -1,5 +1,5 @@
 # routes/line_item_routes.py
-from fastapi import APIRouter, Request, Form, HTTPException, Depends
+from fastapi import APIRouter, Request, Form, HTTPException, Depends,Query
 from fastapi.responses import RedirectResponse, HTMLResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
@@ -612,19 +612,18 @@ async def view_dependencies(
         }
     )
 
-def get_item_dependency_chart(line_item: LineItemMeta, all_formulas: Dict[str, str]) -> str:
+
+def get_item_dependency_chart(line_item: LineItemMeta, all_formulas: Dict[str, Dict],depth:int=2) -> str:
     """
     Generate a Mermaid flowchart showing dependencies for a single line item.
-    Shows both upstream and downstream dependencies.
+    all_formulas should be a dict with name -> {id: UUID, formula: str}
     """
     def extract_dependencies(formula: str) -> Set[str]:
-        """Extract line item names used in a formula"""
         if not formula:
             return set()
         return set(re.findall(r'[a-zA-Z]\w*', formula))
 
     def get_all_dependencies(item_name: str, depth: int = 2, visited=None) -> Set[str]:
-        """Get all related items within specified depth - both up and downstream"""
         if visited is None:
             visited = set()
         if depth == 0 or item_name in visited:
@@ -633,19 +632,17 @@ def get_item_dependency_chart(line_item: LineItemMeta, all_formulas: Dict[str, s
         visited.add(item_name)
         related = set()
         
-        # Get items this depends on (upstream)
-        formula = all_formulas.get(item_name, '')
+        # Get direct dependencies
+        formula = all_formulas.get(item_name, {}).get('formula', '')
         deps = extract_dependencies(formula)
         related.update(deps)
         
-        # Get items that depend on this (downstream)
-        dependents = set()
-        for name, formula in all_formulas.items():
-            if item_name in extract_dependencies(formula):
-                dependents.add(name)
+        # Get items that depend on this
+        dependents = {name for name, info in all_formulas.items() 
+                     if item_name in extract_dependencies(info.get('formula', ''))}
         related.update(dependents)
         
-        # Recursively get related items
+        # Recursive lookup
         for rel_item in deps.union(dependents):
             if rel_item not in visited:
                 related.update(get_all_dependencies(rel_item, depth - 1, visited))
@@ -653,78 +650,86 @@ def get_item_dependency_chart(line_item: LineItemMeta, all_formulas: Dict[str, s
         return related
 
     # Get related items
-    related_items = get_all_dependencies(line_item.name)
+    related_items = get_all_dependencies(line_item.name,depth=depth)
     related_items.add(line_item.name)
     
-    # Generate Mermaid chart
     mermaid_lines = [
         "%%{init: {'flowchart': {'curve': 'basis', 'rankSpacing': 50, 'nodeSpacing': 50}}}%%",
         "flowchart TD"
     ]
     
-    # Add nodes
+    # Add nodes with clickable links
+    template_id = line_item.template_id
     for item_name in related_items:
         clean_name = item_name.replace(" ", "_").replace("-", "_")
+        item_info = all_formulas.get(item_name, {})
+        item_id = item_info.get('id')
+        
         if item_name == line_item.name:
             mermaid_lines.append(f'    {clean_name}["{item_name}"]:::focus')
         else:
             mermaid_lines.append(f'    {clean_name}["{item_name}"]')
+            
+        if item_id:
+            mermaid_lines.append(f'    click {clean_name} "/templates/{template_id}/lineitems/{item_id}"')
     
     # Add connections
-    added_connections = set()
     for item_name in related_items:
         clean_name = item_name.replace(" ", "_").replace("-", "_")
-        formula = all_formulas.get(item_name, '')
+        formula = all_formulas.get(item_name, {}).get('formula', '')
         deps = extract_dependencies(formula)
         
         for dep in deps:
-            if dep in related_items:  # Only show connections between related items
+            if dep in related_items:
                 clean_dep = dep.replace(" ", "_").replace("-", "_")
-                connection = f"{clean_dep} --> {clean_name}"
-                if connection not in added_connections:
-                    mermaid_lines.append(f"    {connection}")
-                    added_connections.add(connection)
+                mermaid_lines.append(f"    {clean_dep} --> {clean_name}")
     
-    # Add class definitions
     mermaid_lines.append("classDef focus fill:#f9f,stroke:#333,stroke-width:2px;")
     
     return "\n".join(mermaid_lines)
 
+
 @router.get("/templates/{template_id}/lineitems/{item_id}")
 async def get_line_item_detail(
+    request: Request,
     template_id: UUID,
     item_id: UUID,
-    request: Request,
+    depth: int = Query(2),
     db: Session = Depends(get_db)
 ):
-    # Get line item with related template
     line_item = db.query(LineItemMeta).filter(
         LineItemMeta.id == item_id,
         LineItemMeta.template_id == template_id
-    ).join(Template).first()
-
+    ).first()
+    
     if not line_item:
         raise HTTPException(status_code=404, detail="Line item not found")
-    breadcrumbs = build_line_item_breadcrumbs(
-        template_id, 'detail', item_id, db=db)
-    formulas = dict(db.query(LineItemMeta.name, LineItemMeta.formula)
-                    .filter(LineItemMeta.template_id == template_id)
-                    .all())
-
-    mermaid_chart = get_item_dependency_chart(line_item, formulas)
-    is_htmx = request.headers.get("HX-Request") == "true"
+    
+    # Get all formulas with their IDs
+    items = db.query(LineItemMeta.name, LineItemMeta.id, LineItemMeta.formula)\
+        .filter(LineItemMeta.template_id == template_id)\
+        .all()
+    
+    # Convert to dictionary with additional info
+    formulas = {
+        item.name: {'id': item.id, 'formula': item.formula}
+        for item in items
+    }
+    
+    mermaid_chart = get_item_dependency_chart(line_item, formulas,depth)
+    
     return templates.TemplateResponse(
         "lineitems/partials/detail.html",
         {
             "request": request,
             "line_item": line_item,
-            "is_htmx": is_htmx,
-            "formulas": formulas,
+            "template_id":template_id,
             "mermaid_chart": mermaid_chart,
-            "breadcrumbs": breadcrumbs
+            "depth":depth,
+            "is_htmx": request.headers.get("HX-Request") == "true"
+
         }
     )
-
 
 def generate_mermaid_flowchart(line_items: List[LineItemMeta], dependency_info: Dict[str, Any]) -> str:
     """Generate a Mermaid flowchart string for line item dependencies"""

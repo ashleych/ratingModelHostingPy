@@ -114,48 +114,32 @@
         </dl>
     </div>
     <!-- Dependency Chart -->
+
+
+
     <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
         <h2 class="text-xl font-semibold mb-4 text-gray-900 dark:text-white">Dependencies</h2>
+        <div class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+            <div class="flex items-center space-x-2">
+                <select class="rounded-md border-gray-300 shadow-sm text-sm"
+                    hx-get="/templates/{{ template_id }}/lineitems/{{ line_item.id }}" hx-target="#main-content"
+                    hx-trigger="change" name="depth">
+
+                    <option value="" disabled>Select Depth</option>
+                    <option value="1" {{ 'selected' if depth==1 }}>1 Level Deep</option>
+                    <option value="2" {{ 'selected' if depth==2 }}>2 Levels Deep</option>
+                    <option value="3" {{ 'selected' if depth==3 }}>3 Levels Deep</option>
+                    <option value="4" {{ 'selected' if depth==4 }}>4 Levels Deep</option>
+                    <option value="5" {{ 'selected' if depth==5 }}>5 Levels Deep</option>
+                    <option value="-1" {{ 'selected' if depth==-1 }}>All Dependencies</option>
+                </select>
+
+            </div>
+        </div>
         <div class="mermaid">
             {{ mermaid_chart }}
         </div>
     </div>
-
-    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
-    <script>
-        mermaid.initialize({
-            startOnLoad: true,
-            theme: document.documentElement.classList.contains('dark') ? 'dark' : 'default',
-            flowchart: {
-                curve: 'basis',
-                rankSpacing: 50,
-                nodeSpacing: 50,
-                padding: 20
-            },
-            maxTextSize: 5000000  // For large diagrams
-        });
-
-        // Re-render on theme change
-
-        if (!window.mermaidThemeObserver) {
-            window.mermaidThemeObserver = new MutationObserver(function (mutations) {
-                mutations.forEach(function (mutation) {
-                    if (mutation.target.classList.contains('dark')) {
-                        mermaid.initialize({ theme: 'dark' });
-                    } else {
-                        mermaid.initialize({ theme: 'default' });
-                    }
-                    mermaid.init(undefined, document.querySelectorAll('.mermaid'));
-                });
-            });
-
-            // Start observing
-            window.mermaidThemeObserver.observe(document.documentElement, {
-                attributes: true,
-                attributeFilter: ['class']
-            });
-        }
-    </script>
 
     <style>
         .mermaid {
@@ -169,6 +153,14 @@
         .mermaid svg {
             max-width: 100%;
             height: auto;
+        }
+
+        /* Make nodes look clickable */
+        .mermaid .node rect,
+        .mermaid .node circle,
+        .mermaid .node ellipse,
+        .mermaid .node polygon {
+            cursor: pointer;
         }
     </style>
     {% endblock %}

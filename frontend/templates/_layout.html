@@ -32,9 +32,7 @@
             },
         }
     </script>
-    <script type="module">
-      import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
-    </script>
+
     <!-- Your existing styles -->
     <style>
         /* Your existing styles here */
@@ -256,6 +254,42 @@
             html.classList.add('dark');
         }
     </script>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <script>
+        // needed for mermaid charts used to show the dependencies
+        mermaid.initialize({
+            startOnLoad: true,
+             securityLevel: 'loose',
+            theme: document.documentElement.classList.contains('dark') ? 'dark' : 'default',
+            flowchart: {
+                curve: 'basis',
+                rankSpacing: 50,
+                nodeSpacing: 50,
+                padding: 20
+            }
+        });
+   document.body.addEventListener('htmx:afterSwap', function(evt) {
+        mermaid.contentLoaded();
+    });
+        // Theme observer
+        window.mermaidThemeObserver = new MutationObserver(function (mutations) {
+            mutations.forEach(function (mutation) {
+                mermaid.initialize({
+                    theme: document.documentElement.classList.contains('dark') ? 'dark' : 'default'
+                });
+                mermaid.init(undefined, document.querySelectorAll('.mermaid'));
+            });
+        });
+
+        window.mermaidThemeObserver.observe(document.documentElement, {
+            attributes: true,
+            attributeFilter: ['class']
+        });
+        if (!window.mermaidThemeObserver) {
+            console.log('inside theme observer');
+        }
+    </script>
+
 </body>
 
 </html>
