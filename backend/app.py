@@ -15,13 +15,14 @@ from datetime import datetime, timedelta
 from typing import Optional
 from passlib.context import CryptContext
 from starlette.middleware.base import BaseHTTPMiddleware
-
+from debug_toolbar.middleware import DebugToolbarMiddleware
 from jose import jwt
 
 from fastapi import FastAPI, Request, Response
 from dependencies import get_db
 
-app = FastAPI()
+app = FastAPI(debug=True)
+# app.add_middleware(DebugToolbarMiddleware, panels=["debug_toolbar.panels.sqlalchemy.SQLAlchemyPanel"],)
 # Mount static files
 app.mount("/static", StaticFiles(directory="../static"), name="static")
 

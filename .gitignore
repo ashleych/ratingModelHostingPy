@@ -89,3 +89,5 @@ ipython_config.py
 .python-version
 backend/models/__pycache__/
 models/__pycache__/models.cpython-38.pyc
+.venvRatingPoetry
+.venvRatingPoetry/

@@ -1,15 +1,220 @@
 # routes/line_item_routes.py
 from fastapi import APIRouter, Request, Form, HTTPException, Depends
-from fastapi.responses import RedirectResponse
+from fastapi.responses import RedirectResponse,HTMLResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 from typing import Optional
 from models.models import LineItemMeta, Template
 from dependencies import get_db
 from uuid import UUID
-
+from models.models import LineItemMeta,LineItemValue,Template
+from fastapi import APIRouter, Depends, Form, HTTPException
+from fastapi.responses import HTMLResponse
+from sqlalchemy.orm import Session
+from uuid import UUID
+from typing import Dict
+from typing import Dict, Set, List
+from collections import defaultdict
+import re
+from typing import Tuple
+from dependencies import get_db
 router = APIRouter()
+
 templates = Jinja2Templates(directory="../frontend/templates")
+
+
+
+def validate_syntax(formula: str, valid_names: Set[str], current_line_item_name: str = None) -> tuple[bool, str]:
+    """Validate formula syntax and line item names"""
+    if not formula.strip():
+        return False, "Formula is empty. This line item will not be calculated."
+    
+    # Split formula into tokens
+    tokens = re.findall(r'[\w_]+|[+\-*/()]', formula)
+    tokens_stripped = [t.strip() for t in tokens]
+    
+    # Define valid operators
+    valid_operators = {'+', '-', '*', '/', '(', ')'}
+
+    # Check for single operator
+    if len(tokens_stripped) == 1:
+        if tokens_stripped[0] in valid_operators:
+            return False, "Invalid formula: Cannot use a single operator alone. Formula must include line item names."
+        if tokens_stripped[0] == current_line_item_name:
+            return False, "Invalid formula: Cannot reference the line item itself in its formula."
+    
+    # Check if formula starts or ends with an operator
+    if tokens_stripped[0] in {'+', '-', '*', '/'}:
+        return False, "Invalid formula: Cannot start with an operator"
+    if tokens_stripped[-1] in {'+', '-', '*', '/'}:
+        return False, "Invalid formula: Cannot end with an operator"
+
+    # Check parentheses matching
+    parentheses_count = 0
+    for token in tokens_stripped:
+        if token == '(':
+            parentheses_count += 1
+        elif token == ')':
+            parentheses_count -= 1
+        if parentheses_count < 0:
+            return False, "Invalid formula: Mismatched parentheses - unexpected closing parenthesis"
+    
+    if parentheses_count > 0:
+        return False, "Invalid formula: Mismatched parentheses - missing closing parenthesis"
+    
+    # Check for consecutive operators
+    for i in range(len(tokens_stripped) - 1):
+        if (tokens_stripped[i] in {'+', '-', '*', '/'} and 
+            tokens_stripped[i + 1] in {'+', '-', '*', '/'}):
+            return False, f"Invalid formula: Cannot have consecutive operators '{tokens_stripped[i]}{tokens_stripped[i + 1]}'"
+
+    # Validate each token and check for self-reference
+    for token in tokens_stripped:
+        # Check if token is an operator
+        if token in valid_operators:
+            continue
+            
+        # Check if token is a valid variable name (alphanumeric with underscores)
+        if re.match(r'^[a-zA-Z]\w*$', token):  # Must start with letter, followed by letters/numbers/underscores
+            if token == current_line_item_name:
+                return False, "Invalid formula: Cannot reference the line item itself in its formula"
+            if token not in valid_names:
+                return False, f"Invalid line item name: '{token}'"
+        else:
+            return False, f"Invalid token: '{token}'. Line item names must start with a letter and can only contain letters, numbers, and underscores."
+    
+    return True, ""
+
+def check_circular_reference(
+    all_formulas: Dict[str, str],
+    line_item_name: str,
+    formula_to_check: str
+) -> Tuple[bool, List[str]]:
+    """
+    Check for circular references in formula and return the circular path if found.
+    
+    Args:
+        all_formulas: Dict of line_item_name -> formula
+        line_item_name: The line item being checked
+        formula_to_check: The formula being added/updated
+    
+    Returns:
+        Tuple[bool, List[str]]: (is_valid, circular_path)
+        - is_valid: True if no circular reference, False if there is
+        - circular_path: Empty list if no circular reference, otherwise list of items in the circular path
+    """
+    def extract_dependencies(formula: str) -> Set[str]:
+        """Extract line item names used in a formula"""
+        if not formula:
+            return set()
+        return set(re.findall(r'[a-zA-Z]\w*', formula))
+
+    def check_dependency_path(current_item: str, target: str, visited: Set[str], path: List[str]) -> Tuple[bool, List[str]]:
+        """
+        Check if there's a path from current_item back to target through dependencies.
+        Returns (True, path) if circular reference found, (False, []) otherwise.
+        """
+        path.append(current_item)
+        
+        if current_item == target:
+            return True, path
+            
+        if current_item in visited:
+            return False, []
+            
+        visited.add(current_item)
+        
+        # Get formula for current item
+        current_formula = all_formulas.get(current_item)
+        if not current_formula:
+            path.pop()
+            return False, []
+            
+        # Get dependencies of current formula
+        deps = extract_dependencies(current_formula)
+        
+        # Check each dependency
+        for dep in deps:
+            found, circular_path = check_dependency_path(dep, target, visited, path.copy())
+            if found:
+                return True, circular_path
+        
+        path.pop()
+        return False, []
+
+    # Get dependencies in the formula being checked
+    direct_deps = extract_dependencies(formula_to_check)
+    
+    # For each dependency, check if it leads back to the line item being checked
+    for dep in direct_deps:
+        found, path = check_dependency_path(dep, line_item_name, set(), [])
+        if found:
+            # Add the line_item_name to complete the circle
+            path.append(line_item_name)
+            return False, path
+            
+    return True, []
+
+# Example usage:
+def format_circular_path(path: List[str]) -> str:
+    """Format the circular path for display"""
+    if not path:
+        return ""
+    return " → ".join(path)
+
+@router.post("/templates/{template_id}/lineitems/validate-formula")
+async def validate_formula_endpoint(
+    template_id: UUID,
+    formula: str = Form(...),
+    line_item_name: str = Form(...),
+    db: Session = Depends(get_db)
+):
+    try:
+        # Get all valid line item names and their formulas
+        line_items = db.query(LineItemMeta)\
+            .filter(LineItemMeta.template_id == template_id)\
+            .all()
+        
+        valid_names = {item.name for item in line_items}
+        current_formulas = {item.name: item.formula for item in line_items}
+        
+        # First check syntax
+        syntax_valid, syntax_error = validate_syntax(formula, valid_names)
+        if not syntax_valid:
+            return HTMLResponse(f"""
+            <div class="text-red-600 dark:text-red-400">
+                {syntax_error}
+            </div>
+            """)
+        
+        # Then check for circular references
+        is_valid, circular_path = check_circular_reference(
+            current_formulas,
+            line_item_name,
+            formula
+        )
+        if not is_valid:
+            circular_path_str = format_circular_path(circular_path)
+            return HTMLResponse(f"""
+            <div class="text-red-600 dark:text-red-400">
+                Circular reference detected: {circular_path_str}
+            </div>
+            """)
+        
+        # If we got here, formula is valid
+        return HTMLResponse("""
+        <div class="text-green-600 dark:text-green-400">
+            Formula is valid ✓
+        </div>
+        """)
+        
+    except Exception as e:
+        return HTMLResponse(f"""
+        <div class="text-red-600 dark:text-red-400">
+            Error validating formula: {str(e)}
+        </div>
+        """)
+
 
 @router.get("/templates/{template_id}/lineitems")
 async def list_line_items(
@@ -125,10 +330,13 @@ async def edit_line_item_form(
     template = db.query(Template).filter(Template.id == template_id).first()
     if not line_item:
         raise HTTPException(status_code=404, detail="Line item not found")
+
     available_items = db.query(LineItemMeta).filter(
         LineItemMeta.template_id == template_id,
         LineItemMeta.id != item_id  # Exclude current item
     ).order_by(LineItemMeta.order_no).all()
+
+    
     
     is_htmx = request.headers.get("HX-Request") == "true"
     return templates.TemplateResponse(
