@@ -32,7 +32,9 @@
             },
         }
     </script>
-
+    <script type="module">
+      import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+    </script>
     <!-- Your existing styles -->
     <style>
         /* Your existing styles here */
@@ -211,6 +213,7 @@
 
             <!-- Main content area -->
             <div id="main-content" class="content-area">
+
                 {% block content %}
                 {% endblock %}
             </div>

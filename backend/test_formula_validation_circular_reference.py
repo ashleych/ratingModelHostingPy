@@ -19,7 +19,7 @@ from routes.fs_line_item_routes import check_circular_reference
             'b',
             'a',
             False,
-            ['a', 'b', 'b']  # path: b -> a -> b
+            ['a', 'b']  # path: b -> a -> b
         ),
         # Indirect circular reference
         (
@@ -27,7 +27,7 @@ from routes.fs_line_item_routes import check_circular_reference
             'd',
             'a',
             False,
-            ['a', 'b', 'c', 'd', 'd']  # path: d -> a -> b -> c -> d
+            ['a', 'b', 'c', 'd']  # path: d -> a -> b -> c -> d
         ),
         # Complex valid case
         (
@@ -53,7 +53,7 @@ from routes.fs_line_item_routes import check_circular_reference
             'revenue',
             'margin * 2',
             False,
-            ['margin', 'profit', 'revenue', 'revenue']  # path: revenue -> margin -> profit -> revenue
+            ['margin', 'profit', 'revenue']  # path: revenue -> margin -> profit -> revenue
         ),
         # Empty formula
         (
@@ -85,6 +85,16 @@ from routes.fs_line_item_routes import check_circular_reference
             True,
             []
         ),
+    ],
+    ids=[
+        "simple_valid_case",
+        "direct_circular_reference",
+        "indirect_circular_reference",
+        "complex_valid_case",
+        "complex_circular_case",
+        "empty_formula",
+        "formula_no_dependencies",
+        "long_chain_no_circle"
     ]
 )
 def test_circular_reference_checker(formulas, item_name, formula, expected_valid, expected_path):
@@ -92,6 +102,104 @@ def test_circular_reference_checker(formulas, item_name, formula, expected_valid
     assert is_valid == expected_valid
     assert path == expected_path
 
+# @pytest.mark.parametrize(
+#     "formulas,item_name,formula,expected_valid,expected_path,test_id",
+#     [
+#         # Simple valid cases
+#         (
+#             {'a': '100', 'b': '200'},
+#             'new_item',
+#             'a + b',
+#             True,
+#             [],
+#             "simple_valid_formulas_with_two_variables"
+#         ),
+#         # Direct circular reference
+#         (
+#             {'a': 'b', 'b': '200'},
+#             'b',
+#             'a',
+#             False,
+#             ['a', 'b'],
+#             "direct_circular_reference_through_two_variables"
+#         ),
+#         # Indirect circular reference
+#         (
+#             {'a': 'b', 'b': 'c', 'c': 'd'},
+#             'd',
+#             'a',
+#             False,
+#             ['a', 'b', 'c', 'd'],
+#             "indirect_circular_reference_through_four_variables"
+#         ),
+#         # Complex valid case
+#         (
+#             {
+#                 'revenue': '1000',
+#                 'costs': '500',
+#                 'profit': 'revenue - costs',
+#                 'margin': 'profit / revenue'
+#             },
+#             'new_metric',
+#             'margin + revenue',
+#             True,
+#             [],
+#             "valid_financial_calculations_with_margin"
+#         ),
+#         # Complex circular case
+#         (
+#             {
+#                 'revenue': '1000',
+#                 'costs': '500',
+#                 'profit': 'revenue - costs',
+#                 'margin': 'profit / revenue'
+#             },
+#             'revenue',
+#             'margin * 2',
+#             False,
+#             ['margin', 'profit', 'revenue'],
+#             "circular_reference_in_financial_calculations"
+#         ),
+#         # Empty formula
+#         (
+#             {'a': '100', 'b': '200'},
+#             'new_item',
+#             '',
+#             True,
+#             [],
+#             "empty_formula_should_be_valid"
+#         ),
+#         # Formula with no dependencies
+#         (
+#             {'a': '100', 'b': '200'},
+#             'new_item',
+#             '500',
+#             True,
+#             [],
+#             "constant_formula_with_no_dependencies"
+#         ),
+#         # Long dependency chain but no circle
+#         (
+#             {
+#                 'a': '100',
+#                 'b': 'a',
+#                 'c': 'b',
+#                 'd': 'c',
+#                 'e': 'd'
+#             },
+#             'f',
+#             'e',
+#             True,
+#             [],
+#             "long_chain_of_dependencies_without_circle"
+#         ),
+#     ],
+#     ids=lambda x: x[-1] if isinstance(x, tuple) else None  # Use the last element (test_id) for the test name
+# )
+# def test_circular_reference_checker(formulas, item_name, formula, expected_valid, expected_path, test_id):
+#     is_valid, path = check_circular_reference(formulas, item_name, formula)
+#     assert is_valid == expected_valid
+#     assert path == expected_path
 def test_with_missing_formulas():
     """Test behavior when referenced formulas don't exist"""
     formulas = {'a': 'b + c'}  # c doesn't exist
@@ -104,7 +212,7 @@ def test_self_reference():
     formulas = {'a': '100'}
     is_valid, path = check_circular_reference(formulas, 'a', 'a + 100')
     assert is_valid == False
-    assert path == ['a', 'a']
+    assert path == ['a']
 
 def test_multiple_circular_paths():
     """Test case where multiple circular paths exist - should return first one found"""
@@ -119,8 +227,8 @@ def test_multiple_circular_paths():
     # The exact path might depend on implementation details (which dependency is checked first)
     # but it should be one of these two valid paths:
     assert path in [
-        ['a', 'b', 'd', 'e', 'e'],  # path through b
-        ['a', 'c', 'd', 'e', 'e']   # path through c
+        ['a', 'b', 'd', 'e' ],  # path through b
+        ['a', 'c', 'd', 'e']   # path through c
     ]
 
 def test_complex_formula():

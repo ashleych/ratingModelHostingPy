@@ -1,9 +1,14 @@
+
+{% from "breadcrumbs.html" import render_breadcrumbs %}
 {% if not is_htmx %}
 {% extends "_layout.html" %}
 {% endif %}
 
 {% block content %}
 <div class="bg-white dark:bg-gray-800 shadow-md rounded-lg p-6">
+
+ {{ render_breadcrumbs(breadcrumbs) }}
+
     <div class="flex items-center justify-between mb-6">
         <div>
             <h1 class="text-3xl font-bold text-gray-900 dark:text-gray-100">

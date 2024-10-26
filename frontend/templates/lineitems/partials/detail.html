@@ -1,10 +1,12 @@
 <!-- templates/lineitems/partials/detail.html -->
+{% from "breadcrumbs.html" import render_breadcrumbs %}
 {% if not is_htmx %}
 {% extends "_layout.html" %}
 {% endif %}
 
 {% block content %}
 <div class="bg-white dark:bg-gray-800 shadow-md rounded-lg p-6">
+    {{ render_breadcrumbs(breadcrumbs) }}
     <div class="flex justify-between items-center mb-6">
         <div>
             <h1 class="text-3xl font-bold text-gray-900 dark:text-gray-100">
@@ -16,15 +18,12 @@
         </div>
         <div class="flex space-x-4">
             <a hx-get="/templates/{{ line_item.template_id }}/lineitems/{{ line_item.id }}/edit"
-               hx-target="#main-content"
-               hx-push-url="true"
-               class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700">
+                hx-target="#main-content" hx-push-url="true"
+                class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700">
                 Edit Line Item
             </a>
-            <a hx-get="/templates/{{ line_item.template_id }}/lineitems"
-               hx-target="#main-content"
-               hx-push-url="true"
-               class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600 dark:hover:bg-gray-600">
+            <a hx-get="/templates/{{ line_item.template_id }}/lineitems" hx-target="#main-content" hx-push-url="true"
+                class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600 dark:hover:bg-gray-600">
                 Back to List
             </a>
         </div>
@@ -72,7 +71,7 @@
             </div>
 
             <!-- Formula and Calculations -->
-            {% if line_item.type == 'calculated' %}
+            {% if line_item.formula %}
             <div class="py-4 sm:grid sm:grid-cols-3 sm:gap-4">
                 <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Formula</dt>
                 <dd class="mt-1 text-sm text-gray-900 dark:text-gray-100 sm:col-span-2 sm:mt-0">
@@ -89,16 +88,20 @@
                 <dd class="mt-1 text-sm text-gray-900 dark:text-gray-100 sm:col-span-2 sm:mt-0">
                     <div class="space-y-2">
                         <div class="flex items-center">
-                            <svg class="h-5 w-5 {{ 'text-green-500' if line_item.header else 'text-gray-400' }}" 
-                                 fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                            <svg class="h-5 w-5 {{ 'text-green-500' if line_item.header else 'text-gray-400' }}"
+                                fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd"
+                                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                    clip-rule="evenodd" />
                             </svg>
                             <span class="ml-2">Is Header</span>
                         </div>
                         <div class="flex items-center">
-                            <svg class="h-5 w-5 {{ 'text-green-500' if line_item.display else 'text-gray-400' }}" 
-                                 fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                            <svg class="h-5 w-5 {{ 'text-green-500' if line_item.display else 'text-gray-400' }}"
+                                fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd"
+                                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                    clip-rule="evenodd" />
                             </svg>
                             <span class="ml-2">Display in Reports</span>
                         </div>
@@ -110,5 +113,62 @@
             </div>
         </dl>
     </div>
-</div>
-{% endblock %}
+    <!-- Dependency Chart -->
+    <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
+        <h2 class="text-xl font-semibold mb-4 text-gray-900 dark:text-white">Dependencies</h2>
+        <div class="mermaid">
+            {{ mermaid_chart }}
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <script>
+        mermaid.initialize({
+            startOnLoad: true,
+            theme: document.documentElement.classList.contains('dark') ? 'dark' : 'default',
+            flowchart: {
+                curve: 'basis',
+                rankSpacing: 50,
+                nodeSpacing: 50,
+                padding: 20
+            },
+            maxTextSize: 5000000  // For large diagrams
+        });
+
+        // Re-render on theme change
+
+        if (!window.mermaidThemeObserver) {
+            window.mermaidThemeObserver = new MutationObserver(function (mutations) {
+                mutations.forEach(function (mutation) {
+                    if (mutation.target.classList.contains('dark')) {
+                        mermaid.initialize({ theme: 'dark' });
+                    } else {
+                        mermaid.initialize({ theme: 'default' });
+                    }
+                    mermaid.init(undefined, document.querySelectorAll('.mermaid'));
+                });
+            });
+
+            // Start observing
+            window.mermaidThemeObserver.observe(document.documentElement, {
+                attributes: true,
+                attributeFilter: ['class']
+            });
+        }
+    </script>
+
+    <style>
+        .mermaid {
+            background-color: transparent !important;
+        }
+
+        .dark .mermaid {
+            background-color: transparent !important;
+        }
+
+        .mermaid svg {
+            max-width: 100%;
+            height: auto;
+        }
+    </style>
+    {% endblock %}

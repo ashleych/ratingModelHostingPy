@@ -249,6 +249,7 @@ function applyFormula() {
 // Modified click outside handler
 document.addEventListener('click', function(event) {
     const modal = document.getElementById('formulaBuilderModal');
+ if (!modal) return;
     if (!modal.classList.contains('hidden')) {
         const modalContent = modal.querySelector('.bg-white.dark\\:bg-gray-800');
         const openButton = document.querySelector('[onclick="openFormulaBuilder()"]');
