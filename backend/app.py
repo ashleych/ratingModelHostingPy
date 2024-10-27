@@ -22,7 +22,8 @@ from fastapi import FastAPI, Request, Response
 from dependencies import get_db
 
 app = FastAPI(debug=True)
-# app.add_middleware(DebugToolbarMiddleware, panels=["debug_toolbar.panels.sqlalchemy.SQLAlchemyPanel"],)
+# app.add_middleware(DebugToolbarMiddleware, panels=["debug_toolbar.panels.sqlalchemy.SQLAlchemyPanel"] )
+app.add_middleware(DebugToolbarMiddleware  )
 # Mount static files
 app.mount("/static", StaticFiles(directory="../static"), name="static")
 

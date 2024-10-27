@@ -1,7 +1,10 @@
 # routes/line_item_routes.py
+import json
+import logging
 from fastapi import APIRouter, Request, Form, HTTPException, Depends,Query
-from fastapi.responses import RedirectResponse, HTMLResponse
+from fastapi.responses import JSONResponse, RedirectResponse, HTMLResponse
 from fastapi.templating import Jinja2Templates
+from psycopg2 import IntegrityError
 from sqlalchemy.orm import Session
 from typing import Any, Optional
 from models.models import LineItemMeta, Template
@@ -274,7 +277,7 @@ async def validate_formula_endpoint(
     line_item_name: str = Form(...),
     db: Session = Depends(get_db)
 ):
-    try:
+    # try:
         # Get all valid line item names and their formulas
         line_items = db.query(LineItemMeta)\
             .filter(LineItemMeta.template_id == template_id)\
@@ -313,12 +316,12 @@ async def validate_formula_endpoint(
         </div>
         """)
 
-    except Exception as e:
-        return HTMLResponse(f"""
-        <div class="text-red-600 dark:text-red-400">
-            Error validating formula: {str(e)}
-        </div>
-        """)
+    # except Exception as e:
+    #     return HTMLResponse(f"""
+    #     <div class="text-red-600 dark:text-red-400">
+    #         Error validating formula: {str(e)}
+    #     </div>
+    #     """)
 
 
 @router.get("/templates/{template_id}/lineitems")
@@ -819,3 +822,293 @@ def get_dependency_graph(line_items: List[LineItemMeta]) -> Dict[str, Any]:
         'dependents': dependents,
         'paths': all_paths
     }
+
+@router.get("/templates/{template_id}/bulk-create")
+async def bulk_create_form(
+    template_id: UUID,
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    template = db.query(Template).filter(Template.id == template_id).first()
+    if not template:
+        raise HTTPException(status_code=404, detail="Template not found")
+        
+    is_htmx = request.headers.get("HX-Request") == "true"
+    return templates.TemplateResponse(
+        "lineitems/partials/bulk_create.html",
+        {
+            "request": request,
+            "template_id": template_id,
+            "template": template,
+            "is_htmx":is_htmx  
+        }
+    )
+
+
+@router.post("/templates/{template_id}/bulk-create")
+async def bulk_create_line_items(
+    template_id: UUID,
+    line_items: str = Form(...),
+    db: Session = Depends(get_db)
+):
+    try:
+        items_data = json.loads(line_items)
+        
+        # Create line items
+        created_items = []
+        for item in items_data:
+            line_item = LineItemMeta(
+                template_id=template_id,
+                fin_statement_type=item['fin_statement_type'],
+                header=item['header'],
+                formula=item['formula'],
+                type=item['type'],
+                label=item['label'],
+                name=item['name'],
+                lag_months=item['lag_months'],
+                display=item['display'],
+                order_no=item['order_no'],
+                display_order_no=item['display_order_no']
+            )
+            db.add(line_item)
+            created_items.append(line_item)
+        
+        try:
+            db.commit()
+        except IntegrityError:
+            db.rollback()
+            # Delete any items that were created
+            for item in created_items:
+                db.delete(item)
+            db.commit()
+            raise HTTPException(status_code=400, detail="Database integrity error")
+            
+        return RedirectResponse(
+            url=f"/templates/{template_id}/lineitems",
+            status_code=303
+        )
+        
+    except Exception as e:
+        db.rollback()
+        # Delete any items that were created
+        for item in created_items:
+            db.delete(item)
+        db.commit()
+        raise HTTPException(status_code=400, detail=str(e))
+
+import json
+import logging
+from uuid import UUID
+from fastapi import Form, Depends, HTTPException
+from fastapi.responses import JSONResponse
+from sqlalchemy.orm import Session
+from typing import Dict, List, Set
+
+import os
+from datetime import datetime
+from logging.handlers import RotatingFileHandler
+
+def setup_logging(
+    log_dir: str = "logs",
+    log_level: int = logging.INFO,
+    max_file_size_mb: int = 10,
+    backup_count: int = 5
+) -> logging.Logger:
+    """
+    Configure logging to both file and console with rotation.
+    
+    Args:
+        log_dir: Directory where log files will be stored
+        log_level: Logging level (default: INFO)
+        max_file_size_mb: Maximum size of each log file in MB
+        backup_count: Number of backup files to keep
+    """
+    # Create logs directory if it doesn't exist
+    os.makedirs(log_dir, exist_ok=True)
+    
+    # Create logger
+    logger = logging.getLogger(__name__)
+    logger.setLevel(log_level)
+    
+    # Clear any existing handlers
+    logger.handlers.clear()
+    
+    # Create formatters
+    file_formatter = logging.Formatter(
+        '%(asctime)s | %(levelname)-8s | %(filename)s:%(lineno)d | %(message)s',
+        datefmt='%Y-%m-%d %H:%M:%S'
+    )
+    console_formatter = logging.Formatter(
+        '%(asctime)s | %(levelname)-8s | %(message)s',
+        datefmt='%Y-%m-%d %H:%M:%S'
+    )
+    
+    # Create and configure file handler with rotation
+    log_file = os.path.join(
+        log_dir,
+        f'app_{datetime.now().strftime("%Y%m%d")}.log'
+    )
+    file_handler = RotatingFileHandler(
+        log_file,
+        maxBytes=max_file_size_mb * 1024 * 1024,  # Convert MB to bytes
+        backupCount=backup_count
+    )
+    file_handler.setLevel(log_level)
+    file_handler.setFormatter(file_formatter)
+    
+    # Create and configure console handler
+    console_handler = logging.StreamHandler()
+    console_handler.setLevel(log_level)
+    console_handler.setFormatter(console_formatter)
+    
+    # Add handlers to logger
+    logger.addHandler(file_handler)
+    logger.addHandler(console_handler)
+    
+    # Log startup message
+    logger.info(f"Logging configured - writing to {log_file}")
+    
+    return logger
+
+# Usage in your FastAPI endpoint
+logger = setup_logging()
+
+@router.post("/templates/{template_id}/bulk-validate")
+async def validate_line_items(
+    template_id: UUID,
+    line_items: str = Form(...),
+    db: Session = Depends(get_db)
+):
+    try:
+        # Log incoming request
+        logger.info(f"Processing bulk validation request for template_id: {template_id}")
+        
+        # Parse JSON with error handling
+        try:
+            items_data = json.loads(line_items)
+            if not isinstance(items_data, list):
+                logger.error("Invalid data format: Expected a list of items")
+                return JSONResponse(
+                    status_code=400,
+                    content={'error': 'Invalid data format: Expected a list of items'}
+                )
+        except json.JSONDecodeError as e:
+            logger.error(f"JSON parsing error: {str(e)}")
+            return JSONResponse(
+                status_code=400,
+                content={'error': f'Invalid JSON format: {str(e)}'}
+            )
+
+        validation_errors = []
+        
+        # Validate basic structure of each item
+        for idx, item in enumerate(items_data, 1):
+            required_fields = {'name', 'formula'}
+            if not all(field in item for field in required_fields):
+                missing_fields = required_fields - set(item.keys())
+                logger.error(f"Row {idx}: Missing required fields: {missing_fields}")
+                return JSONResponse(
+                    status_code=400,
+                    content={'error': f'Row {idx}: Missing required fields: {missing_fields}'}
+                )
+
+        # Get existing line items for template
+        try:
+            existing_items = db.query(LineItemMeta)\
+                .filter(LineItemMeta.template_id == template_id)\
+                .all()
+            existing_names = {item.name for item in existing_items}
+        except Exception as e:
+            logger.error(f"Database query error: {str(e)}")
+            return JSONResponse(
+                status_code=500,
+                content={'error': 'Database error while fetching existing items'}
+            )
+
+        # Get all formulas for circular dependency check
+        current_formulas: Dict[str, str] = {
+            item.name: item.formula 
+            for item in existing_items 
+            if item.formula
+        }
+        
+        # Add new items to formula dict
+        for item in items_data:
+            current_formulas[item['name']] = item['formula']
+
+        # Validate each line item
+        for idx, item in enumerate(items_data, 1):
+            row_errors = []
+            
+            # Log current item being processed
+            logger.info(f"Validating row {idx}: {item['name']}")
+            
+            # Check name uniqueness against existing items
+            if item['name'] in existing_names:
+                error_msg = f"Line item name '{item['name']}' already exists"
+                logger.error(f"Row {idx}: {error_msg}")
+                row_errors.append(error_msg)
+            
+            # Check for duplicate names within the pasted data
+            name_count = sum(1 for x in items_data if x['name'] == item['name'])
+            if name_count > 1:
+                error_msg = f"Duplicate line item name '{item['name']}' in the pasted data"
+                logger.error(f"Row {idx}: {error_msg}")
+                row_errors.append(error_msg)
+            
+            # Validate formula syntax
+            if item['formula']:
+                try:
+                    valid_names = set(current_formulas.keys())
+                    syntax_valid, syntax_error = validate_syntax(
+                        item['formula'],
+                        valid_names,
+                        current_line_item_name=item['name']
+                    )
+                    if not syntax_valid:
+                        error_msg = f"Formula syntax error: {syntax_error}"
+                        logger.error(f"Row {idx}: {error_msg}")
+                        row_errors.append(error_msg)
+                except Exception as e:
+                    logger.error(f"Formula validation error in row {idx}: {str(e)}")
+                    row_errors.append(f"Formula validation error: {str(e)}")
+            
+            # Check for circular dependencies
+            if item['formula']:
+                try:
+                    is_valid, circular_path = check_circular_reference(
+                        current_formulas,
+                        item['name'],
+                        item['formula']
+                    )
+                    if not is_valid:
+                        circular_path_str = " → ".join(circular_path)
+                        error_msg = f"Circular dependency detected: {circular_path_str}"
+                        logger.error(f"Row {idx}: {error_msg}")
+                        row_errors.append(error_msg)
+                except Exception as e:
+                    logger.error(f"Circular dependency check error in row {idx}: {str(e)}")
+                    row_errors.append(f"Circular dependency check error: {str(e)}")
+            
+            if row_errors:
+                validation_errors.append({
+                    'row': idx,
+                    'errors': row_errors
+                })
+        
+        if validation_errors:
+            logger.info(f"Validation failed with {len(validation_errors)} errors")
+            return JSONResponse(
+                status_code=400,
+                content={'validation_errors': validation_errors}
+            )
+        
+        logger.info("Validation completed successfully")
+        return JSONResponse(content={'status': 'valid'})
+
+    except Exception as e:
+        logger.error(f"Unexpected error: {str(e)}", exc_info=True)
+        return JSONResponse(
+            status_code=500,
+            content={'error': f'Internal server error: {str(e)}'}
+        )

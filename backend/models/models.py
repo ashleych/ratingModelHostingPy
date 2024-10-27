@@ -172,7 +172,9 @@ class RatingModel(Base):
 
 
 class LineItemMeta(Base):
-
+    __table_args__ = (
+        UniqueConstraint('template_id', 'name', name='uix_template_name'),
+    )
     template_id = Column(UUID, ForeignKey('template.id'),nullable=False)
     template = relationship("Template")
     fin_statement_type = Column(String)
@@ -180,7 +182,7 @@ class LineItemMeta(Base):
     formula = Column(String)
     type = Column(String)
     label = Column(String)
-    name = Column(String)
+    name = Column(String,nullable=False)
     lag_months = Column(Integer)
     display = Column(Boolean)
     order_no = Column(Integer)
