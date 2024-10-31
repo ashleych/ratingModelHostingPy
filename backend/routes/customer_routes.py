@@ -29,18 +29,7 @@ async def new_customer(request: Request,  current_user:User = Depends(auth_handl
     return templates.TemplateResponse("customers/partials/new.html", {"request": request,'user':current_user,"business_units": business_units,"is_htmx":is_htmx})
 
 
-# @router.get("/customers/{customer_id}")
-# async def customer_detail(request: Request, customer_id: str, current_user:User:User = Depends(auth_handler.auth_wrapper),db: Session = Depends(get_db)):
-#     customer = db.query(Customer).filter(Customer.id == customer_id).first()
-#     if not customer:
-#         raise HTTPException(status_code=404, detail="Customer not found")
-    
-#     statements = db.query(FinancialStatement).filter(FinancialStatement.customer_id == customer_id).all()
-    
-#     return templates.TemplateResponse("customers/partials/detail.html", {
-#         "request": request,'user':current_user, 
-#         "customer": customer,
-#         "statements": statements
+
 #     })
 
 

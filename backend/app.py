@@ -3,8 +3,9 @@ from fastapi.responses import RedirectResponse,HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
+from routes import rating_instance_routes, rating_model_factors_routes, rating_model_factors_routes
 from security import AuthHandler, RequiresLoginException
-from routes import customer_routes, statement_routes,rating_model_routes,businessunits_routes,rating_scale_routes,templates_routes, fs_line_item_routes
+from routes import customer_routes, statement_routes,businessunits_routes,rating_scale_routes,templates_routes, fs_line_item_routes,rating_model_config_routes
 from fastapi.encoders import jsonable_encoder
 from fastapi import FastAPI, Depends, HTTPException, Request, Form
 from fastapi.responses import RedirectResponse,HTMLResponse,FileResponse
@@ -23,7 +24,7 @@ from dependencies import get_db
 
 app = FastAPI(debug=True)
 # app.add_middleware(DebugToolbarMiddleware, panels=["debug_toolbar.panels.sqlalchemy.SQLAlchemyPanel"] )
-app.add_middleware(DebugToolbarMiddleware  )
+# app.add_middleware(DebugToolbarMiddleware  )
 # Mount static files
 app.mount("/static", StaticFiles(directory="../static"), name="static")
 
@@ -74,11 +75,13 @@ auth_handler = AuthHandler()
 # app.include_router(customer_routes.router,dependencies=[Depends(auth_handler.auth_wrapper)])
 app.include_router(customer_routes.router)
 app.include_router(statement_routes.router)
-app.include_router(rating_model_routes.router)
+app.include_router(rating_instance_routes.router)
 app.include_router(businessunits_routes.router)
 app.include_router(rating_scale_routes.router)
 app.include_router(templates_routes.router)
 app.include_router(fs_line_item_routes.router)
+app.include_router(rating_model_config_routes.router)
+app.include_router(rating_model_factors_routes.router)
 # redirection block
 @app.exception_handler(RequiresLoginException)
 async def exception_handler(request: Request, exc: RequiresLoginException) -> Response:

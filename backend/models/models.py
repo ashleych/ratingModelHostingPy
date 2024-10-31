@@ -121,6 +121,24 @@ class FinancialsPeriod(Base):
     type = Column(String, nullable=False)
 
 
+
+
+class ScoreToGradeMapping(Base):
+    rating_model_id = Column(UUID, ForeignKey('ratingmodel.id'),nullable=False)
+    bin_start=Column(Float)
+    bin_end=Column(Float)
+    grade=Column(String)
+    
+    rating_model = relationship("RatingModel")
+
+class RatingModel(Base):
+
+    name = Column(String, unique=True)
+    label = Column(String)
+    template_id = Column(UUID, ForeignKey('template.id'),nullable=False)
+
+    template = relationship("Template")
+
 class RatingFactor(Base):
     __tablename__ = 'ratingfactor'
 
@@ -152,24 +170,6 @@ class RatingFactorAttribute(Base):
 
     rating_factor = relationship("RatingFactor")
     rating_model = relationship("RatingModel")
-
-class ScoreToGradeMapping(Base):
-    rating_model_id = Column(UUID, ForeignKey('ratingmodel.id'),nullable=False)
-    bin_start=Column(Float)
-    bin_end=Column(Float)
-    grade=Column(String)
-    
-    rating_model = relationship("RatingModel")
-
-class RatingModel(Base):
-
-    name = Column(String, unique=True)
-    label = Column(String)
-    template_id = Column(UUID, ForeignKey('template.id'),nullable=False)
-
-    template = relationship("Template")
-
-
 
 class LineItemMeta(Base):
     __table_args__ = (

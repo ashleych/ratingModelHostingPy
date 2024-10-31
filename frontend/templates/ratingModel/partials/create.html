@@ -1,0 +1,126 @@
+<!-- templates/ratingModel/partials/create.html -->
+{% if not is_htmx %}
+{% extends "_layout.html" %}
+{% endif %}
+
+{% block content %}
+<div class="bg-white dark:bg-gray-800 shadow-md rounded-lg p-6">
+    <h1 class="text-3xl font-bold mb-6 text-gray-900 dark:text-gray-100">
+        {% if rating_model %}Edit Rating Model{% else %}Create Rating Model{% endif %}
+    </h1>
+    
+    <form hx-{% if rating_model %}post{% else %}post{% endif %}="{% if rating_model %}/rating-models/{{ rating_model.id }}/edit{% else %}/rating-models/new{% endif %}"
+          hx-target="#main-content"
+          class="space-y-6">
+        
+        <!-- Name Field -->
+        <div class="space-y-1">
+            <label for="name" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Name
+                <span class="text-red-500">*</span>
+            </label>
+            <input type="text"
+                   name="name"
+                   id="name"
+                   value="{{ rating_model.name if rating_model else '' }}"
+                   required
+                   class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white sm:text-sm"
+                   placeholder="Enter rating model name">
+            <p class="text-xs text-gray-500 dark:text-gray-400">
+                Give your rating model a unique name
+            </p>
+        </div>
+
+        <!-- Label Field -->
+        <div class="space-y-1">
+            <label for="label" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Label
+                <span class="text-red-500">*</span>
+            </label>
+            <input type="text"
+                   name="label"
+                   id="label"
+                   value="{{ rating_model.label if rating_model else '' }}"
+                   required
+                   class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white sm:text-sm"
+                   placeholder="Enter display label">
+            <p class="text-xs text-gray-500 dark:text-gray-400">
+                Provide a display label for the rating model
+            </p>
+        </div>
+
+        <!-- Template Selection -->
+        <div class="space-y-1">
+            <label for="template_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Template
+                <span class="text-red-500">*</span>
+            </label>
+            <select name="template_id"
+                    id="template_id"
+                    required
+                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white sm:text-sm">
+                <option value="">Select a template</option>
+                {% for template in templates %}
+                <option value="{{ template.id }}"
+                        {% if rating_model and rating_model.template_id == template.id %}selected{% endif %}>
+                    {{ template.name }}
+                </option>
+                {% endfor %}
+            </select>
+            <p class="text-xs text-gray-500 dark:text-gray-400">
+                Select the template this rating model will be based on
+            </p>
+        </div>
+
+        <!-- Form Actions -->
+        <div class="flex justify-end space-x-4 pt-4 border-t dark:border-gray-700">
+            <button type="button"
+                    hx-get="/rating-models"
+                    hx-target="#main-content"
+                    hx-push-url="true"
+                    class="px-4 py-2 text-sm font-medium text-gray-700 bg-white dark:bg-gray-700 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500">
+                Cancel
+            </button>
+            <button type="submit"
+                    class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                {% if rating_model %}Save Changes{% else %}Create Rating Model{% endif %}
+            </button>
+        </div>
+    </form>
+</div>
+
+<!-- Error Message Toast -->
+<div id="errorToast" 
+     class="fixed bottom-4 right-4 px-4 py-2 bg-red-500 text-white rounded-md shadow-lg hidden transform transition-all duration-300">
+</div>
+
+<script>
+    // Form validation and error handling
+    document.querySelector('form').addEventListener('submit', function(e) {
+        const name = document.getElementById('name').value.trim();
+        const label = document.getElementById('label').value.trim();
+        const templateId = document.getElementById('template_id').value;
+        
+        if (!name || !label || !templateId) {
+            e.preventDefault();
+            const errorToast = document.getElementById('errorToast');
+            errorToast.textContent = 'Please fill in all required fields';
+            errorToast.classList.remove('hidden');
+            setTimeout(() => {
+                errorToast.classList.add('hidden');
+            }, 3000);
+        }
+    });
+
+    // Handle HTMX error responses
+    document.body.addEventListener('htmx:error', function(evt) {
+        const errorToast = document.getElementById('errorToast');
+        errorToast.textContent = evt.detail.error || 'An error occurred';
+        errorToast.classList.remove('hidden');
+        setTimeout(() => {
+            errorToast.classList.add('hidden');
+        }, 3000);
+    });
+</script>
+{% endblock %}
+

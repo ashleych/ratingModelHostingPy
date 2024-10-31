@@ -1,0 +1,242 @@
+<!-- templates/ratingModel/factors/create.html -->
+{% from "breadcrumbs.html" import render_breadcrumbs %}
+{% if not is_htmx %}
+{% extends "_layout.html" %}
+{% endif %}
+
+{% block content %}
+<div class="bg-white dark:bg-gray-800 shadow-md rounded-lg p-6">
+    {{ render_breadcrumbs(breadcrumbs) }}
+    
+    <h1 class="text-3xl font-bold mb-6 text-gray-900 dark:text-gray-100">
+        Create Rating Factor
+    </h1>
+    
+    <form hx-post="/rating-models/{{ rating_model.id }}/factors/new"
+          hx-target="#main-content"
+          class="space-y-6">
+        
+        <!-- Basic Information -->
+        <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
+            <div class="space-y-1">
+                <label for="name" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Name <span class="text-red-500">*</span>
+                </label>
+                <input type="text"
+                       name="name"
+                       id="name"
+                       required
+                       class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white sm:text-sm"
+                       placeholder="Enter factor name">
+            </div>
+
+            <div class="space-y-1">
+                <label for="label" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Label <span class="text-red-500">*</span>
+                </label>
+                <input type="text"
+                       name="label"
+                       id="label"
+                       required
+                       class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white sm:text-sm"
+                       placeholder="Enter display label">
+            </div>
+        </div>
+
+        <!-- Factor Type and Source -->
+        <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
+            <div class="space-y-1">
+                <label for="factor_type" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Factor Type <span class="text-red-500">*</span>
+                </label>
+                <select name="factor_type"
+                        id="factor_type"
+                        required
+                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white sm:text-sm">
+                    <option value="input">Input</option>
+                    <option value="calculated">Calculated</option>
+                </select>
+            </div>
+
+            <div class="space-y-1">
+                <label for="input_source" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Input Source
+                </label>
+                <input type="text"
+                       name="input_source"
+                       id="input_source"
+                       class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white sm:text-sm"
+                       placeholder="Enter input source">
+            </div>
+        </div>
+
+        <!-- Module Information -->
+        <div class="grid grid-cols-1 gap-6 sm:grid-cols-3">
+            <div class="space-y-1">
+                <label for="module_name" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Module Name <span class="text-red-500">*</span>
+                </label>
+                <input type="text"
+                       name="module_name"
+                       id="module_name"
+                       required
+                       class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white sm:text-sm"
+                       placeholder="Enter module name">
+            </div>
+
+            <div class="space-y-1">
+                <label for="module_order" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Module Order <span class="text-red-500">*</span>
+                </label>
+                <input type="number"
+                       name="module_order"
+                       id="module_order"
+                       required
+                       value="{{ next_module_order }}"
+                       class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white sm:text-sm">
+            </div>
+
+            <div class="space-y-1">
+                <label for="order_no" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Factor Order <span class="text-red-500">*</span>
+                </label>
+                <input type="number"
+                       name="order_no"
+                       id="order_no"
+                       required
+                       value="{{ next_order }}"
+                       class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white sm:text-sm">
+            </div>
+        </div>
+
+        <!-- Formula and Weightage -->
+        <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
+            <div class="space-y-1">
+                <label for="formula" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Formula
+                </label>
+                <textarea name="formula"
+                          id="formula"
+                          rows="3"
+                          class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white sm:text-sm"
+                          placeholder="Enter calculation formula"></textarea>
+            </div>
+
+            <div class="space-y-1">
+                <label for="weightage" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Weightage
+                </label>
+                <input type="number"
+                       name="weightage"
+                       id="weightage"
+                       step="0.01"
+                       class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white sm:text-sm"
+                       placeholder="Enter weightage">
+            </div>
+        </div>
+
+        <!-- Parent Factor -->
+        <div class="space-y-1">
+            <label for="parent_factor_name" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Parent Factor
+            </label>
+            <input type="text"
+                   name="parent_factor_name"
+                   id="parent_factor_name"
+                   class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white sm:text-sm"
+                   placeholder="Enter parent factor name">
+        </div>
+
+        <!-- Form Actions -->
+        <div class="flex justify-end space-x-4 pt-4 border-t dark:border-gray-700">
+            <button type="button"
+                    hx-get="/rating-models/{{ rating_model.id }}/factors"
+                    hx-target="#main-content"
+                    hx-push-url="true"
+                    class="px-4 py-2 text-sm font-medium text-gray-700 bg-white dark:bg-gray-700 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm hover:bg-gray-50 dark:hover:bg-gray-600">
+                Cancel
+            </button>
+            <button type="submit"
+                    class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                Create Rating Factor
+            </button>
+        </div>
+    </form>
+</div>
+
+<!-- Error Message Toast -->
+<div id="errorToast" 
+     class="fixed bottom-4 right-4 px-4 py-2 bg-red-500 text-white rounded-md shadow-lg hidden transform transition-all duration-300">
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const factorTypeSelect = document.getElementById('factor_type');
+        const formulaField = document.getElementById('formula');
+        const inputSourceField = document.getElementById('input_source');
+        
+        function toggleFields() {
+            if (factorTypeSelect.value === 'calculated') {
+                formulaField.parentElement.classList.remove('hidden');
+                inputSourceField.parentElement.classList.add('hidden');
+                formulaField.required = true;
+                inputSourceField.required = false;
+            } else {
+                formulaField.parentElement.classList.add('hidden');
+                inputSourceField.parentElement.classList.remove('hidden');
+                formulaField.required = false;
+                inputSourceField.required = true;
+            }
+        }
+        
+        factorTypeSelect.addEventListener('change', toggleFields);
+        toggleFields(); // Initial state
+    });
+
+    // Form validation
+    document.querySelector('form').addEventListener('submit', function(e) {
+        const requiredFields = ['name', 'label', 'factor_type', 'module_name', 'module_order', 'order_no'];
+        const errorMessages = [];
+        
+        for (const fieldName of requiredFields) {
+            const field = document.getElementById(fieldName);
+            if (!field.value.trim()) {
+                errorMessages.push(`${field.labels[0].textContent.replace(' *', '')} is required`);
+            }
+        }
+        
+        const factorType = document.getElementById('factor_type').value;
+        if (factorType === 'calculated') {
+            const formula = document.getElementById('formula').value.trim();
+            if (!formula) {
+                errorMessages.push('Formula is required for calculated factors');
+            }
+        } else if (factorType === 'input') {
+            const inputSource = document.getElementById('input_source').value.trim();
+            if (!inputSource) {
+                errorMessages.push('Input source is required for input factors');
+            }
+        }
+        
+        if (errorMessages.length > 0) {
+            e.preventDefault();
+            const errorToast = document.getElementById('errorToast');
+            errorToast.textContent = errorMessages.join(', ');
+            errorToast.classList.remove('hidden');
+            setTimeout(() => {
+                errorToast.classList.add('hidden');
+            }, 3000);
+        }
+    });
+
+    // Handle HTMX error responses
+    document.body.addEventListener('htmx:error', function(evt) {
+        const errorToast = document.getElementById('errorToast');
+        errorToast.textContent = evt.detail.error || 'An error occurred';
+        errorToast.classList.remove('hidden');
+        setTimeout(() => {
+            errorToast.classList.add('hidden');
+        }, 3000);
+    });
+</script>
+{% endblock %}

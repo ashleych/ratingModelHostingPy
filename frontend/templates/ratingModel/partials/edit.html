@@ -1,0 +1,56 @@
+{% if not is_htmx %}
+{% extends "_layout.html" %}
+{% endif %}
+
+{% block content %}
+{# templates/ratingModel/partials/edit.html #}
+<div class="container mx-auto px-4 py-8">
+    <div class="max-w-2xl mx-auto">
+        <h1 class="text-2xl font-bold mb-6">Edit Rating Model</h1>
+        
+        <form hx-post="/rating-models/{{ rating_model.id }}/edit" hx-target="#main-content" class="space-y-6">
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Name</label>
+                <input type="text" name="name" value="{{ rating_model.name }}" required
+                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Label</label>
+                <input type="text" name="label" value="{{ rating_model.label }}" required
+                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Template</label>
+                <select name="template_id" required
+                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                    {% for template in templates %}
+                    <option value="{{ template.id }}" {% if template.id == rating_model.template_id %}selected{% endif %}>
+                        {{ template.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="flex justify-end space-x-4">
+                <button
+                    type="button"
+                    hx-get="/rating-models"
+                    hx-target="#main-content"
+                    class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded"
+                >
+                    Cancel
+                </button>
+                <button
+                    type="submit"
+                    class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+                >
+                    Update Rating Model
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% endblock %}

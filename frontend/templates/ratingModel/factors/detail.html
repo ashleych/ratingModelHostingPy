@@ -1,4 +1,4 @@
-<!-- templates/lineitems/partials/detail.html -->
+
 {% from "breadcrumbs.html" import render_breadcrumbs %}
 {% if not is_htmx %}
 {% extends "_layout.html" %}
@@ -10,19 +10,19 @@
     <div class="flex justify-between items-center mb-6">
         <div>
             <h1 class="text-3xl font-bold text-gray-900 dark:text-gray-100">
-                {{ line_item.name }}
+                {{ factor.name }}
             </h1>
             <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                Line Item Details - {{ line_item.template.name }}
+                Rating Factor Details - {{ factor.rating_model.name }}
             </p>
         </div>
         <div class="flex space-x-4">
-            <a hx-get="/templates/{{ line_item.template_id }}/lineitems/{{ line_item.id }}/edit"
+            <a hx-get="/rating-models/{{ rating_model_id }}/factors/{{ factor.id }}/edit"
                 hx-target="#main-content" hx-push-url="true"
                 class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700">
-                Edit Line Item
+                Edit Factor
             </a>
-            <a hx-get="/templates/{{ line_item.template_id }}/lineitems" hx-target="#main-content" hx-push-url="true"
+            <a hx-get="/rating-models/{{ rating_model_id }}/factors" hx-target="#main-content" hx-push-url="true"
                 class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600 dark:hover:bg-gray-600">
                 Back to List
             </a>
@@ -35,96 +35,77 @@
             <div class="py-4 sm:grid sm:grid-cols-3 sm:gap-4">
                 <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Label</dt>
                 <dd class="mt-1 text-sm text-gray-900 dark:text-gray-100 sm:col-span-2 sm:mt-0">
-                    {{ line_item.label }}
+                    {{ factor.label }}
                 </dd>
             </div>
 
             <div class="py-4 sm:grid sm:grid-cols-3 sm:gap-4">
-                <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Type</dt>
+                <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Factor Type</dt>
                 <dd class="mt-1 text-sm text-gray-900 dark:text-gray-100 sm:col-span-2 sm:mt-0">
                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
-                        {% if line_item.type == 'calculated' %}bg-purple-100 text-purple-800 dark:bg-purple-800 dark:text-purple-100
-                        {% elif line_item.type == 'number' %}bg-blue-100 text-blue-800 dark:bg-blue-800 dark:text-blue-100
-                        {% elif line_item.type == 'percentage' %}bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100
+                        {% if factor.factor_type == 'qualitative' %}bg-purple-100 text-purple-800 dark:bg-purple-800 dark:text-purple-100
+                        {% elif factor.factor_type == 'quantitative' %}bg-blue-100 text-blue-800 dark:bg-blue-800 dark:text-blue-100
+                        {% elif factor.factor_type == 'calculated' %}bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100
                         {% else %}bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-100{% endif %}">
-                        {{ line_item.type | title }}
+                        {{ factor.factor_type | title }}
                     </span>
                 </dd>
             </div>
 
             <div class="py-4 sm:grid sm:grid-cols-3 sm:gap-4">
-                <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Financial Statement Type</dt>
+                <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Input Source</dt>
                 <dd class="mt-1 text-sm text-gray-900 dark:text-gray-100 sm:col-span-2 sm:mt-0">
-                    {{ line_item.fin_statement_type | replace('_', ' ') | title }}
+                    {{ factor.input_source or 'N/A' }}
                 </dd>
             </div>
 
-            <!-- Ordering -->
+            <!-- Module Information -->
             <div class="py-4 sm:grid sm:grid-cols-3 sm:gap-4">
-                <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Order Numbers</dt>
+                <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Module Information</dt>
                 <dd class="mt-1 text-sm text-gray-900 dark:text-gray-100 sm:col-span-2 sm:mt-0">
                     <div class="space-y-1">
-                        <p>Internal Order: {{ line_item.order_no }}</p>
-                        <p>Display Order: {{ line_item.display_order_no }}</p>
+                        <p>Module Name: {{ factor.module_name or 'N/A' }}</p>
+                        <p>Module Order: {{ factor.module_order or 'N/A' }}</p>
                     </div>
                 </dd>
             </div>
 
-            <!-- Formula and Calculations -->
-            {% if line_item.formula %}
+            <!-- Ordering and Hierarchy -->
+            <div class="py-4 sm:grid sm:grid-cols-3 sm:gap-4">
+                <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Factor Details</dt>
+                <dd class="mt-1 text-sm text-gray-900 dark:text-gray-100 sm:col-span-2 sm:mt-0">
+                    <div class="space-y-1">
+                        <p>Order Number: {{ factor.order_no }}</p>
+                        <p>Parent Factor: {{ factor.parent_factor_name or 'None' }}</p>
+                        <p>Weightage: {{ "%.2f"|format(factor.weightage or 0) }}</p>
+                    </div>
+                </dd>
+            </div>
+
+            <!-- Formula -->
+            {% if factor.formula %}
             <div class="py-4 sm:grid sm:grid-cols-3 sm:gap-4">
                 <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Formula</dt>
                 <dd class="mt-1 text-sm text-gray-900 dark:text-gray-100 sm:col-span-2 sm:mt-0">
                     <code class="px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded">
-                        {{ line_item.formula }}
+                        {{ factor.formula }}
                     </code>
                 </dd>
             </div>
             {% endif %}
-
-            <!-- Flags and Settings -->
-            <div class="py-4 sm:grid sm:grid-cols-3 sm:gap-4">
-                <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Settings</dt>
-                <dd class="mt-1 text-sm text-gray-900 dark:text-gray-100 sm:col-span-2 sm:mt-0">
-                    <div class="space-y-2">
-                        <div class="flex items-center">
-                            <svg class="h-5 w-5 {{ 'text-green-500' if line_item.header else 'text-gray-400' }}"
-                                fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd"
-                                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                                    clip-rule="evenodd" />
-                            </svg>
-                            <span class="ml-2">Is Header</span>
-                        </div>
-                        <div class="flex items-center">
-                            <svg class="h-5 w-5 {{ 'text-green-500' if line_item.display else 'text-gray-400' }}"
-                                fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd"
-                                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                                    clip-rule="evenodd" />
-                            </svg>
-                            <span class="ml-2">Display in Reports</span>
-                        </div>
-                        <div class="flex items-center">
-                            <span class="text-sm">Lag Months: {{ line_item.lag_months }}</span>
-                        </div>
-                    </div>
-                </dd>
-            </div>
         </dl>
     </div>
+
     <!-- Dependency Chart -->
-
-
-
-    <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
+    <div class="mt-8 bg-white dark:bg-gray-800 shadow rounded-lg p-6">
         <h2 class="text-xl font-semibold mb-4 text-gray-900 dark:text-white">Dependencies</h2>
         <div class="px-6 py-4 whitespace-nowrap text-sm font-medium">
             <div class="flex items-center space-x-2">
                 <select class="rounded-md border-gray-300 shadow-sm text-sm"
-                    hx-get="/templates/{{ template_id }}/lineitems/{{ line_item.id }}" hx-target="#main-content"
-                    hx-trigger="change" name="depth">
-
+                    hx-get="/rating-models/{{ rating_model_id }}/factors/{{ factor.id }}" 
+                    hx-target="#main-content"
+                    hx-trigger="change" 
+                    name="depth">
                     <option value="" disabled>Select Depth</option>
                     <option value="1" {{ 'selected' if depth==1 }}>1 Level Deep</option>
                     <option value="2" {{ 'selected' if depth==2 }}>2 Levels Deep</option>
@@ -133,7 +114,6 @@
                     <option value="5" {{ 'selected' if depth==5 }}>5 Levels Deep</option>
                     <option value="-1" {{ 'selected' if depth==-1 }}>All Dependencies</option>
                 </select>
-
             </div>
         </div>
         <div class="mermaid">
@@ -155,7 +135,6 @@
             height: auto;
         }
 
-        /* Make nodes look clickable */
         .mermaid .node rect,
         .mermaid .node circle,
         .mermaid .node ellipse,
@@ -163,5 +142,5 @@
             cursor: pointer;
         }
     </style>
- 
-    {% endblock %}
+</div>
+{% endblock %}

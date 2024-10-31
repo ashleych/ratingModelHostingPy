@@ -1,0 +1,193 @@
+
+{% from "breadcrumbs.html" import render_breadcrumbs %}
+<!-- templates/ratingModel/factors/edit.html -->
+{% if not is_htmx %}
+{% extends "_layout.html" %}
+{% endif %}
+
+{% block content %}
+<div class="bg-white dark:bg-gray-800 shadow-md rounded-lg p-6">
+    {{ render_breadcrumbs(breadcrumbs) }}
+    
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-3xl font-bold text-gray-900 dark:text-gray-100">
+            Edit Rating Factor
+        </h1>
+        <a hx-get="/rating-models/{{ factor.rating_model_id }}/factors"
+           hx-target="#main-content"
+           hx-push-url="true"
+           class="text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300">
+            Back to Factors
+        </a>
+    </div>
+    
+    <form hx-post="/rating-models/{{ factor.rating_model_id }}/factors/{{ factor.id }}/edit"
+          hx-target="#main-content"
+          class="space-y-6">
+        
+        <!-- Basic Information -->
+        <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
+            <div class="space-y-1">
+                <label for="name" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Name <span class="text-red-500">*</span>
+                </label>
+                <input type="text"
+                       name="name"
+                       id="name"
+                       value="{{ factor.name }}"
+                       required
+                       class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white sm:text-sm">
+                <p class="text-xs text-gray-500 dark:text-gray-400">
+                    Unique identifier for this factor
+                </p>
+            </div>
+
+            <div class="space-y-1">
+                <label for="label" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Label <span class="text-red-500">*</span>
+                </label>
+                <input type="text"
+                       name="label"
+                       id="label"
+                       value="{{ factor.label }}"
+                       required
+                       class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white sm:text-sm">
+                <p class="text-xs text-gray-500 dark:text-gray-400">
+                    Display name for this factor
+                </p>
+            </div>
+        </div>
+
+        <!-- Factor Type and Source -->
+        <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
+            <div class="space-y-1">
+                <label for="factor_type" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Factor Type <span class="text-red-500">*</span>
+                </label>
+                <select name="factor_type"
+                        id="factor_type"
+                        required
+                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white sm:text-sm">
+                    <option value="input" {% if factor.factor_type == 'input' %}selected{% endif %}>Input</option>
+                    <option value="calculated" {% if factor.factor_type == 'calculated' %}selected{% endif %}>Calculated</option>
+                </select>
+            </div>
+
+            <div class="space-y-1">
+                <label for="input_source" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Input Source
+                </label>
+                <input type="text"
+                       name="input_source"
+                       id="input_source"
+                       value="{{ factor.input_source }}"
+                       class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white sm:text-sm">
+            </div>
+        </div>
+
+        <!-- Module Information -->
+        <div class="grid grid-cols-1 gap-6 sm:grid-cols-3">
+            <div class="space-y-1">
+                <label for="module_name" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Module Name <span class="text-red-500">*</span>
+                </label>
+                <input type="text"
+                       name="module_name"
+                       id="module_name"
+                       value="{{ factor.module_name }}"
+                       required
+                       class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white sm:text-sm">
+            </div>
+
+            <div class="space-y-1">
+                <label for="module_order" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Module Order <span class="text-red-500">*</span>
+                </label>
+                <input type="number"
+                       name="module_order"
+                       id="module_order"
+                       value="{{ factor.module_order }}"
+                       required
+                       class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white sm:text-sm">
+            </div>
+
+            <div class="space-y-1">
+                <label for="order_no" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Factor Order <span class="text-red-500">*</span>
+                </label>
+                <input type="number"
+                       name="order_no"
+                       id="order_no"
+                       value="{{ factor.order_no }}"
+                       required
+                       class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white sm:text-sm">
+            </div>
+        </div>
+
+        <!-- Formula and Weightage -->
+        <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
+            <div class="space-y-1">
+                <label for="formula" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Formula
+                </label>
+                <textarea name="formula"
+                          id="formula"
+                          rows="3"
+                          class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white sm:text-sm">{{ factor.formula }}</textarea>
+                <p class="text-xs text-gray-500 dark:text-gray-400">
+                    Required for calculated factors
+                </p>
+            </div>
+
+            <div class="space-y-1">
+                <label for="weightage" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Weightage
+                </label>
+                <input type="number"
+                       name="weightage"
+                       id="weightage"
+                       value="{{ factor.weightage }}"
+                       step="0.01"
+                       class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white sm:text-sm">
+            </div>
+        </div>
+
+        <!-- Parent Factor -->
+        <div class="space-y-1">
+            <label for="parent_factor_name" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Parent Factor
+            </label>
+            <input type="text"
+                   name="parent_factor_name"
+                   id="parent_factor_name"
+                   value="{{ factor.parent_factor_name }}"
+                   class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white sm:text-sm">
+        </div>
+
+        <!-- Form Actions -->
+        <div class="flex justify-end space-x-4 pt-4 border-t dark:border-gray-700">
+            <button type="button"
+                    hx-get="/rating-models/{{ factor.rating_model_id }}/factors"
+                    hx-target="#main-content"
+                    hx-push-url="true"
+                    class="px-4 py-2 text-sm font-medium text-gray-700 bg-white dark:bg-gray-700 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm hover:bg-gray-50 dark:hover:bg-gray-600">
+                Cancel
+            </button>
+            <button type="submit"
+                    class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                Save Changes
+            </button>
+        </div>
+    </form>
+</div>
+
+<!-- Error Message Toast -->
+<div id="errorToast" 
+     class="fixed bottom-4 right-4 px-4 py-2 bg-red-500 text-white rounded-md shadow-lg hidden transform transition-all duration-300">
+</div>
+
+<script>
+    // Same validation script as create form...
+    // Copy the entire script section from the create form here
+</script>
+{% endblock %}
