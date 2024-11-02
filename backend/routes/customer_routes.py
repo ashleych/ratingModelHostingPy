@@ -30,12 +30,11 @@ async def new_customer(request: Request,  current_user:User = Depends(auth_handl
 
 
 
-#     })
-
-
 @router.get("/customers/{customer_id}")
 async def customer_detail(request: Request, customer_id: str, current_user:User = Depends(auth_handler.auth_wrapper),db: Session = Depends(get_db)):
     customer = db.query(Customer).filter(Customer.id == customer_id).first()
+    business_unit_obj = db.query(BusinessUnit).filter(BusinessUnit.id == customer.business_unit_id).first()
+
     if not customer:
         raise HTTPException(status_code=404, detail="Customer not found")
     
@@ -57,6 +56,7 @@ async def customer_detail(request: Request, customer_id: str, current_user:User 
         "request": request,'user':current_user, 
         "customer": customer,
         "statements": statements,
+        "business_unit":business_unit_obj,
         "is_htmx":is_htmx
     })
 

@@ -22,6 +22,19 @@ from jose import jwt
 from fastapi import FastAPI, Request, Response
 from dependencies import get_db
 
+import smtplib
+from datetime import datetime,date
+from email.message import EmailMessage
+
+import logging
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    filename='login_alerts.log'
+)
+logger = logging.getLogger(__name__)
+last_login_date: Optional[date] = None
 app = FastAPI(debug=True)
 # app.add_middleware(DebugToolbarMiddleware, panels=["debug_toolbar.panels.sqlalchemy.SQLAlchemyPanel"] )
 # app.add_middleware(DebugToolbarMiddleware  )
@@ -226,7 +239,34 @@ async def sign_in(request: Request, response: Response,
 # @app.get("/")
 # async def root(request: Request):
 #     return templates.TemplateResponse("index.html", {"request": request})
-
+# Email configuration
+EMAIL_CONFIG = {
+    "smtp_server": "smtp.gmail.com",
+    "smtp_port": 587,
+    "sender_email": "ashley.cherian@gmail.com",
+    "sender_password": "jnjt dpwl atxu vmkk",  # Use app-specific password for Gmail
+    "recipient_email": "ashley.cherian@gmail.com"
+}
+import pytz
+@app.get("/send-alert")
+def send_alert_email(login_time: datetime=  datetime.now(pytz.UTC)):
+    """Send an email alert for the first login of the day."""
+    try:
+        msg = EmailMessage()
+        msg.set_content(f"First login of the day detected at {login_time}")
+        
+        msg['Subject'] = 'First Login Alert'
+        msg['From'] = EMAIL_CONFIG["sender_email"]
+        msg['To'] = EMAIL_CONFIG["recipient_email"]
+        
+        with smtplib.SMTP(EMAIL_CONFIG["smtp_server"], EMAIL_CONFIG["smtp_port"]) as server:
+            server.starttls()
+            server.login(EMAIL_CONFIG["sender_email"], EMAIL_CONFIG["sender_password"])
+            server.send_message(msg)
+            
+        logger.info("Alert email sent successfully")
+    except Exception as e:
+        logger.error(f"Failed to send alert email: {str(e)}")
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("app:app", host="0.0.0.0", port=8000, reload=True)

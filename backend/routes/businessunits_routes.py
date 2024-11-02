@@ -1,9 +1,9 @@
 # routes/business_unit_routes.py
 from fastapi import APIRouter, Request, Form, HTTPException, Depends
-from fastapi.responses import RedirectResponse
+from fastapi.responses import RedirectResponse,JSONResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
-from models.models import BusinessUnit,Customer
+from models.models import BusinessUnit,Customer,Template
 from dependencies import get_db, auth_handler
 from uuid import UUID
 
@@ -30,30 +30,37 @@ async def list_business_units(
         }
     )
 
+
 @router.get("/new")
 async def create_business_unit_form(
     request: Request,
-    current_user: str = Depends(auth_handler.auth_wrapper)
+    current_user: str = Depends(auth_handler.auth_wrapper),
+    db: Session = Depends(get_db)
 ):
+    fs_templates = db.query(Template).all()  # Get all templates
     is_htmx = request.headers.get("HX-Request") == "true"
-    template = "business_units/partials/create_form.html" 
+    template = "business_units/partials/create_form.html"
     return templates.TemplateResponse(
         template,
         {
             "request": request,
             "user": current_user,
-            "is_htmx": is_htmx  
+            "is_htmx": is_htmx,
+            "templates": fs_templates  # Pass templates to the template
         }
     )
-
 @router.post("/new")
 async def create_business_unit(
     request: Request,
     name: str = Form(...),
+    template_id: str = Form(None),  # Make it optional
     current_user: str = Depends(auth_handler.auth_wrapper),
     db: Session = Depends(get_db)
 ):
-    business_unit = BusinessUnit(name=name)
+    business_unit = BusinessUnit(
+        name=name,
+        template_id=UUID(template_id) if template_id else None
+    )
     try:
         db.add(business_unit)
         db.commit()
@@ -65,6 +72,7 @@ async def create_business_unit(
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=400, detail=str(e))
+
 
 @router.get("/{business_unit_id}")
 async def business_unit_detail(
@@ -90,6 +98,8 @@ async def business_unit_detail(
         }
     )
 
+
+
 @router.get("/{business_unit_id}/edit")
 async def edit_business_unit_form(
     business_unit_id: UUID,
@@ -100,7 +110,8 @@ async def edit_business_unit_form(
     business_unit = db.query(BusinessUnit).filter(BusinessUnit.id == business_unit_id).first()
     if not business_unit:
         raise HTTPException(status_code=404, detail="Business Unit not found")
-        
+    
+    fs_templates = db.query(Template).all()  # Get all templates
     is_htmx = request.headers.get("HX-Request") == "true"
     template = "business_units/partials/edit_form.html" if is_htmx else "business_units/edit.html"
     
@@ -109,7 +120,8 @@ async def edit_business_unit_form(
         {
             "request": request,
             "business_unit": business_unit,
-            "user": current_user
+            "user": current_user,
+            "templates": fs_templates  # Pass templates to the template
         }
     )
 
@@ -118,6 +130,7 @@ async def update_business_unit(
     business_unit_id: UUID,
     request: Request,
     name: str = Form(...),
+    template_id: str = Form(None),  # Make it optional
     current_user: str = Depends(auth_handler.auth_wrapper),
     db: Session = Depends(get_db)
 ):
@@ -127,6 +140,7 @@ async def update_business_unit(
     
     try:
         business_unit.name = name
+        business_unit.template_id = UUID(template_id) if template_id else None
         db.commit()
         return RedirectResponse(
             url="/business-units",
@@ -135,7 +149,6 @@ async def update_business_unit(
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=400, detail=str(e))
-
         
 @router.delete("/{business_unit_id}")
 async def delete_business_unit(

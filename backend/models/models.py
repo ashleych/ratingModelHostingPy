@@ -97,7 +97,8 @@ class RatingInstance(Base):
 
 class BusinessUnit(Base):
     name = Column(String, unique=True, nullable=False)
-
+    template_id = Column(UUID, ForeignKey('template.id'),nullable=True)
+    template = relationship("Template")
 class MasterRatingScale(Base):
     rating_grade = Column(String, unique=True, nullable=False)
     pd = Column(Float, nullable=False)

@@ -1,0 +1,193 @@
+{% extends "_layout.html" %}
+
+{% block content %}
+<!-- templates/lineitems/partials/bulk_create.html -->
+
+<div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
+    <div class="flex justify-between items-center mb-4">
+        <h2 class="text-xl font-bold text-gray-900 dark:text-white">Bulk Create Line Items</h2>
+        <button
+            hx-get="/templates/{{ template_id }}/lineitems"
+            hx-target="#main-content"
+            class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600 dark:hover:bg-gray-600"
+        >
+            Back to List
+        </button>
+    </div>
+
+    <div class="mb-4">
+        <p class="text-sm text-gray-600 dark:text-gray-400">
+            Paste your CSV data below or edit directly in the table. Required columns: name, label, type, fin_statement_type, order_no
+        </p>
+        <button onclick="addRow()" class="text-blue-600 hover:text-blue-800 text-sm mt-2">+ Add Row</button>
+    </div>
+
+    <div class="overflow-x-auto">
+        <table id="bulk-table" class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+            <thead>
+                <tr>
+                    <th class="px-3 py-2 bg-gray-50 dark:bg-gray-700 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">fin_statement_type</th>
+                    <th class="px-3 py-2 bg-gray-50 dark:bg-gray-700 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">header</th>
+                    <th class="px-3 py-2 bg-gray-50 dark:bg-gray-700 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">formula</th>
+                    <th class="px-3 py-2 bg-gray-50 dark:bg-gray-700 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">type</th>
+                    <th class="px-3 py-2 bg-gray-50 dark:bg-gray-700 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">label</th>
+                    <th class="px-3 py-2 bg-gray-50 dark:bg-gray-700 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">name</th>
+                    <th class="px-3 py-2 bg-gray-50 dark:bg-gray-700 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">lag_months</th>
+                    <th class="px-3 py-2 bg-gray-50 dark:bg-gray-700 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">display</th>
+                    <th class="px-3 py-2 bg-gray-50 dark:bg-gray-700 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">order_no</th>
+                    <th class="px-3 py-2 bg-gray-50 dark:bg-gray-700 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Actions</th>
+                </tr>
+            </thead>
+            <tbody id="bulk-table-body" class="divide-y divide-gray-200 dark:divide-gray-700">
+            </tbody>
+        </table>
+    </div>
+
+    <div class="flex justify-end space-x-3 mt-4">
+        <button
+            onclick="validateAndSubmit()"
+            class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+        >
+            Create Line Items
+        </button>
+    </div>
+</div>
+
+<script>
+    const fin_statement_types = ['pnl', 'bs', 'cashflow', 'all'];
+    const types = ['float', 'text', 'percentage'];
+
+    function createCell(type, options = {}) {
+        if (type === 'select') {
+            const select = document.createElement('select');
+            select.className = 'block w-full px-2 py-1 text-sm border rounded';
+            options.values.forEach(value => {
+                const option = document.createElement('option');
+                option.value = value;
+                option.textContent = value;
+                select.appendChild(option);
+            });
+            return select;
+        } else if (type === 'checkbox') {
+            const input = document.createElement('input');
+            input.type = 'checkbox';
+            input.className = 'rounded border-gray-300';
+            input.checked = options.default || false;
+            return input;
+        } else {
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.className = 'block w-full px-2 py-1 text-sm border rounded';
+            return input;
+        }
+    }
+
+    function addRow() {
+        const tbody = document.getElementById('bulk-table-body');
+        const tr = document.createElement('tr');
+        
+        // Add cells
+        const cells = [
+            { type: 'select', options: { values: fin_statement_types } },
+            { type: 'checkbox', options: { default: false } },
+            { type: 'text' },
+            { type: 'select', options: { values: types } },
+            { type: 'text' },
+            { type: 'text' },
+            { type: 'text' },
+            { type: 'checkbox', options: { default: true } },
+            { type: 'text' }
+        ];
+
+        cells.forEach(cell => {
+            const td = document.createElement('td');
+            td.className = 'px-3 py-2';
+            td.appendChild(createCell(cell.type, cell.options));
+            tr.appendChild(td);
+        });
+
+        // Add delete button
+        const actionTd = document.createElement('td');
+        actionTd.className = 'px-3 py-2';
+        const deleteBtn = document.createElement('button');
+        deleteBtn.className = 'text-red-600 hover:text-red-800';
+        deleteBtn.innerHTML = '×';
+        deleteBtn.onclick = () => tr.remove();
+        actionTd.appendChild(deleteBtn);
+        tr.appendChild(actionTd);
+
+        tbody.appendChild(tr);
+    }
+
+    function getTableData() {
+        const rows = Array.from(document.getElementById('bulk-table-body').getElementsByTagName('tr'));
+        return rows.map(row => {
+            const inputs = row.getElementsByTagName('input');
+            const selects = row.getElementsByTagName('select');
+            
+            return {
+                fin_statement_type: selects[0].value,
+                header: inputs[0].checked,
+                formula: inputs[1].value || null,
+                type: selects[1].value,
+                label: inputs[2].value,
+                name: inputs[3].value,
+                lag_months: parseInt(inputs[4].value) || 0,
+                display: inputs[5].checked,
+                order_no: parseInt(inputs[6].value),
+                display_order_no: parseInt(inputs[6].value)
+            };
+        });
+    }
+
+    function validateAndSubmit() {
+        const data = getTableData();
+        if (data.length === 0) {
+            alert('Please add at least one line item');
+            return;
+        }
+
+        htmx.ajax('POST', `/templates/{{ template_id }}/bulk-create`, {
+            target: '#main-content',
+            swap: 'innerHTML',
+            values: { line_items: JSON.stringify(data) }
+        });
+    }
+
+    // Add initial row
+    addRow();
+
+    // Handle paste
+    document.addEventListener('paste', function(e) {
+        if (e.target.tagName === 'INPUT') {
+            const data = e.clipboardData.getData('text');
+            const rows = data.split('\n').map(row => row.split('\t'));
+            
+            if (rows.length > 1 || rows[0].length > 1) {
+                e.preventDefault();
+                const tbody = document.getElementById('bulk-table-body');
+                tbody.innerHTML = ''; // Clear existing rows
+                
+                rows.forEach(row => {
+                    if (row.join('').trim()) {  // Skip empty rows
+                        addRow();
+                        const inputs = tbody.lastElementChild.getElementsByTagName('input');
+                        const selects = tbody.lastElementChild.getElementsByTagName('select');
+                        
+                        // Fill in the values
+                        if (row[0]) selects[0].value = row[0];
+                        if (row[1]) inputs[0].checked = row[1].toLowerCase() === 'true';
+                        if (row[2]) inputs[1].value = row[2];
+                        if (row[3]) selects[1].value = row[3];
+                        if (row[4]) inputs[2].value = row[4];
+                        if (row[5]) inputs[3].value = row[5];
+                        if (row[6]) inputs[4].value = row[6];
+                        if (row[7]) inputs[5].checked = row[7].toLowerCase() === 'true';
+                        if (row[8]) inputs[6].value = row[8];
+                    }
+                });
+            }
+        }
+    });
+</script>
+{% endblock %}
