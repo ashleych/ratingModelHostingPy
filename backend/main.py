@@ -66,7 +66,8 @@ def init_db(db_path):
     Base.metadata.drop_all(engine)
     # Create all tables
     Base.metadata.create_all(engine)
-         
+    template = create_template(session, "FinTemplate", "fin_template.csv")
+
     session.commit()
     insert_quarter_end_dates(session, TEMPLATE_START_YEAR, TEMPLATE_END_YEAR)
     business_units_data=["Large Corporate", "Mid Corporate", "SME", "Financial Institution", "Private Banking", "Structured Finance"]
@@ -76,7 +77,7 @@ def init_db(db_path):
     # session.commit()
     business_units = {}
     for name in business_units_data:
-        business_unit = BusinessUnit(name=name)
+        business_unit = BusinessUnit(name=name,template_id=template.id)
         session.add(business_unit)
         session.flush()  # This will assign an id to the business_unit
         business_units[name] = business_unit
@@ -168,7 +169,6 @@ def init_db(db_path):
     #     session.commit()
         
 
-    template = create_template(session, "FinTemplate", "fin_template.csv")
         
     pnl_items = read_csv(os.path.join(TEMPLATE_DIRECTORY, template.template_source_csv.source_path))
     create_financial_template_line_items(session, pnl_items, template)

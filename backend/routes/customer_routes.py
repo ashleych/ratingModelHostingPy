@@ -3,7 +3,7 @@ from fastapi.responses import RedirectResponse
 
 
 from fastapi.templating import Jinja2Templates
-from models.models import Customer,FinancialStatement,BusinessUnit,RatingInstance,RatingFactor,RatingFactorScore
+from models.models import Customer,FinancialStatement,BusinessUnit,RatingInstance,RatingFactor,RatingFactorScore,RatingModel
 from sqlalchemy.orm import Session
 from db.database import SessionLocal, engine
 from schema.schema import User
@@ -29,10 +29,16 @@ async def new_customer(request: Request,  current_user:User = Depends(auth_handl
     return templates.TemplateResponse("customers/partials/new.html", {"request": request,'user':current_user,"business_units": business_units,"is_htmx":is_htmx})
 
 
-
+from sqlalchemy.orm import joinedload
 @router.get("/customers/{customer_id}")
 async def customer_detail(request: Request, customer_id: str, current_user:User = Depends(auth_handler.auth_wrapper),db: Session = Depends(get_db)):
-    customer = db.query(Customer).filter(Customer.id == customer_id).first()
+    customer = (db.query(Customer)
+                .options(
+                    joinedload(Customer.business_unit)
+                    .joinedload(BusinessUnit.template)
+                )
+                .filter(Customer.id == customer_id)
+                .first())
     business_unit_obj = db.query(BusinessUnit).filter(BusinessUnit.id == customer.business_unit_id).first()
 
     if not customer:
@@ -42,11 +48,17 @@ async def customer_detail(request: Request, customer_id: str, current_user:User 
     
     # Fetch rating instances for all statements
     statement_ids = [statement.id for statement in statements]
-    rating_instances = db.query(RatingInstance).filter(RatingInstance.financial_statement_id.in_(statement_ids)).all()
-    
+    # rating_instances = db.query(RatingInstance).filter(RatingInstance.financial_statement_id.in_(statement_ids)).all()
+        # Fetch rating instances with rating model info for all statements
+    statement_ids = [statement.id for statement in statements]
+    rating_instances = (db.query(RatingInstance, RatingModel)
+        .join(RatingModel, RatingInstance.rating_model_id == RatingModel.id)
+        .filter(RatingInstance.financial_statement_id.in_(statement_ids))
+        .all())
     # Create a dictionary mapping financial statement IDs to rating instances
-    rating_map = {ri.financial_statement_id: ri for ri in rating_instances}
-    
+    # rating_map = {ri.financial_statement_id: ri for ri in rating_instances}
+    rating_map = {ri.financial_statement_id: ri for ri, _ in rating_instances}
+
     # Attach rating instances to statements
     for statement in statements:
         statement.rating_instance = rating_map.get(statement.id)
@@ -55,6 +67,7 @@ async def customer_detail(request: Request, customer_id: str, current_user:User 
     return templates.TemplateResponse("customers/partials/detail.html", {
         "request": request,'user':current_user, 
         "customer": customer,
+        "rating_instances": rating_instances, 
         "statements": statements,
         "business_unit":business_unit_obj,
         "is_htmx":is_htmx

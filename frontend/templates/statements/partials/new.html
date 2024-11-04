@@ -5,7 +5,7 @@
     <div class="bg-white dark:bg-gray-800 shadow rounded-lg">
         <div class="px-4 py-5 sm:p-6">
             <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-6">Add New Financial Statement</h1>
-            
+
             {% if error %}
             <div class="mb-4 p-4 rounded-md bg-red-50 dark:bg-red-900">
                 <div class="flex">
@@ -17,19 +17,30 @@
                 </div>
             </div>
             {% endif %}
-            
+
             <form id="statementForm" action="/statements/create_new" method="post" class="space-y-6">
                 <input name='customer_id' type="text" value="{{customer.id}}" hidden>
-                
+
                 <!-- Customer Selection -->
                 <div>
                     <label for="customer_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
                         Customer
                     </label>
                     <select id="customer_id" name="customer_id" required disabled
-                            class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200">
+                        class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200">
                         <option value="{{ customer.id }}" selected>{{ customer.customer_name }}</option>
                     </select>
+                </div>
+                <div>
+                    <label for="template_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                        Template
+                    </label>
+                    <select id="template_id" name="template_id" required disabled
+                        class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200">
+                        <option value="{{ template.id }}" selected>{{ template.name }}</option>
+                    </select>
+                    <input type="hidden" name="template_id" value="{{ template.id }}">
+
                 </div>
 
                 <!-- Statement Type -->
@@ -37,8 +48,8 @@
                     <label for="audit_type" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
                         Audit Type
                     </label>
-                    <select id="audit_type" name="audit_type" required 
-                            class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200">
+                    <select id="audit_type" name="audit_type" required
+                        class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200">
                         <option value="Audited">Audited</option>
                         <option value="Unaudited">Unaudited</option>
                     </select>
@@ -47,32 +58,37 @@
                 <!-- Statement Period -->
                 <div class="grid grid-cols-1 gap-6 sm:grid-cols-3">
                     <div>
-                        <label for="financials_period_year" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                        <label for="financials_period_year"
+                            class="block text-sm font-medium text-gray-700 dark:text-gray-300">
                             Year
                         </label>
+
+
                         <input type="number" id="financials_period_year" name="financials_period_year" required
-                               min="1900" max="2100"
-                               class="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200">
+                            min="1900" max="2100"
+                            class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200">
                     </div>
-                    
+
                     <div>
-                        <label for="financials_period_month" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                        <label for="financials_period_month"
+                            class="block text-sm font-medium text-gray-700 dark:text-gray-300">
                             Month
                         </label>
                         <select id="financials_period_month" name="financials_period_month" required
-                                class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200">
+                            class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200">
                             {% for i in range(1, 13) %}
                             <option value="{{ i }}">{{ i }}</option>
                             {% endfor %}
                         </select>
                     </div>
-                    
+
                     <div>
-                        <label for="financials_period_date" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                        <label for="financials_period_date"
+                            class="block text-sm font-medium text-gray-700 dark:text-gray-300">
                             Day
                         </label>
                         <select id="financials_period_date" name="financials_period_date" required
-                                class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200">
+                            class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200">
                             {% for i in range(1, 32) %}
                             <option value="{{ i }}">{{ i }}</option>
                             {% endfor %}
@@ -90,14 +106,14 @@
                         <div class="space-y-2">
                             <div class="flex items-center">
                                 <input type="radio" id="actuals" name="statement_type" value="actuals" required
-                                       class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300">
+                                    class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300">
                                 <label for="actuals" class="ml-2 block text-sm text-gray-700 dark:text-gray-300">
                                     Actuals
                                 </label>
                             </div>
                             <div class="flex items-center">
                                 <input type="radio" id="projections" name="statement_type" value="projections"
-                                       class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300">
+                                    class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300">
                                 <label for="projections" class="ml-2 block text-sm text-gray-700 dark:text-gray-300">
                                     Projections
                                 </label>
@@ -113,39 +129,127 @@
                         <div class="space-y-2">
                             <div class="flex items-center">
                                 <input type="radio" id="standalone" name="statement_scope" value="standalone" required
-                                       class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300">
+                                    class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300">
                                 <label for="standalone" class="ml-2 block text-sm text-gray-700 dark:text-gray-300">
                                     Standalone
                                 </label>
                             </div>
                             <div class="flex items-center">
                                 <input type="radio" id="consolidated" name="statement_scope" value="consolidated"
-                                       class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300">
+                                    class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300">
                                 <label for="consolidated" class="ml-2 block text-sm text-gray-700 dark:text-gray-300">
                                     Consolidated
                                 </label>
                             </div>
                         </div>
                     </div>
-                    
+
                     <!-- Preferred Statement -->
                     <div class="flex items-center">
                         <input type="checkbox" id="preferred_statement" name="preferred_statement"
-                               class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded dark:bg-gray-700 dark:border-gray-600">
+                            class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded dark:bg-gray-700 dark:border-gray-600">
                         <label for="preferred_statement" class="ml-2 block text-sm text-gray-700 dark:text-gray-300">
                             Preferred Statement
                         </label>
                     </div>
+                    <!-- Add this to your form -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                            Preceding Statement
+                        </label>
+                        <div class="mt-1 flex items-center space-x-3">
+                            <input type="hidden" id="preceding_statement_id" name="preceding_statement_id"
+                                value="{{ best_preceding_statement.id if best_preceding_statement else '' }}">
+                            <div class="flex-grow">
+                                <input type="text" readonly id="preceding_statement_display"
+                                    value="{{ best_preceding_statement.display_name if best_preceding_statement else 'No preceding statement' }}"
+                                    class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200">
+                            </div>
+                            <button type="button" onclick="openPrecedingStatementModal()"
+                                class="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                                Change
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Modal -->
+                    <div id="precedingStatementModal" class="fixed inset-0 z-10 hidden" aria-labelledby="modal-title"
+                        role="dialog" aria-modal="true">
+                        <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"></div>
+
+                        <div class="fixed inset-0 z-10 w-screen overflow-y-auto">
+                            <div
+                                class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+                                <div
+                                    class="relative transform overflow-hidden rounded-lg bg-white dark:bg-gray-800 px-4 pb-4 pt-5 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg sm:p-6">
+                                    <h3 class="text-lg font-medium leading-6 text-gray-900 dark:text-gray-100 mb-4">
+                                        Select Preceding Statement
+                                    </h3>
+
+                                    <!-- Statement List -->
+                                    <div class="max-h-96 overflow-y-auto">
+                                        <div class="space-y-2">
+                                            {% for stmt in available_statements %}
+                                            <div class="flex items-center p-3 border rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer"
+                                                onclick="selectPrecedingStatement('{{ stmt.id }}', '{{ stmt.display_name }}')">
+                                                <div class="flex-1">
+                                                    <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                                        {{ stmt.display_name }}
+                                                    </div>
+                                                    <div class="text-xs text-gray-500 dark:text-gray-400">
+                                                        {{ stmt.audit_type }} |
+                                                        {% if stmt.actuals %}Actuals{% else %}Projections{% endif %} |
+                                                        {{ stmt.financials_period_year }}-{{
+                                                        stmt.financials_period_month }}-{{ stmt.financials_period_date
+                                                        }}
+                                                    </div>
+                                                </div>
+                                                {% if stmt['statement'].id == best_preceding_statement['statement'].id
+                                                %}
+                                                <div class="text-xs text-indigo-600 dark:text-indigo-400">Recommended
+                                                </div>
+                                                {% endif %}
+                                            </div>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+
+                                    <div class="mt-5 sm:mt-4 sm:flex sm:flex-row-reverse">
+                                        <button type="button" onclick="closePrecedingStatementModal()"
+                                            class="mt-3 inline-flex w-full justify-center rounded-md bg-white dark:bg-gray-700 px-3 py-2 text-sm font-semibold text-gray-900 dark:text-gray-100 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 sm:mt-0 sm:w-auto">
+                                            Close
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <script>
+                        function openPrecedingStatementModal() {
+                            document.getElementById('precedingStatementModal').classList.remove('hidden');
+                        }
+
+                        function closePrecedingStatementModal() {
+                            document.getElementById('precedingStatementModal').classList.add('hidden');
+                        }
+
+                        function selectPrecedingStatement(id, displayName) {
+                            document.getElementById('preceding_statement_id').value = id;
+                            document.getElementById('preceding_statement_display').value = displayName;
+                            closePrecedingStatementModal();
+                        }
+                    </script>
                 </div>
 
                 <div class="pt-5">
                     <div class="flex justify-end space-x-3">
                         <a href="/statements"
-                           class="inline-flex justify-center py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600 dark:hover:bg-gray-600">
+                            class="inline-flex justify-center py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600 dark:hover:bg-gray-600">
                             Cancel
                         </a>
                         <button type="submit"
-                                class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                            class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
                             Create Statement
                         </button>
                     </div>
@@ -156,65 +260,65 @@
 </div>
 
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    const form = document.getElementById('statementForm');
-    const auditTypeSelect = document.getElementById('audit_type');
-    const projectionsRadio = document.getElementById('projections');
-    const monthSelect = document.getElementById('financials_period_month');
-    const dateSelect = document.getElementById('financials_period_date');
-    const yearInput = document.getElementById('financials_period_year');
+    document.addEventListener('DOMContentLoaded', function () {
+        const form = document.getElementById('statementForm');
+        const auditTypeSelect = document.getElementById('audit_type');
+        const projectionsRadio = document.getElementById('projections');
+        const monthSelect = document.getElementById('financials_period_month');
+        const dateSelect = document.getElementById('financials_period_date');
+        const yearInput = document.getElementById('financials_period_year');
 
-    // Set current year as default
-    yearInput.value = new Date().getFullYear();
+        // Set current year as default
+        yearInput.value = new Date().getFullYear();
 
-    function updateDays() {
-        const year = parseInt(yearInput.value);
-        const month = parseInt(monthSelect.value);
-        const daysInMonth = new Date(year, month, 0).getDate();
-        
-        const currentDate = parseInt(dateSelect.value) || 1;
-        
-        // Clear existing options
-        dateSelect.innerHTML = '';
-        
-        // Add new options
-        for (let i = 1; i <= daysInMonth; i++) {
-            const option = document.createElement('option');
-            option.value = i;
-            option.textContent = i;
-            dateSelect.appendChild(option);
+        function updateDays() {
+            const year = parseInt(yearInput.value);
+            const month = parseInt(monthSelect.value);
+            const daysInMonth = new Date(year, month, 0).getDate();
+
+            const currentDate = parseInt(dateSelect.value) || 1;
+
+            // Clear existing options
+            dateSelect.innerHTML = '';
+
+            // Add new options
+            for (let i = 1; i <= daysInMonth; i++) {
+                const option = document.createElement('option');
+                option.value = i;
+                option.textContent = i;
+                dateSelect.appendChild(option);
+            }
+
+            // Try to maintain the previously selected date if it's still valid
+            if (currentDate <= daysInMonth) {
+                dateSelect.value = currentDate;
+            }
         }
-        
-        // Try to maintain the previously selected date if it's still valid
-        if (currentDate <= daysInMonth) {
-            dateSelect.value = currentDate;
-        }
-    }
 
-    // Update days when month or year changes
-    monthSelect.addEventListener('change', updateDays);
-    yearInput.addEventListener('change', updateDays);
+        // Update days when month or year changes
+        monthSelect.addEventListener('change', updateDays);
+        yearInput.addEventListener('change', updateDays);
 
-    // Handle audit type changes
-    auditTypeSelect.addEventListener('change', function() {
-        if (this.value === 'Audited' && projectionsRadio.checked) {
-            // If switching to Audited and projections was selected, switch to actuals
-            document.getElementById('actuals').checked = true;
-        }
-        projectionsRadio.disabled = this.value === 'Audited';
-        if (projectionsRadio.disabled) {
+        // Handle audit type changes
+        auditTypeSelect.addEventListener('change', function () {
+            if (this.value === 'Audited' && projectionsRadio.checked) {
+                // If switching to Audited and projections was selected, switch to actuals
+                document.getElementById('actuals').checked = true;
+            }
+            projectionsRadio.disabled = this.value === 'Audited';
+            if (projectionsRadio.disabled) {
+                projectionsRadio.parentElement.classList.add('opacity-50');
+            } else {
+                projectionsRadio.parentElement.classList.remove('opacity-50');
+            }
+        });
+
+        // Initial setup
+        updateDays();
+        if (auditTypeSelect.value === 'Audited') {
+            projectionsRadio.disabled = true;
             projectionsRadio.parentElement.classList.add('opacity-50');
-        } else {
-            projectionsRadio.parentElement.classList.remove('opacity-50');
         }
     });
-
-    // Initial setup
-    updateDays();
-    if (auditTypeSelect.value === 'Audited') {
-        projectionsRadio.disabled = true;
-        projectionsRadio.parentElement.classList.add('opacity-50');
-    }
-});
 </script>
 {% endblock %}

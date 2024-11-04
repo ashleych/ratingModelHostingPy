@@ -88,6 +88,7 @@ class RatingInstance(Base):
 
     customer = relationship("Customer")
     rating_model = relationship("RatingModel")
+    financial_statement = relationship("FinancialStatement")
     workflow_actions = relationship("WorkflowAction",back_populates='rating_instance')
     
     @property

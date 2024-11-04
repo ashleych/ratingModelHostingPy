@@ -1,4 +1,6 @@
 
+from datetime import datetime
+from uuid import UUID
 from sqlalchemy.orm import Session
 from typing import Tuple
 from models.models import Customer, FinancialsPeriod, Template, FinancialStatement, LineItemMeta, LineItemValue
@@ -27,7 +29,6 @@ class NullableFloat:
 class FsApp:
     def __init__(self, db: Session):
         self.db = db
-
 
     def generate_statement_data_for_customer(self, year_no_index: int,year:int, month:int, date:int, customer: Customer):
         template = self.db.query(Template).filter(Template.name == "FinTemplate").first()
@@ -496,7 +497,125 @@ class FsApp:
         self.db.commit()
 
         return updated_derived_values_map
+    def find_best_preceding_statement(self, customer_id: UUID, statement_date: datetime = None):
+        """
+        Find the best preceding statement based on hierarchy:
+        1. If statement_date provided: Get statements before that date
+        If no statement_date: Get all statements
+        2. Preference for Audited over Unaudited
+        3. Preference for Actuals over Projections
+        """
+        # Base query
+        query = self.db.query(FinancialStatement).filter(
+            FinancialStatement.customer_id == customer_id
+        )
+
+        # Add date filtering only if statement_date is provided
+        if statement_date:
+            query = query.filter(
+                ((FinancialStatement.financials_period_year < statement_date.year) |
+                ((FinancialStatement.financials_period_year == statement_date.year) &
+                (FinancialStatement.financials_period_month < statement_date.month)) |
+                ((FinancialStatement.financials_period_year == statement_date.year) &
+                (FinancialStatement.financials_period_month == statement_date.month) &
+                (FinancialStatement.financials_period_date < statement_date.day)))
+            )
+
+        # Get all potential statements ordered by date
+        previous_statements = query.order_by(
+            FinancialStatement.financials_period_year.desc(),
+            FinancialStatement.financials_period_month.desc(),
+            FinancialStatement.financials_period_date.desc()
+        ).all()
+
+        if not previous_statements:
+            return None
+
+        # Group statements by date
+        statements_by_date = {}
+        for stmt in previous_statements:
+            date_key = (stmt.financials_period_year, 
+                    stmt.financials_period_month, 
+                    stmt.financials_period_date)
+            if date_key not in statements_by_date:
+                statements_by_date[date_key] = []
+            statements_by_date[date_key].append(stmt)
+
+        # Get the most recent date's statements
+        most_recent_date = max(statements_by_date.keys())
+        candidates = statements_by_date[most_recent_date]
+
+        # Apply preference hierarchy
+        # First preference: Audited Actuals
+        for stmt in candidates:
+            if stmt.audit_type == 'Audited' and stmt.actuals:
+                return stmt
+
+        # Second preference: Unaudited Actuals
+        for stmt in candidates:
+            if stmt.audit_type == 'Unaudited' and stmt.actuals:
+                return stmt
+
+        # Third preference: Audited Projections
+        for stmt in candidates:
+            if stmt.audit_type == 'Audited' and stmt.projections:
+                return stmt
+
+        # Last preference: Unaudited Projections
+        for stmt in candidates:
+            if stmt.audit_type == 'Unaudited' and stmt.projections:
+                return stmt
+
+        # If somehow none matched our criteria, return the first one
+        return candidates[0]
+
+    def get_available_preceding_statements(self, customer_id: UUID, statement_date: datetime = None):
+        """
+        Get all available preceding statements, ordered by preference and date.
+        Returns a list of tuples (statement, is_recommended)
+        """
+        query = self.db.query(FinancialStatement).filter(
+            FinancialStatement.customer_id == customer_id
+        )
+
+        if statement_date:
+            query = query.filter(
+                ((FinancialStatement.financials_period_year < statement_date.year) |
+                ((FinancialStatement.financials_period_year == statement_date.year) &
+                (FinancialStatement.financials_period_month < statement_date.month)) |
+                ((FinancialStatement.financials_period_year == statement_date.year) &
+                (FinancialStatement.financials_period_month == statement_date.month) &
+                (FinancialStatement.financials_period_date < statement_date.day)))
+            )
+
+        statements = query.order_by(
+            FinancialStatement.financials_period_year.desc(),
+            FinancialStatement.financials_period_month.desc(),
+            FinancialStatement.financials_period_date.desc()
+        ).all()
+
+        # Find the recommended statement
+        recommended_stmt = self.find_best_preceding_statement(customer_id, statement_date)
+        
+        # Add a display name and recommendation flag to each statement
+        result = []
+        for stmt in statements:
+            display_name = (
+                f"{stmt.audit_type} "
+                f"{'Actuals' if stmt.actuals else 'Projections'} "
+                f"{stmt.financials_period_year}-{stmt.financials_period_month:02d}-{stmt.financials_period_date:02d}"
+            )
+            is_recommended = recommended_stmt and stmt.id == recommended_stmt.id
+            result.append({
+                'statement': stmt,
+                'display_name': display_name,
+                'is_recommended': is_recommended
+            })
+
+        return result
 # Usage
+
+
 if __name__ == "__main__":
     from main import DB_NAME
     _, db = create_engine_and_session(DB_NAME)
