@@ -2,6 +2,19 @@
 <html lang="en" class="light">
 
 <head>
+    <script>
+        // Immediately invoked function to set the theme
+        (function() {
+            if (localStorage.getItem('color-theme') === 'dark' || 
+                (!('color-theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                document.documentElement.classList.remove('light');
+                document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+                document.documentElement.classList.add('light');
+            }
+        })();
+    </script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Rating App{% endblock %}</title>
@@ -194,6 +207,14 @@
                     class="block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-200 dark:hover:bg-gray-700">
                     Templates
                 </a>
+                <a hx-get="/roles" hx-target="#main-content" hx-push-url="true"
+                    class="block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-200 dark:hover:bg-gray-700">
+                    Roles
+                </a>
+                <a hx-get="/policy-rules" hx-target="#main-content" hx-push-url="true"
+                    class="block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-200 dark:hover:bg-gray-700">
+                    Policy Rules
+                </a>
                 <a hx-get="/rating-models" hx-target="#main-content" hx-push-url="true"
                     class="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium"
                     hx-get="/rating-models" hx-target="#main-content">
@@ -368,7 +389,90 @@ document.addEventListener('DOMContentLoaded', function () {
             console.log('inside theme observer');
         }
     </script>
+<script>
+    // Define functions in global scope
+showDeleteModal = function (id, name, url) {
+        const modal = document.getElementById('deleteModal');
+        const nameSpan = document.getElementById('deleteItemName');
+        const confirmButton = document.getElementById('confirmDeleteButton');
 
+        // Set the name in the modal
+        nameSpan.textContent = name;
+
+        // Setup delete action
+        confirmButton.setAttribute('hx-delete', url);
+
+        confirmButton.setAttribute('hx-target', '#main-content');
+        confirmButton.setAttribute('hx-push-url', 'true');
+        confirmButton.setAttribute('hx-headers', '{"X-Requested-With": "XMLHttpRequest"}');
+
+        // Initialize HTMX on the button
+        htmx.process(confirmButton);
+
+        // Show modal with animation
+        modal.classList.remove('hidden');
+
+        requestAnimationFrame(() => {
+            const backdrop = modal.querySelector('.bg-gray-500');
+            const panel = modal.querySelector('.transform');
+
+            backdrop.classList.add('ease-out', 'duration-300', 'opacity-100');
+            backdrop.classList.remove('opacity-0');
+
+            panel.classList.add('ease-out', 'duration-300', 'opacity-100', 'translate-y-0', 'sm:scale-100');
+            panel.classList.remove('opacity-0', 'translate-y-4', 'sm:translate-y-0', 'sm:scale-95');
+        });
+
+        // Prevent body scroll
+        document.body.style.overflow = 'hidden';
+    };
+
+    hideDeleteModal = function () {
+        const modal = document.getElementById('deleteModal');
+        const backdrop = modal.querySelector('.bg-gray-500');
+        const panel = modal.querySelector('.transform');
+
+        backdrop.classList.remove('ease-out', 'duration-300', 'opacity-100');
+        backdrop.classList.add('ease-in', 'duration-200', 'opacity-0');
+
+        panel.classList.remove('ease-out', 'duration-300', 'opacity-100', 'translate-y-0', 'sm:scale-100');
+        panel.classList.add('ease-in', 'duration-200', 'opacity-0', 'translate-y-4', 'sm:translate-y-0', 'sm:scale-95');
+
+        setTimeout(() => {
+            modal.classList.add('hidden');
+            backdrop.classList.remove('ease-in', 'duration-200', 'opacity-0');
+            panel.classList.remove('ease-in', 'duration-200', 'opacity-0', 'translate-y-4', 'sm:translate-y-0', 'sm:scale-95');
+        }, 200);
+
+        document.body.style.overflow = '';
+    };
+
+    // Set up event listeners when the DOM is loaded
+    document.addEventListener('DOMContentLoaded', function () {
+        // Close modal on backdrop click
+        document.getElementById('deleteModal')?.addEventListener('click', function (event) {
+            if (event.target === this) {
+                hideDeleteModal();
+            }
+        });
+    });
+
+    // Global event listeners
+    document.addEventListener('keydown', function (event) {
+        if (event.key === 'Escape' && !document.getElementById('deleteModal').classList.contains('hidden')) {
+            hideDeleteModal();
+        }
+    });
+
+    document.body.addEventListener('htmx:afterSwap', function (evt) {
+        hideDeleteModal();
+    });
+
+    document.body.addEventListener('htmx:error', function (evt) {
+        alert('Error deleting item. Please try again.');
+        hideDeleteModal();
+    });
+</script>
 </body>
 
 </html>

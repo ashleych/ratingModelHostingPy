@@ -1,4 +1,6 @@
+{% if not is_htmx %}
 {% extends "_layout.html" %}
+{% endif %}
 
 {% block content %}
 <div class="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center">
@@ -34,17 +36,18 @@
 
 {% include "loading_indicator.html" %}
 
-
-
-<script src="/static/js/statement/financialStatement.js" type='text/javascript'></script>
 <script>
-  document.addEventListener('DOMContentLoaded', function() {
-    initializeFinancialStatement({
-      currentCustomerId: "{{ customer.id }}",
-      spreadsData: {{ data | tojson | safe }},
-      statementType: 'pnl',
-      datesInStatement: {{ dates_in_statement | tojson }}
-    });
-  });
+  // Create a global config object with the template variables
+  window.financialConfig = {
+    currentCustomerId: "{{ customer.id }}",
+    spreadsData: {{ data | tojson | safe }},
+    statementType: 'pnl',
+    datesInStatement: {{ dates_in_statement | tojson }}
+  };
 </script>
+
+<script src="/static/js/statement/financialStatement.js" type='text/javascript' defer
+        id="financial-statement-script"></script>
+
+
 {% endblock %}

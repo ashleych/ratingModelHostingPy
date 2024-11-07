@@ -7,7 +7,7 @@ from datetime import datetime
 from enum import Enum
 from uuid import UUID
 
-
+from enums_and_constants import WorkflowStage,ActionRight,RejectionFlow
 class Base(BaseModel):
     id: Optional[UUID] = Field(None, description="Unique identifier")
     created_at: Optional[datetime] = Field(
@@ -456,3 +456,90 @@ class CustomerHistory(BaseModel):
     workflow_actions: List[WorkflowAction] = Field([], alias="workFlowActions")
     customers: List[Customer] = Field([], alias="customers")
     rating_instances: List[RatingInstance] = Field([], alias="ratingInstances")
+
+
+
+
+
+# --- Pydantic Models ---
+class WorkflowStageConfigCreate(BaseModel):
+    stage: WorkflowStage
+    min_count: int
+    allowed_roles: List[str]
+    rights: List[ActionRight]
+    order_in_stage: int = 1
+    is_sequential: Optional[bool] = True
+    rejection_flow: Optional[RejectionFlow] = RejectionFlow.TO_MAKER
+
+class PolicyRulesCreate(BaseModel):
+    business_unit_id: UUID
+    name: str
+    description: Optional[str]
+    workflow_stages: List[WorkflowStageConfigCreate]
+
+class PolicyRulesResponse(BaseModel):
+    id: UUID
+    business_unit_id: UUID
+    name: str
+    description: Optional[str]
+    is_active: bool
+    workflow_stages: List[Dict]
+    created_at: datetime
+    updated_at: datetime
+
+from pydantic import BaseModel, UUID4
+from typing import List, Optional
+from datetime import datetime
+from enum import Enum
+
+# class WorkflowStage(str, Enum):
+#     MAKER = "maker"
+#     CHECKER = "checker"
+#     APPROVER = "approver"
+
+# class ActionRight(str, Enum):
+#     CREATE = "create"
+#     EDIT = "edit"
+#     DELETE = "delete"
+#     VIEW = "view"
+#     COMMENT = "comment"
+
+# class RejectionFlow(str, Enum):
+#     TO_MAKER = "to_maker"
+#     TO_CHECKER = "to_checker"
+#     TO_PREVIOUS_STAGE = "to_previous_stage"
+
+class WorkflowStageConfigBase(BaseModel):
+    stage: WorkflowStage
+    allowed_roles: List[str]
+    rights: List[ActionRight]
+    min_count: int = 1
+
+
+
+class WorkflowStageConfigResponse(WorkflowStageConfigBase):
+    id: UUID4
+    policy_id: UUID4
+    created_at: datetime
+    updated_at: datetime
+
+class PolicyRuleBase(BaseModel):
+    name: str
+    business_unit_id: UUID4
+    description: Optional[str] = None
+    sequential_approval: bool = True
+    rejection_flow: RejectionFlow = RejectionFlow.TO_MAKER
+
+class PolicyRuleCreate(PolicyRuleBase):
+    workflow_stages: List[WorkflowStageConfigCreate]
+
+class PolicyRuleUpdate(PolicyRuleBase):
+    workflow_stages: List[WorkflowStageConfigCreate]
+
+class PolicyRuleResponse(PolicyRuleBase):
+    id: UUID4
+    is_active: bool
+    created_at: datetime
+    updated_at: datetime
+    workflow_stages: List[WorkflowStageConfigResponse]
+    created_by: UUID4

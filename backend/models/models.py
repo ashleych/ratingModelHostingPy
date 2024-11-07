@@ -18,7 +18,15 @@ from typing import List
 from sqlalchemy.orm import Session
 
 from schema.schema import WorkflowStatus
+
+
+class Role(Base):
+    name = Column(String)
+    description= Column(String,nullable=True)
+    is_active=Column(Boolean,default=True)
 class FactorInputSource(enum.Enum):
+
+    
     USER_INPUT = "user_input"
     FINANCIAL_STATEMENT = "financial_statement"
     DERIVED = "derived"
@@ -241,3 +249,33 @@ class LineItemValue(Base):
     
     def __repr__(self):
         return f"<LineItemValue(financial_statement_id={self.financial_statement_id}, line_item_meta_id='{self.line_item_meta_id}', value={self.value})>"
+
+from enums_and_constants import RejectionFlow,WorkflowStage
+# --- Database Models ---
+class PolicyRules(Base):
+    __tablename__ = 'policy_rules'
+    
+    business_unit_id = Column(UUID, ForeignKey('businessunit.id'), nullable=False)
+    name = Column(String, nullable=False)
+    description = Column(String)
+    is_active = Column(Boolean, default=True)
+    
+    # Relationships
+    workflow_stages = relationship("WorkflowStageConfig", back_populates="policy")
+    business_unit = relationship("BusinessUnit", lazy='joined')
+
+class WorkflowStageConfig(Base):
+    __tablename__ = 'workflow_stage_config'
+    
+    policy_id = Column(UUID, ForeignKey('policy_rules.id'), nullable=False)
+    stage = Column(SQLAlchemyEnum(WorkflowStage), nullable=False)
+    min_count = Column(Integer, nullable=False, default=1)
+    allowed_roles = Column(JSON, nullable=False)  # List of role IDs that can perform this stage
+    rights = Column(JSON, nullable=False)  # List of ActionRights
+    order_in_stage = Column(Integer, nullable=False, default=1)  # For multiple approvers
+    
+    # For Approver stage
+    is_sequential = Column(Boolean, default=True)
+    rejection_flow = Column(SQLAlchemyEnum(RejectionFlow), default=RejectionFlow.TO_MAKER)
+    
+    policy = relationship("PolicyRules", back_populates="workflow_stages")

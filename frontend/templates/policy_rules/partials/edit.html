@@ -1,0 +1,198 @@
+
+{% if not is_htmx %}
+{% extends "_layout.html" %}
+{% endif %}
+{% block content %}
+
+<div class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+    <div class="md:grid md:grid-cols-3 md:gap-6">
+        <div class="md:col-span-1">
+            <div class="px-4 sm:px-0">
+                <h3 class="text-lg font-medium leading-6 text-gray-900 dark:text-gray-100">Edit Policy Rule</h3>
+                <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
+                    Modify the workflow policy configuration.
+                </p>
+            </div>
+        </div>
+        <div class="mt-5 md:mt-0 md:col-span-2">
+            <form hx-post="{{ url_for('update_policy_rule', policy_id=policy.id) }}" hx-target="#main-content" hx-push-url="true" hx-indicator=".loading-indicator" method="POST">
+                <div class="shadow sm:rounded-md sm:overflow-hidden">
+                    <div class="px-4 py-5 bg-white dark:bg-gray-800 space-y-6 sm:p-6">
+                        <!-- Basic Information -->
+                        <div class="grid grid-cols-6 gap-6">
+                            <div class="col-span-6 sm:col-span-3">
+                                <label for="name" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Policy Name</label>
+                                <input type="text" name="name" id="name" required value="{{ policy.name }}"
+                                       class="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white h-10 px-3">
+                            </div>
+
+                            <div class="col-span-6 sm:col-span-3">
+                                <label for="business_unit" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Business Unit</label>
+                                <select id="business_unit" name="business_unit" required
+                                        class="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white h-10">
+                                    {% for bu in business_units %}
+                                        <option value="{{ bu.id }}" {% if bu.id == policy.business_unit_id %}selected{% endif %}>
+                                            {{ bu.name }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <div class="col-span-6">
+                                <label for="description" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Description</label>
+                                <textarea id="description" name="description" rows="3"
+                                          class="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white px-3">{{ policy.description }}</textarea>
+                            </div>
+                        </div>
+
+                        <!-- Maker Configuration -->
+                        <div class="border-t border-gray-200 dark:border-gray-700 pt-6">
+                            <h4 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">Maker Configuration</h4>
+                            <div class="grid grid-cols-6 gap-6">
+                                <div class="col-span-6 sm:col-span-3">
+                                    <label for="maker_roles" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Allowed Maker Roles</label>
+                                    <select id="maker_roles" name="maker_roles" multiple required
+                                            class="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                                        {% for role in roles %}
+                                            <option value="{{ role.id }}" {% if role.id in workflow_config[WorkflowStage.MAKER].allowed_roles %}selected{% endif %}>
+                                                {{ role.name }}
+                                            </option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+
+                                <div class="col-span-6 sm:col-span-3">
+                                    <label for="maker_rights" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Maker Rights</label>
+                                    <div class="mt-2 space-y-2">
+                                        {% for right in action_rights %}
+                                            <div class="flex items-center">
+                                                <input type="checkbox" name="maker_rights" value="{{ right.value }}"
+                                                       {% if right.value in workflow_config[WorkflowStage.MAKER].rights %}checked{% endif %}
+                                                       class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
+                                                <label class="ml-2 text-sm text-gray-700 dark:text-gray-300">{{ right.name }}</label>
+                                            </div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Checker Configuration -->
+                        <div class="border-t border-gray-200 dark:border-gray-700 pt-6">
+                            <h4 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">Checker Configuration</h4>
+                            <div class="grid grid-cols-6 gap-6">
+                                <div class="col-span-6 sm:col-span-3">
+                                    <label for="checker_roles" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Allowed Checker Roles</label>
+                                    <select id="checker_roles" name="checker_roles" multiple required
+                                            class="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                                        {% for role in roles %}
+                                            <option value="{{ role.id }}" {% if role.id in workflow_config[WorkflowStage.CHECKER].allowed_roles %}selected{% endif %}>
+                                                {{ role.name }}
+                                            </option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+
+                                <div class="col-span-6 sm:col-span-3">
+                                    <label for="min_checkers" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Minimum Checkers Required</label>
+                                    <input type="number" name="min_checkers" id="min_checkers" min="1" required
+                                           value="{{ workflow_config[WorkflowStage.CHECKER].min_count }}"
+                                           class="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white h-10 px-3">
+                                </div>
+
+                                <div class="col-span-6 sm:col-span-3">
+                                    <label for="checker_rights" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Checker Rights</label>
+                                    <div class="mt-2 space-y-2">
+                                        {% for right in action_rights %}
+                                            <div class="flex items-center">
+                                                <input type="checkbox" name="checker_rights" value="{{ right.value }}"
+                                                       {% if right.value in workflow_config[WorkflowStage.CHECKER].rights %}checked{% endif %}
+                                                       class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
+                                                <label class="ml-2 text-sm text-gray-700 dark:text-gray-300">{{ right.name }}</label>
+                                            </div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Approver Configuration -->
+                        <div class="border-t border-gray-200 dark:border-gray-700 pt-6">
+                            <h4 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">Approver Configuration</h4>
+                            <div class="grid grid-cols-6 gap-6">
+                                <div class="col-span-6 sm:col-span-3">
+                                    <label for="approver_roles" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Allowed Approver Roles</label>
+                                    <select id="approver_roles" name="approver_roles" multiple required
+                                            class="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                                        {% for role in roles %}
+                                            <option value="{{ role.id }}" {% if role.id in workflow_config[WorkflowStage.APPROVER].allowed_roles %}selected{% endif %}>
+                                                {{ role.name }}
+                                            </option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+
+                                <div class="col-span-6 sm:col-span-3">
+                                    <label for="min_approvers" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Minimum Approvers Required</label>
+                                    <input type="number" name="min_approvers" id="min_approvers" min="1" required
+                                           value="{{ workflow_config[WorkflowStage.APPROVER].min_count }}"
+                                           class="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white h-10 px-3">
+                                </div>
+
+                                <div class="col-span-6 sm:col-span-3">
+                                    <label for="sequential_approval" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Sequential Approval</label>
+                                    <div class="mt-2">
+                                        <div class="flex items-center">
+                                            <input type="checkbox" name="sequential_approval" id="sequential_approval"
+                                                   {% if workflow_config[WorkflowStage.APPROVER].is_sequential %}checked{% endif %}
+                                                   class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
+                                            <label class="ml-2 text-sm text-gray-700 dark:text-gray-300">Enable sequential approval flow</label>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="col-span-6 sm:col-span-3">
+                                    <label for="rejection_flow" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Rejection Flow</label>
+                                    <select id="rejection_flow" name="rejection_flow" required
+                                            class="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                                        {% set current_rejection_flow = workflow_config[WorkflowStage.APPROVER].rejection_flow %}
+                                        <option value="to_maker" {% if current_rejection_flow.value == 'to_maker' %}selected{% endif %}>Return to Maker</option>
+                                        <option value="to_checker" {% if current_rejection_flow.value == 'to_checker' %}selected{% endif %}>Return to Checker</option>
+                                        <option value="to_previous_stage" {% if current_rejection_flow.value == 'to_previous_stage' %}selected{% endif %}>Return to Previous Stage</option>
+                                    </select>
+                                </div>
+
+                                <div class="col-span-6 sm:col-span-3">
+                                    <label for="approver_rights" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Approver Rights</label>
+                                    <div class="mt-2 space-y-2">
+                                        {% for right in action_rights %}
+                                            <div class="flex items-center">
+                                                <input type="checkbox" name="approver_rights" value="{{ right.value }}"
+                                                       {% if right.value in workflow_config[WorkflowStage.APPROVER].rights %}checked{% endif %}
+                                                       class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
+                                                <label class="ml-2 text-sm text-gray-700 dark:text-gray-300">{{ right.name }}</label>
+                                            </div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="px-4 py-3 bg-gray-50 dark:bg-gray-700 text-right sm:px-6 space-x-3">
+                        <a href="{{ url_for('view_policy_rule', policy_id=policy.id) }}"
+                           class="inline-flex justify-center py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:bg-gray-600 dark:text-gray-100 dark:hover:bg-gray-500 dark:border-gray-500">
+                            Cancel
+                        </a>
+                        <button type="submit"
+                                class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:bg-indigo-500 dark:hover:bg-indigo-600">
+                            Save Changes
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

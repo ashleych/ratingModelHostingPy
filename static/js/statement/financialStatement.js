@@ -1,18 +1,19 @@
 
 
-let spreads_format_hot;
-let allStatementIds;
-let pendingChanges = [];
-let highlightedRows = [];
-let decimalPlaces = 2; // Default to 2 decimal places
-let editedCells = new Set(); // To keep track of edited cells
 
-
+if (typeof window.spreads_format_hot === 'undefined') {
+    window.spreads_format_hot = null;
+    window.allStatementIds = [];
+    window.pendingChanges = [];
+    window.highlightedRows = [];
+    window.decimalPlaces = 2;
+    window.editedCells = new Set();
+}
 function initializeFinancialStatement(data) {
     const { currentCustomerId, spreadsData, statementType, datesInStatement } = data;
-
+console.log(spreadsData);
     if (spreadsData.length > 0) {
-        allStatementIds = Object.keys(spreadsData[0])
+        window.allStatementIds = Object.keys(spreadsData[0])
             .filter(key => key.startsWith('statement_'))
             .map(key => spreadsData[0][key])
             .filter(id => id != null);
@@ -62,7 +63,7 @@ function displaySpreadsFormat(spreads_data, statement_type, dates_in_statement) 
             type: 'numeric',
             numericFormat: {
                 pattern: {
-                    mantissa: decimalPlaces
+                    mantissa: window.decimalPlaces
                 },
                 culture: 'en-US'
             },
@@ -73,18 +74,18 @@ function displaySpreadsFormat(spreads_data, statement_type, dates_in_statement) 
                 }
                 // Add red border to edited cells
                 const cellId = `${row}-${col}`;
-                if (editedCells.has(cellId)) {
+                if (window.editedCells.has(cellId)) {
                     td.style.border = '2px solid red';
                 }
             }
         }
     });
-    spreads_format_hot = new Handsontable(spreads_format_container, {
+    window.spreads_format_hot = new Handsontable(spreads_format_container, {
         data: spreads_data,
         cells: function (row, col) {
             var cellProperties = {};
             var className = " "
-            if (highlightedRows.includes(row)) {
+            if (window.highlightedRows.includes(row)) {
                 className += ' highlighted-formula-component';
             }
             else {
@@ -105,16 +106,16 @@ function displaySpreadsFormat(spreads_data, statement_type, dates_in_statement) 
         afterChange: function (changes, source) {
             if (source === 'edit' || source === "CopyPaste.paste") {
                 if (changes && changes.length > 0) {
-                    pendingChanges = changes.map(([row, prop, oldValue, newValue]) => {
+                    window.pendingChanges = changes.map(([row, prop, oldValue, newValue]) => {
                         const rowData = this.getSourceDataAtRow(row);
                         const statementIndex = parseInt(prop.split('_')[1]) - 1;
                         const col = this.propToCol(prop);
-                        if (oldValue!=newValue){
+                        if (oldValue != newValue) {
 
-                            editedCells.add(`${row}-${col}`);
+                            window.editedCells.add(`${row}-${col}`);
                         }
                         // spreads_format_hot.setCellMeta(row, col, 'className', 'isDirty');
-                        spreads_format_hot.render();
+                        window.spreads_format_hot.render();
                         return {
                             statement_id: rowData[`statement_${statementIndex + 1}`],
                             template_financial_item_id: rowData.template_financial_item_id,
@@ -130,14 +131,14 @@ function displaySpreadsFormat(spreads_data, statement_type, dates_in_statement) 
         },
         beforeOnCellMouseDown: function (event, coords, TD) {
             if (coords.col > 0) {
-                const formula = spreads_format_hot.getSourceData()[coords.row].formula
+                const formula = window.spreads_format_hot.getSourceData()[coords.row].formula
                 if (formula) {
                     const lineItemNames = extractFormulaComponents(formula);
-                    highlightRows(spreads_format_hot, lineItemNames);
+                    highlightRows(window.spreads_format_hot, lineItemNames);
                     showFormulaTooltip(TD, formula);
                 }
             } else {
-                removeHighlights(spreads_format_hot);
+                removeHighlights(window.spreads_format_hot);
                 //removeFormulaTooltip();
             }
         }
@@ -157,8 +158,8 @@ function update_spreads_data(currentCustomerId) {
             'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-            line_items: pendingChanges,
-            multi_statement_ids: allStatementIds,
+            line_items: window.pendingChanges,
+            multi_statement_ids: window.allStatementIds,
             customer_id: currentCustomerId  // Make sure this variable is set somewhere in your code
         })
     })
@@ -201,14 +202,14 @@ function highlightRows(spreads_format_hot, lineItemNames) {
     removeHighlights(spreads_format_hot);
 
     const data = spreads_format_hot.getSourceData();
-    highlightedRows = data.reduce((acc, row, index) => {
+    window.highlightedRows = data.reduce((acc, row, index) => {
         if (lineItemNames.includes(row.template_financial_line_item_name)) {
             acc.push(index);
         }
         return acc;
     }, []);
-    console.log("Highlighted rows: ", highlightedRows);
-    highlightedRows.forEach(row => {
+    console.log("Highlighted rows: ", window.highlightedRows);
+    window.highlightedRows.forEach(row => {
         for (let col = 0; col < spreads_format_hot.countCols(); col++) {
             console.log("The cell meta for the row is: ", spreads_format_hot.getCellMeta(row, col));
             spreads_format_hot.setCellMeta(row, col, 'className',
@@ -220,7 +221,7 @@ function highlightRows(spreads_format_hot, lineItemNames) {
 }
 
 function removeHighlights(spreads_format_hot) {
-    highlightedRows.forEach(row => {
+    window.highlightedRows.forEach(row => {
         for (let col = 0; col < spreads_format_hot.countCols(); col++) {
             let className = spreads_format_hot.getCellMeta(row, col).className || '';
             className = className.replace('highlighted-formula-component', '').trim();
@@ -228,7 +229,7 @@ function removeHighlights(spreads_format_hot) {
         }
     });
 
-    highlightedRows = [];
+    window.highlightedRows = [];
     spreads_format_hot.render();
 }
 
@@ -241,7 +242,7 @@ function showFormulaTooltip(cell, formula) {
 function updateDecimalPlaces(decimalPlaces) {
     currentDecimalPlaces = decimalPlaces;
 
-    const columnsConfig = spreads_format_hot.getSettings().columns;
+    const columnsConfig = window.spreads_format_hot.getSettings().columns;
     columnsConfig.forEach((column, index) => {
         if (index > 0) { // Skip the first column (template_label)
             column.numericFormat = {
@@ -251,10 +252,11 @@ function updateDecimalPlaces(decimalPlaces) {
         }
     });
 
-    spreads_format_hot.updateSettings({
+    window.spreads_format_hot.updateSettings({
         columns: columnsConfig
     });
 
-    spreads_format_hot.render(); // Re-render the table
+    window.spreads_format_hot.render(); // Re-render the table
 }
 // displaySpreadsFormat(spreads_data, statement_type, dates_in_statement);
+initializeFinancialStatement(window.financialConfig);

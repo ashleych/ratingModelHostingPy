@@ -3,35 +3,39 @@ import csv
 from datetime import datetime, timedelta
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from models.models import Base, BusinessUnit, MasterRatingScale, Customer, FinancialsPeriod,LineItemMeta, Template, TemplateSourceCSV
+from models.models import Base, BusinessUnit, MasterRatingScale, Customer, FinancialsPeriod, LineItemMeta, Template, TemplateSourceCSV,Role
 from enum import Enum
 
 DB_NAME = "rating_model_py_app"
 # sudo postgres -d rating_model_py_app
-PROJECT_DIR= os.path.dirname(os.path.abspath(__file__))
-TEMPLATE_DIRECTORY = os.path.join(PROJECT_DIR,"Template-Basic")
+PROJECT_DIR = os.path.dirname(os.path.abspath(__file__))
+TEMPLATE_DIRECTORY = os.path.join(PROJECT_DIR, "Template-Basic")
 TEMPLATE_START_YEAR = 2020
 TEMPLATE_END_YEAR = 2025
+
 
 class WorkflowActionType(Enum):
     DRAFT = "draft"
 
+
 class FinStatementType(Enum):
     PNL = "pnl"
     BS = "bs"
-    CF='cashflow'
-    ALL='all'
-    
+    CF = 'cashflow'
+    ALL = 'all'
+
     @classmethod
     def _missing_(cls, value):
         return cls.ALL
 
+
 def create_engine_and_session(db_path):
-    SQLALCHEMY_DATABASE_URL =f"postgresql://postgres:postgres@localhost/{db_path}"
+    SQLALCHEMY_DATABASE_URL = f"postgresql://postgres:postgres@localhost/{db_path}"
 
     engine = create_engine(SQLALCHEMY_DATABASE_URL, echo=False)
-    Session = sessionmaker(bind=engine,autocommit=False, autoflush=False)
+    Session = sessionmaker(bind=engine, autocommit=False, autoflush=False)
     return engine, Session()
+
 
 def init_db(db_path):
     engine, session = create_engine_and_session(db_path)
@@ -48,15 +52,17 @@ def init_db(db_path):
     def drop_tables_in_order(engine):
         # Define the order to drop tables
         # Start with tables that have the most dependencies and work backwards
-        tables = ['businessunit','users', 'customer', 'financialsperiod', 'financialstatement', 'lineitemmeta', 'lineitemvalue', 'masterratingscale', 'ratingfactor', 'ratingfactorattribute', 'ratingfactorscore', 'ratinginstance', 'ratingmodel', 'template', 'templatesourcecsv', 'workflowaction', 'workflow_step', 'ratinginstance_version', 'workflow_assignment'] # Add any other tables that might be in your schema ]
+        tables = ['businessunit', 'users', 'role', 'customer', 'financialsperiod', 'financialstatement', 'lineitemmeta', 'lineitemvalue', 'masterratingscale', 'ratingfactor', 'ratingfactorattribute', 'ratingfactorscore',
+            'ratinginstance', 'ratingmodel', 'template', 'templatesourcecsv', 'workflowaction', 'workflow_step', 'ratinginstance_version', 'workflow_assignment']  # Add any other tables that might be in your schema ]
         with engine.begin() as conn:
             # Disable triggers temporarily
             conn.execute(text("SET session_replication_role = 'replica';"))
-            
+
             for table_name in tables:
                 # Use DROP CASCADE for each table
-                conn.execute(text(f"DROP TABLE IF EXISTS {table_name} CASCADE"))
-            
+                conn.execute(
+                    text(f"DROP TABLE IF EXISTS {table_name} CASCADE"))
+
             # Re-enable triggers
             conn.execute(text("SET session_replication_role = 'origin';"))
 
@@ -70,106 +76,56 @@ def init_db(db_path):
 
     session.commit()
     insert_quarter_end_dates(session, TEMPLATE_START_YEAR, TEMPLATE_END_YEAR)
-    business_units_data=["Large Corporate", "Mid Corporate", "SME", "Financial Institution", "Private Banking", "Structured Finance"]
+    business_units_data = ["Large Corporate", "Mid Corporate", "SME",
+        "Financial Institution", "Private Banking", "Structured Finance"]
     # for name in business_units_data:
     #         business_unit = BusinessUnit(name=name)
     #         session.add(business_unit)
     # session.commit()
     business_units = {}
     for name in business_units_data:
-        business_unit = BusinessUnit(name=name,template_id=template.id)
+        business_unit = BusinessUnit(name=name, template_id=template.id)
         session.add(business_unit)
         session.flush()  # This will assign an id to the business_unit
         business_units[name] = business_unit
-    
-    session.commit()   
+
+    session.commit()
         # Add master rating scale data
 
-    mrs_data=[MasterRatingScale(rating_grade= "1", pd= 0.000050), MasterRatingScale(rating_grade= "2+", pd= 0.000070), MasterRatingScale(rating_grade= "2", pd= 0.000120), MasterRatingScale(rating_grade= "2-", pd= 0.000190), MasterRatingScale(rating_grade= "3+", pd= 0.000300), MasterRatingScale(rating_grade= "3", pd= 0.000490), MasterRatingScale(rating_grade= "3-", pd= 0.000790), MasterRatingScale(rating_grade= "4+", pd= 0.001270), MasterRatingScale(rating_grade= "4", pd= 0.002050), MasterRatingScale(rating_grade= "4-", pd= 0.003300), MasterRatingScale(rating_grade= "5+", pd= 0.005310), MasterRatingScale(rating_grade= "5", pd= 0.008550), MasterRatingScale(rating_grade= "5-", pd= 0.013760), MasterRatingScale(rating_grade= "6+", pd= 0.022150), MasterRatingScale(rating_grade= "6", pd= 0.035670), MasterRatingScale(rating_grade= "6-", pd= 0.057420), MasterRatingScale(rating_grade= "7+", pd= 0.092440), MasterRatingScale(rating_grade= "7", pd= 0.148820), MasterRatingScale(rating_grade= "7-", pd= 0.239590), MasterRatingScale(rating_grade= "8", pd= 1.000000), MasterRatingScale(rating_grade= "9", pd= 1.000000), MasterRatingScale(rating_grade= "10", pd= 1.000000)]
+    mrs_data = [MasterRatingScale(rating_grade="1", pd=0.000050), MasterRatingScale(rating_grade="2+", pd=0.000070), MasterRatingScale(rating_grade="2", pd=0.000120), MasterRatingScale(rating_grade="2-", pd=0.000190), MasterRatingScale(rating_grade="3+", pd=0.000300), MasterRatingScale(rating_grade="3", pd=0.000490), MasterRatingScale(rating_grade="3-", pd=0.000790), MasterRatingScale(rating_grade="4+", pd=0.001270), MasterRatingScale(rating_grade="4", pd=0.002050), MasterRatingScale(rating_grade="4-", pd=0.003300), MasterRatingScale(rating_grade="5+", pd=0.005310),
+                                  MasterRatingScale(rating_grade="5", pd=0.008550), MasterRatingScale(rating_grade="5-", pd=0.013760), MasterRatingScale(rating_grade="6+", pd=0.022150), MasterRatingScale(rating_grade="6", pd=0.035670), MasterRatingScale(rating_grade="6-", pd=0.057420), MasterRatingScale(rating_grade="7+", pd=0.092440), MasterRatingScale(rating_grade="7", pd=0.148820), MasterRatingScale(rating_grade="7-", pd=0.239590), MasterRatingScale(rating_grade="8", pd=1.000000), MasterRatingScale(rating_grade="9", pd=1.000000), MasterRatingScale(rating_grade="10", pd=1.000000)]
     session.add_all(mrs_data)
         # Add customers
-    customers = [
-    Customer(
-        customer_name="ABC Corporation",
-        cif_number="CIF-123456",
-        group_name="ABC Group",
-        business_unit_id=business_units["Large Corporate"].id,
-        relationship_type="Prospect",
-        internal_risk_rating="2",
-        
-    ),
-    Customer(
-        customer_name="XYZ Enterprises",
-        cif_number="CIF-789012",
-        group_name="XYZ Group",
-        business_unit_id=business_units["Mid Corporate"].id,
-        relationship_type="Existing",
-        internal_risk_rating="2",
-        
-    ),
-    Customer(
-        customer_name="DEF Ltd",
-        cif_number="1001",
-        group_name="ABC Group",
-        business_unit_id=business_units["Large Corporate"].id,
-        relationship_type="Prospect",
-        internal_risk_rating="5",
-        
-    ),
-    Customer(
-        customer_name="PQR Inc",
-        cif_number="1002",
-        group_name="XYZ Group",
-        business_unit_id=business_units["Large Corporate"].id,
-        relationship_type="Existing",
-        internal_risk_rating="5+",
-        
-    ),
-    Customer(
-        customer_name="GHI Corporation",
-        cif_number="1003",
-        group_name="DEF Group",
-        business_unit_id=business_units["Large Corporate"].id,
-        relationship_type="Prospect",
-        internal_risk_rating="2-",
-        
-    ),
-    Customer(
-        customer_name="LMN Enterprises",
-        cif_number="1004",
-        group_name="PQR Group",
-        business_unit_id=business_units["Large Corporate"].id,
-        relationship_type="Existing",
-        internal_risk_rating="2",
-        
-    ),
-    Customer(
-        customer_name="JKL Ltd",
-        cif_number="1005",
-        group_name="LMN Group",
-        business_unit_id=business_units["Large Corporate"].id,
-        relationship_type="Prospect",
-        internal_risk_rating="2",
-        
-    )
-]
+    customers = [ Customer( customer_name="ABC Corporation", cif_number="CIF-123456", group_name="ABC Group", business_unit_id=business_units["Large Corporate"].id, relationship_type="Prospect", internal_risk_rating="2", ), Customer( customer_name="XYZ Enterprises", cif_number="CIF-789012", group_name="XYZ Group", business_unit_id=business_units["Mid Corporate"].id, relationship_type="Existing", internal_risk_rating="2", ), Customer( customer_name="DEF Ltd", cif_number="1001", group_name="ABC Group", business_unit_id=business_units["Large Corporate"].id, relationship_type="Prospect", internal_risk_rating="5", ), Customer( customer_name="PQR Inc", cif_number="1002", group_name="XYZ Group", business_unit_id=business_units["Large Corporate"].id, relationship_type="Existing", internal_risk_rating="5+", ), Customer( customer_name="GHI Corporation", cif_number="1003", group_name="DEF Group", business_unit_id=business_units["Large Corporate"].id, relationship_type="Prospect", internal_risk_rating="2-", ), Customer( customer_name="LMN Enterprises", cif_number="1004", group_name="PQR Group", business_unit_id=business_units["Large Corporate"].id, relationship_type="Existing", internal_risk_rating="2", ), Customer( customer_name="JKL Ltd", cif_number="1005", group_name="LMN Group", business_unit_id=business_units["Large Corporate"].id, relationship_type="Prospect", internal_risk_rating="2", ) ]
 
+    default_roles = [ { "name": "Credit Analyst", "description": "Analyzes credit applications and prepares credit assessments", "is_active": True }, { "name": "BU Head", "description": "Head of Business Unit, responsible for overseeing department operations", "is_active": True }, { "name": "CRO", "description": "Chief Risk Officer, oversees all aspects of risk management", "is_active": True }, { "name": "CEO", "description": "Chief Executive Officer, highest-ranking executive officer", "is_active": True }, { "name": "Country Head", "description": "Manages and oversees all operations within a country", "is_active": True }, { "name": "Relationship Manager", "description": "Manages client relationships and portfolio", "is_active": True } ]
+   # Add each role if it doesn't exist
+    for role_data in default_roles:
+            # Check if role already exists
+        existing_role = session.query(Role).filter(Role.name == role_data["name"]).first()
+        
+        if not existing_role:
+            # Create new role with timestamp
+            new_role = Role(
+                name=role_data["name"],
+                description=role_data["description"],
+                is_active=role_data["is_active"],
+            )
+            session.add(new_role)
+            print(f"Created role: {role_data['name']}")
+        else:
+            # Optionally update existing role's description and status
+            existing_role.description = role_data["description"]
+            existing_role.is_active = role_data["is_active"]
+            existing_role.updated_at = datetime.utcnow()
+            print(f"Updated role: {role_data['name']}")
+
+        session.commit()
     # After defining the customers list
     for customer in customers:
-        # workflow_action = create_update_workflow_action(session, customer.cif_number, WorkflowActionType.DRAFT)
-        # customer.workflow_action = workflow_action
         session.add(customer)
 
     session.commit()
-    # for customer in customers:
-    #     workflow_action = create_update_workflow_action(session, customer.cif_number, WorkflowActionType.DRAFT)
-    #     customer.workflow_action = workflow_action
-    #     customer.workflow_action_type = WorkflowActionType.DRAFT.value
-    #     session.add(customer)
-    #     session.commit()
-        
-
-        
     pnl_items = read_csv(os.path.join(TEMPLATE_DIRECTORY, template.template_source_csv.source_path))
     create_financial_template_line_items(session, pnl_items, template)
     

@@ -1,0 +1,169 @@
+{% if not is_htmx %}
+{% extends "_layout.html" %}
+{% endif %}
+{% block content %}
+
+<div class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+    <div class="md:grid md:grid-cols-3 md:gap-6">
+        <div class="md:col-span-1">
+            <div class="px-4 sm:px-0">
+                <h3 class="text-lg font-medium leading-6 text-gray-900 dark:text-gray-100">Policy Rule Details</h3>
+                <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
+                    View workflow policy configuration details.
+                </p>
+            </div>
+        </div>
+        <div class="mt-5 md:mt-0 md:col-span-2">
+            <div class="shadow sm:rounded-md sm:overflow-hidden">
+                <div class="px-4 py-5 bg-white dark:bg-gray-800 space-y-6 sm:p-6">
+                    <!-- Basic Information -->
+                    <div class="grid grid-cols-6 gap-6">
+                        <div class="col-span-6 sm:col-span-3">
+                            <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300">Policy Name</h4>
+                            <p class="mt-1 text-sm text-gray-900 dark:text-gray-100">{{ policy.name }}</p>
+                        </div>
+
+                        <div class="col-span-6 sm:col-span-3">
+                            <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300">Business Unit</h4>
+                            <p class="mt-1 text-sm text-gray-900 dark:text-gray-100">{{ policy.business_unit.name }}</p>
+                        </div>
+
+                        <div class="col-span-6">
+                            <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300">Description</h4>
+                            <p class="mt-1 text-sm text-gray-900 dark:text-gray-100">{{ policy.description }}</p>
+                        </div>
+                    </div>
+
+                    <!-- Maker Configuration -->
+                    <div class="border-t border-gray-200 dark:border-gray-700 pt-6">
+                        <h4 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">Maker Configuration</h4>
+                        <div class="grid grid-cols-6 gap-6">
+                            <div class="col-span-6 sm:col-span-3">
+                                <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300">Allowed Maker Roles</h4>
+                                <ul class="mt-1 text-sm text-gray-900 dark:text-gray-100">
+                                    {% for role_id in workflow_config[WorkflowStage.MAKER].allowed_roles %}
+                                        {% set role = roles|selectattr("id", "equalto", role_id)|first %}
+                                        <li>{{ role.name }}</li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+
+                            <div class="col-span-6 sm:col-span-3">
+                                <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300">Maker Rights</h4>
+                                <ul class="mt-1 text-sm text-gray-900 dark:text-gray-100">
+                                    {% for right in action_rights %}
+                                        {% if right.value in workflow_config[WorkflowStage.MAKER].rights %}
+                                            <li>{{ right.name }}</li>
+                                        {% endif %}
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Checker Configuration -->
+                    <div class="border-t border-gray-200 dark:border-gray-700 pt-6">
+                        <h4 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">Checker Configuration</h4>
+                        <div class="grid grid-cols-6 gap-6">
+                            <div class="col-span-6 sm:col-span-3">
+                                <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300">Allowed Checker Roles</h4>
+                                <ul class="mt-1 text-sm text-gray-900 dark:text-gray-100">
+                                    {% for role_id in workflow_config[WorkflowStage.CHECKER].allowed_roles %}
+                                        {% set role = roles|selectattr("id", "equalto", role_id)|first %}
+                                        <li>{{ role.name }}</li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+
+                            <div class="col-span-6 sm:col-span-3">
+                                <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300">Minimum Checkers Required</h4>
+                                <p class="mt-1 text-sm text-gray-900 dark:text-gray-100">
+                                    {{ workflow_config[WorkflowStage.CHECKER].min_count }}
+                                </p>
+                            </div>
+
+                            <div class="col-span-6 sm:col-span-3">
+                                <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300">Checker Rights</h4>
+                                <ul class="mt-1 text-sm text-gray-900 dark:text-gray-100">
+                                    {% for right in action_rights %}
+                                        {% if right.value in workflow_config[WorkflowStage.CHECKER].rights %}
+                                            <li>{{ right.name }}</li>
+                                        {% endif %}
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Approver Configuration -->
+                    <div class="border-t border-gray-200 dark:border-gray-700 pt-6">
+                        <h4 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">Approver Configuration</h4>
+                        <div class="grid grid-cols-6 gap-6">
+                            <div class="col-span-6 sm:col-span-3">
+                                <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300">Allowed Approver Roles</h4>
+                                <ul class="mt-1 text-sm text-gray-900 dark:text-gray-100">
+                                    {% for role_id in workflow_config[WorkflowStage.APPROVER].allowed_roles %}
+                                        {% set role = roles|selectattr("id", "equalto", role_id)|first %}
+                                        <li>{{ role.name }}</li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+
+                            <div class="col-span-6 sm:col-span-3">
+                                <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300">Minimum Approvers Required</h4>
+                                <p class="mt-1 text-sm text-gray-900 dark:text-gray-100">
+                                    {{ workflow_config[WorkflowStage.APPROVER].min_count }}
+                                </p>
+                            </div>
+
+                            <div class="col-span-6 sm:col-span-3">
+                                <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300">Sequential Approval</h4>
+                                <p class="mt-1 text-sm text-gray-900 dark:text-gray-100">
+                                    {{ "Enabled" if workflow_config[WorkflowStage.APPROVER].is_sequential else "Disabled" }}
+                                </p>
+                            </div>
+
+                            <div class="col-span-6 sm:col-span-3">
+                                <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300">Rejection Flow</h4>
+                                <p class="mt-1 text-sm text-gray-900 dark:text-gray-100">
+                                    {% set rejection_flow = workflow_config[WorkflowStage.APPROVER].rejection_flow %}
+                                    {% if rejection_flow.value == 'to_maker' %}
+                                        Return to Maker
+                                    {% elif rejection_flow.value == 'to_checker' %}
+                                        Return to Checker
+                                    {% else %}
+                                        Return to Previous Stage
+                                    {% endif %}
+                                </p>
+                            </div>
+
+                            <div class="col-span-6 sm:col-span-3">
+                                <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300">Approver Rights</h4>
+                                <ul class="mt-1 text-sm text-gray-900 dark:text-gray-100">
+                                    {% for right in action_rights %}
+                                        {% if right.value in workflow_config[WorkflowStage.APPROVER].rights %}
+                                            <li>{{ right.name }}</li>
+                                        {% endif %}
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="px-4 py-3 bg-gray-50 dark:bg-gray-700 text-right sm:px-6 space-x-3">
+                    <a href="{{ url_for('list_policy_rules') }}"
+                       class="inline-flex justify-center py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:bg-gray-600 dark:text-gray-100 dark:hover:bg-gray-500 dark:border-gray-500">
+                        Back to List
+                    </a>
+                    <a href="{{ url_for('edit_policy_rule', policy_id=policy.id) }}"
+                       class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:bg-indigo-500 dark:hover:bg-indigo-600">
+                        Edit Policy
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
