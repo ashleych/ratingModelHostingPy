@@ -19,6 +19,7 @@ from dependencies import get_db, auth_handler
 from datetime import datetime
 from models.models import FinancialStatement
 import logging
+from models.models import LineItemMeta,LineItemValue
 logger = logging.getLogger(__name__)
 
 class UpdateStatementRequest(BaseModel):
@@ -35,15 +36,6 @@ router = APIRouter()
 
 from uuid import UUID
 
-# @router.get("/statements/new/{customer_id}")
-# async def new_statement(request: Request, customer_id: str, current_user: User = Depends(auth_handler.auth_wrapper), db: Session = Depends(get_db)):
-
-#     customer = db.query(Customer).filter(Customer.id == customer_id).first()
-#     business_unit = db.query(models.BusinessUnit).filter(models.BusinessUnit.id == customer.business_unit_id).first()
-
-#     template = db.query(Template).filter(Template.id == business_unit.template_id).first()
-
-#     return templates.TemplateResponse("statements/partials/new.html", {"request": request, 'user': current_user, "customer": customer,"template":template})
 from models.models import BusinessUnit
 from models.models import Template
 from sqlalchemy.orm import joinedload
@@ -93,13 +85,13 @@ async def new_statement(
             "template": template,
             "user": current_user,
             "best_preceding_statement": recommended_statement if recommended_statement else None,
-            "available_statements": available_statements
+            "available_statements": available_statements,
+                        "is_htmx": request.headers.get("HX-Request") == "true"
         }
     )
 class StatementValidationError(HTTPException):
     def __init__(self, detail: str):
         super().__init__(status_code=400, detail=detail)
-from models.models import LineItemMeta,LineItemValue
 # Add this function at the module level
 
 def initiate_line_item_values(db: Session, statement: FinancialStatement, template_id: str|UUID):
@@ -253,27 +245,53 @@ async def create_statement(
             detail="An unexpected error occurred"
         )
 
-
-@router.get("/statements/{customer_id}")
-async def view_statement(request: Request, customer_id: str, current_user: User = Depends(auth_handler.auth_wrapper), db: Session = Depends(get_db)):
-    # try:
+@router.get("/statements/view/{statement_id}")
+async def view_statement(
+    request: Request, 
+    statement_id: str, 
+    current_user: User = Depends(auth_handler.auth_wrapper), 
+    db: Session = Depends(get_db)
+):
     fs_app = FsApp(db)
-    customer = db.query(Customer).filter(Customer.id == customer_id).first()
-    statements = db.query(FinancialStatement).filter(
-        FinancialStatement.customer_id == customer_id).all()
-    statement_ids = [schema.FinancialStatement.model_validate(
-        statement).id for statement in statements]
-    statement_data = fs_app.get_statement_data(statement_ids=statement_ids)
-
+    
+    # Get the initial statement
+    current_statement = db.query(FinancialStatement).filter(
+        FinancialStatement.id == statement_id
+    ).first()
+    
+    if not current_statement:
+        raise HTTPException(status_code=404, detail="Statement not found")
+    
+    # Get the customer for this statement
+    customer = db.query(Customer).filter(
+        Customer.id == current_statement.customer_id
+    ).first()
+    
+    # Build sequence of statements by traversing backwards through preceding_statement_id
+    statement_sequence = []
+    stmt = current_statement
+    
+    while stmt:
+        statement_sequence.insert(0, stmt.id)  # Insert at beginning to maintain chronological order
+        if stmt.preceding_statement_id:
+            stmt = db.query(FinancialStatement).filter(
+                FinancialStatement.id == stmt.preceding_statement_id
+            ).first()
+        else:
+            stmt = None
+    
+    # Get statement data using the ordered sequence
+    statement_data = fs_app.get_statement_data(statement_ids=statement_sequence)
+    
     return templates.TemplateResponse("statements/partials/view.html", {
-        "request": request, 'user': current_user,
+        "request": request,
+        "user": current_user,
         "customer": customer,
         "data": jsonable_encoder(statement_data["data"]),
         "statement_type": statement_data["statement_type"],
-        "dates_in_statement": statement_data["dates_in_statement"]
+        "dates_in_statement": statement_data["dates_in_statement"],
+                    "is_htmx": request.headers.get("HX-Request") == "true"
     })
-
-
 @router.post("statements/update_statement")
 async def update_statement(request: UpdateStatementRequest, current_user: User = Depends(auth_handler.auth_wrapper), db: Session = Depends(get_db)):
     fs_app = FsApp(db)
