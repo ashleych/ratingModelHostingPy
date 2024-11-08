@@ -52,7 +52,7 @@
                                 <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300">Maker Rights</h4>
                                 <ul class="mt-1 text-sm text-gray-900 dark:text-gray-100">
                                     {% for right in action_rights %}
-                                        {% if right.value in workflow_config[WorkflowStage.MAKER].rights %}
+                                        {% if right.value.upper() in workflow_config[WorkflowStage.MAKER].rights %}
                                             <li>{{ right.name }}</li>
                                         {% endif %}
                                     {% endfor %}
@@ -86,7 +86,7 @@
                                 <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300">Checker Rights</h4>
                                 <ul class="mt-1 text-sm text-gray-900 dark:text-gray-100">
                                     {% for right in action_rights %}
-                                        {% if right.value in workflow_config[WorkflowStage.CHECKER].rights %}
+                                        {% if right.value.upper() in workflow_config[WorkflowStage.CHECKER].rights %}
                                             <li>{{ right.name }}</li>
                                         {% endif %}
                                     {% endfor %}
@@ -141,7 +141,7 @@
                                 <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300">Approver Rights</h4>
                                 <ul class="mt-1 text-sm text-gray-900 dark:text-gray-100">
                                     {% for right in action_rights %}
-                                        {% if right.value in workflow_config[WorkflowStage.APPROVER].rights %}
+                                        {% if right.value.upper() in workflow_config[WorkflowStage.APPROVER].rights %}
                                             <li>{{ right.name }}</li>
                                         {% endif %}
                                     {% endfor %}

@@ -1,10 +1,16 @@
 import os
 import csv
 from datetime import datetime, timedelta
+from fastapi.encoders import jsonable_encoder
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from models.models import Base, BusinessUnit, MasterRatingScale, Customer, FinancialsPeriod, LineItemMeta, Template, TemplateSourceCSV,Role
+from models.models import Base, BusinessUnit, MasterRatingScale, Customer, FinancialsPeriod, LineItemMeta, Template, TemplateSourceCSV,Role, WorkflowStageConfig
 from enum import Enum
+
+from enums_and_constants import WorkflowStage,RejectionFlow
+from typing import Dict,Any,List
+from models.models import PolicyRules
+from sqlalchemy.orm import Session
 
 DB_NAME = "rating_model_py_app"
 # sudo postgres -d rating_model_py_app
@@ -36,6 +42,116 @@ def create_engine_and_session(db_path):
     Session = sessionmaker(bind=engine, autocommit=False, autoflush=False)
     return engine, Session()
 
+from sqlalchemy.orm import Session
+from enum import Enum
+from typing import Dict, Any
+
+
+
+def init_policy(session: Session, business_units: Dict[str, Any]) -> None:
+    """
+    Initialize policy rules for each business unit.
+    
+    Args:
+        session: SQLAlchemy session
+        business_units: Dictionary of business units with their IDs
+    """
+    # First, get all role IDs
+    roles = {
+        role.name: role.id 
+        for role in session.query(Role).filter(Role.name.in_([
+            "Credit Analyst", "Relationship Manager", "BU Head", 
+            "Country Head", "CRO", "CEO"
+        ])).all()
+    }
+    
+    # Define the base policy template
+    default_policies = {
+        "Large Corporate": {
+            "name": "Large Corporate Credit Approval Policy",
+            "description": "Standard workflow for large corporate credit approval process",
+            "stages": [
+                {
+                    "stage": WorkflowStage.MAKER,
+                    "roles": [roles["Credit Analyst"], roles["Relationship Manager"]],
+                    "rights": ["CREATE", "EDIT"],
+                    "min_count": 1
+                },
+                {
+                    "stage": WorkflowStage.CHECKER,
+                    "roles": [roles["BU Head"], roles["Country Head"]],
+                    "rights": ["CREATE", "EDIT"],
+                    "min_count": 2
+                },
+                {
+                    "stage": WorkflowStage.APPROVER,
+                    "roles": [roles["CRO"], roles["CEO"]],
+                    "rights": ["CREATE", "EDIT", "DELETE"],
+                    "min_count": 1,
+                    "sequential_approval": True,
+                    "rejection_flow": RejectionFlow.TO_MAKER
+                }
+            ]
+        },
+        "Mid Corporate": {
+            "name": "Mid Corporate Credit Approval Policy",
+            "description": "Standard workflow for mid corporate credit approval process",
+            "stages": [
+                {
+                    "stage": WorkflowStage.MAKER,
+                    "roles": [roles["Credit Analyst"], roles["Relationship Manager"]],
+                    "rights": ["CREATE", "EDIT"],
+                    "min_count": 1
+                },
+                {
+                    "stage": WorkflowStage.CHECKER,
+                    "roles": [roles["BU Head"]],
+                    "rights": ["CREATE", "EDIT"],
+                    "min_count": 1
+                },
+                {
+                    "stage": WorkflowStage.APPROVER,
+                    "roles": [roles["CRO"]],
+                    "rights": ["CREATE", "EDIT", "DELETE"],
+                    "min_count": 1,
+                    "sequential_approval": True,
+                    "rejection_flow": RejectionFlow.TO_MAKER
+                }
+            ]
+        }
+    }
+
+    # Create policy rules for each business unit
+    for bu_name, policy_config in default_policies.items():
+        if bu_name in business_units:
+            # Create main policy rule
+            policy_rule = PolicyRules(
+                name=policy_config["name"],
+                business_unit_id=business_units[bu_name].id,
+                description=policy_config["description"],
+                is_active=True
+            )
+            session.add(policy_rule)
+            session.flush()  # Get the policy ID
+
+            # Create workflow stages
+            for stage_config in policy_config["stages"]:
+                workflow_stage = WorkflowStageConfig(
+                    policy_id=policy_rule.id,
+                    stage=stage_config["stage"],
+                    allowed_roles=jsonable_encoder(stage_config["roles"]),  # Now contains role IDs instead of names
+                    rights=stage_config["rights"],
+                    min_count=stage_config["min_count"]
+                )
+
+                # Add approver-specific configurations
+                if stage_config["stage"] == WorkflowStage.APPROVER:
+                    workflow_stage.is_sequential = stage_config["sequential_approval"]
+                    workflow_stage.rejection_flow = stage_config["rejection_flow"]
+
+                session.add(workflow_stage)
+
+    session.commit()
 
 def init_db(db_path):
     engine, session = create_engine_and_session(db_path)
@@ -76,14 +192,14 @@ def init_db(db_path):
 
     session.commit()
     insert_quarter_end_dates(session, TEMPLATE_START_YEAR, TEMPLATE_END_YEAR)
-    business_units_data = ["Large Corporate", "Mid Corporate", "SME",
+    business_units_names = ["Large Corporate", "Mid Corporate", "SME",
         "Financial Institution", "Private Banking", "Structured Finance"]
     # for name in business_units_data:
     #         business_unit = BusinessUnit(name=name)
     #         session.add(business_unit)
     # session.commit()
     business_units = {}
-    for name in business_units_data:
+    for name in business_units_names:
         business_unit = BusinessUnit(name=name, template_id=template.id)
         session.add(business_unit)
         session.flush()  # This will assign an id to the business_unit
@@ -117,10 +233,10 @@ def init_db(db_path):
             # Optionally update existing role's description and status
             existing_role.description = role_data["description"]
             existing_role.is_active = role_data["is_active"]
-            existing_role.updated_at = datetime.utcnow()
             print(f"Updated role: {role_data['name']}")
 
         session.commit()
+    init_policy(session,business_units=business_units) 
     # After defining the customers list
     for customer in customers:
         session.add(customer)

@@ -49,19 +49,19 @@ router = APIRouter(prefix="/policy-rules")
 
 
 
-@router.get("/{business_unit_id}", response_model=PolicyRulesResponse)
-async def get_policy_rules(
-    business_unit_id: UUID,
-    db: Session = Depends(get_db)
-):
-    service = PolicyRulesService(db)
-    policy = service.get_workflow_configuration(business_unit_id)
-    if not policy:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="No active policy found for business unit"
-        )
-    return policy
+# @router.get("/{business_unit_id}", response_model=PolicyRulesResponse)
+# async def get_policy_rules(
+#     business_unit_id: UUID,
+#     db: Session = Depends(get_db)
+# ):
+#     service = PolicyRulesService(db)
+#     policy = service.get_workflow_configuration(business_unit_id)
+#     if not policy:
+#         raise HTTPException(
+#             status_code=status.HTTP_404_NOT_FOUND,
+#             detail="No active policy found for business unit"
+#         )
+#     return policy
 
 
 
