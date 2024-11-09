@@ -204,17 +204,16 @@ class AppNavigator:
 def main():
     navigator = AppNavigator()
     try:
-        # Example navigation sequence
-        # print("Navigating to customers list...")
-        # navigator.navigate_to_customers()
+        print("Navigating to customers list...")
+        navigator.navigate_to_customers()
         
-        # input("Press Enter to view first customer details...")
-        # navigator.navigate_to_customer_detail()
+        input("Press Enter to view first customer details...")
+        navigator.navigate_to_customer_detail()
         
-        # input("Press Enter to edit first customer...")
-        # navigator.navigate_to_edit_customer()
+        input("Press Enter to edit first customer...")
+        navigator.navigate_to_edit_customer()
         
-        # input("Press Enter to close the browser...")
+        input("Press Enter to close the browser...")
         # navigator.navigate_to_customer_statement()
         navigator.create_new_policy_rule()
         input("Press Enter to close the browser...")

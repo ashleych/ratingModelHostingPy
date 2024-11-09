@@ -4,12 +4,14 @@ from datetime import datetime, timedelta
 from fastapi.encoders import jsonable_encoder
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from models.models import Base, BusinessUnit, MasterRatingScale, Customer, FinancialsPeriod, LineItemMeta, Template, TemplateSourceCSV,Role, WorkflowStageConfig
+from models.statement_models import Template
+from models.statement_models import FinancialsPeriod, LineItemMeta
+from models.models import Base, BusinessUnit, MasterRatingScale, Customer, TemplateSourceCSV,Role
 from enum import Enum
 
 from enums_and_constants import WorkflowStage,RejectionFlow
 from typing import Dict,Any,List
-from models.models import PolicyRules
+from models.policy_rules_model import PolicyRules, WorkflowStageConfig
 from sqlalchemy.orm import Session
 
 DB_NAME = "rating_model_py_app"
@@ -20,8 +22,8 @@ TEMPLATE_START_YEAR = 2020
 TEMPLATE_END_YEAR = 2025
 
 
-class WorkflowActionType(Enum):
-    DRAFT = "draft"
+# class WorkflowActionType(Enum):
+#     DRAFT = "draft"
 
 
 class FinStatementType(Enum):

@@ -3,7 +3,9 @@ from datetime import datetime
 from uuid import UUID
 from sqlalchemy.orm import Session
 from typing import Tuple
-from models.models import Customer, FinancialsPeriod, Template, FinancialStatement, LineItemMeta, LineItemValue
+from models.statement_models import Template
+from models.statement_models import FinancialStatement, FinancialsPeriod, LineItemMeta, LineItemValue
+from models.models import Customer
 import csv
 from typing import List, Dict
 from main import create_engine_and_session

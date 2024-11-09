@@ -6,8 +6,12 @@ from typing import List, Optional, Dict
 import enum
 from decimal import Decimal
 
+from models.statement_models import Template
+from models.rating_instance_model import RatingFactorScore
+from models.rating_model_model import RatingFactor, RatingModel
+from models.statement_models import FinancialStatement
+from models.rating_instance_model import RatingInstance
 from rating_model import configure_rating_model_factors, get_or_create_rating_model
-from models.models import RatingFactorAttribute, RatingInstance,RatingFactorScore,RatingModel,RatingFactor,FinancialStatement
 
 from calculate_derived_scores import calculate_derived_scores
 from typing import List, Tuple
@@ -271,7 +275,7 @@ def score_quantitative_factors(db: Session, rating_instance: RatingInstance) -> 
 if __name__ == "__main__":
     from sqlalchemy import create_engine
     from sqlalchemy.orm import sessionmaker
-    from models.models import Template,FinancialStatement,ScoreToGradeMapping
+    from models.rating_model_model import ScoreToGradeMapping
     from schema import schema
 
     from main import create_engine_and_session, DB_NAME,init_db

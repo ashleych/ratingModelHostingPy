@@ -1,8 +1,10 @@
-from models.models import FinancialStatement, Customer, LineItemValue
+from models.statement_models import Template
+from models.statement_models import FinancialStatement, LineItemMeta, LineItemValue
+from models.models import Customer
 from fastapi import APIRouter, Request, Form, HTTPException, Depends
 from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
-from models.models import Customer,Template
+from models.models import Customer
 from sqlalchemy.orm import Session
 from db.database import SessionLocal, engine
 from schema import schema
@@ -17,9 +19,9 @@ from schema.schema import User
 from dependencies import get_db, auth_handler
 
 from datetime import datetime
-from models.models import FinancialStatement
+from models.statement_models import FinancialStatement
 import logging
-from models.models import LineItemMeta,LineItemValue
+from models.statement_models import LineItemValue
 logger = logging.getLogger(__name__)
 
 class UpdateStatementRequest(BaseModel):
@@ -37,7 +39,7 @@ router = APIRouter()
 from uuid import UUID
 
 from models.models import BusinessUnit
-from models.models import Template
+from models.statement_models import Template
 from sqlalchemy.orm import joinedload
 @router.get("/statements/new/{customer_id}")
 async def new_statement(

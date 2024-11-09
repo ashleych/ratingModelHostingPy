@@ -7,10 +7,11 @@ from fastapi.templating import Jinja2Templates
 from psycopg2 import IntegrityError
 from sqlalchemy.orm import Session
 from typing import Any, Optional
-from models.models import LineItemMeta, Template
+from models.statement_models import LineItemMeta, LineItemValue
+from models.statement_models import Template
 from dependencies import get_db
 from uuid import UUID
-from models.models import LineItemMeta, LineItemValue, Template
+from models.statement_models import Template
 from fastapi import APIRouter, Depends, Form, HTTPException
 from fastapi.responses import HTMLResponse
 from sqlalchemy.orm import Session

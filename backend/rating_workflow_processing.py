@@ -1,9 +1,15 @@
 from logging import raiseExceptions
 import uuid
 from sqlalchemy.orm import Session
+from models.rating_model_model import ScoreToGradeMapping
+from models.statement_models import Template
+from models.workflow_model import WorkflowAction
+from models.rating_instance_model import RatingFactorScore
+from models.rating_model_model import RatingModel
+from models.statement_models import FinancialStatement
+from models.rating_instance_model import RatingInstance
 from models.models import (
-    Template, FinancialStatement, ScoreToGradeMapping, RatingInstance, WorkflowAction,User, WorkflowStatus, RatingFactorScore,
-    Customer, RatingModel
+    User, Customer
 )
 from schema.schema import (
     WorkflowAction as WorkflowActionSchema,
@@ -16,7 +22,7 @@ from schema.schema import (
 from typing import List, Tuple
 from uuid import uuid4
 from sqlalchemy import and_
-
+from schema.schema import WorkflowStatus
 from uuid import UUID
 from rating_model import configure_rating_model_factors, get_or_create_rating_model
 from rating_model_instance import (
@@ -24,9 +30,13 @@ from rating_model_instance import (
     update_qualitative_factor_scores, check_all_user_inputs_factor_availability
 )
 from calculate_derived_scores import calculate_derived_scores
+from dependencies import auth_handler
 
+from uuid import uuid4
+import bcrypt
 
 def create_workflow_action(db: Session, customer_id: UUID, action_type: WorkflowStatus, action_by: UserSchema) -> WorkflowAction:
+
     latest_step = db.query(WorkflowAction).filter(
         WorkflowAction.customer_id == customer_id
     ).order_by(WorkflowAction.action_count_customer_level.desc()).first()
@@ -83,101 +93,9 @@ def clone_rating_instance(db: Session, original_instance: RatingInstanceCreate, 
     return new_instance
 
 
-# def process_rating_instance(db: Session, rating_instance: RatingInstance, user: UserSchema):
-#     try:
-#         new_step = create_workflow_action(
-#             db, rating_instance.customer_id, WorkflowStatus.SUBMITTED, user)
-#         current_instance = clone_rating_instance(db, rating_instance, new_step)
-
-#         quant_factor_scores, incomplete_financial_information, missing_fields = get_quant_factor_inputs(
-#             db, current_instance)
-
-#         if incomplete_financial_information:
-#             current_instance.incomplete_financial_information = True
-#             current_instance.missing_financial_fields = missing_fields
-#             db.commit()
-#             print("Incomplete financial information. No further processing.")
-#             return current_instance
-
-#         if check_all_user_inputs_factor_availability(db, current_instance):
-#             score_quantitative_factors(db, current_instance)
-#             update_qualitative_factor_scores(db, current_instance)
-#             calculate_derived_scores(db, current_instance)
-
-#             submit_step = create_workflow_action(
-#                 db, current_instance.customer_id, WorkflowStatus.SUBMITTED, user)
-#             submitted_instance = clone_rating_instance(
-#                 db, current_instance, submit_step)
-
-#             db.commit()
-#             print("Rating instance processed and submitted.")
-#             return submitted_instance
-#         else:
-#             print("Not all user inputs are available. Waiting for completion.")
-#             return current_instance
-
-#     except Exception as e:
-#         print(f"Error processing rating instance: {str(e)}")
-#         db.rollback()
-#         raise
-
-
-# def review_rating_instance(db: Session, rating_instance: RatingInstance, reviewer: User, approved: bool, comments: str):
-#     try:
-#         new_status = WorkflowStatus.REVIEWED if approved else WorkflowStatus.REJECTED
-#         review_step = create_workflow_action(
-#             db, rating_instance.customer_id, new_status, reviewer)
-
-#         reviewed_instance = clone_rating_instance(
-#             db, rating_instance, review_step)
-#         reviewed_instance.review_comments = comments
-
-#         if approved:
-#             approve_step = create_workflow_action(
-#                 db, rating_instance.customer_id, WorkflowStatus.APPROVED, reviewer)
-#             approved_instance = clone_rating_instance(
-#                 db, reviewed_instance, approve_step)
-#             db.commit()
-#             print("Rating instance reviewed and approved.")
-#             return approved_instance
-#         else:
-#             db.commit()
-#             print("Rating instance reviewed and rejected.")
-#             return reviewed_instance
-
-#     except Exception as e:
-#         print(f"Error reviewing rating instance: {str(e)}")
-#         db.rollback()
-#         raise
-
-
-# def get_rating_instance_history(db: Session, customer_id: str) -> List[RatingInstance]:
-#     return db.query(RatingInstance).join(WorkflowAction).filter(
-#         WorkflowAction.customer_id == customer_id
-#     ).order_by(WorkflowAction.action_count_customer_level.desc()).all()
-
-
-# def get_current_rating_instance(db: Session, customer_id: str) -> RatingInstance:
-#     return db.query(RatingInstance).join(WorkflowAction).filter(
-#         WorkflowAction.customer_id == customer_id
-#     ).order_by(WorkflowAction.action_count_customer_level.desc()).first()
-
 def process_rating_instance(db: Session, rating_instance: RatingInstance, user: UserSchema):
     """Process a rating instance and create a new workflow step"""
     try:
-        # Create a new workflow action
-        # workflow_step = WorkflowAction(
-        #     id=uuid4(),
-            
-        #     customer_id=rating_instance.customer_id,
-        #     action_type=WorkflowStatus.SUBMITTED,
-        #     action_by=user.id,
-        #     rating_instance_id=rating_instance.id,
-        #     action_count_customer_level=len(rating_instance.workflow_actions) + 1,
-        #     description="Submitted for review"
-        # )
-        
-        # db.add(workflow_step)
         rating_instance.overall_status = WorkflowStatus.SUBMITTED
         
         # Process the rating
@@ -245,6 +163,99 @@ def review_rating_instance(db: Session, rating_instance: RatingInstance, workflo
         print(f"Error reviewing rating instance: {str(e)}")
         db.rollback()
         raise
+def get_hashed_password(password: str) -> str:
+        # Convert the password to bytes
+        password_bytes = password.encode('utf-8')
+        # Generate a salt and hash the password
+        salt = bcrypt.gensalt()
+        hashed = bcrypt.hashpw(password_bytes, salt)
+        # Return the hash as a string
+        return hashed.decode('utf-8')
+def create_default_users(session: Session) -> None:
+    """
+    Create default users with various role combinations using UserSchema
+    """
+    # Define default users with their roles
+    default_users = [
+        UserSchema(
+            id=uuid4(),
+            name="ashley",
+            password=get_hashed_password('admin'),
+            email="ashley.cherian@gmail.com",
+            role=["creator"],
+            created_at=None,
+            updated_at=None
+        ),
+        UserSchema(
+            id=uuid4(),
+            name="John Smith",
+            password=get_hashed_password('admin'),
+            email="john.smith@example.com",
+            role=["Credit Analyst"],
+            created_at=None,
+            updated_at=None
+        ),
+        UserSchema(
+            id=uuid4(),
+            name="Sarah Johnson",
+            password=get_hashed_password('admin'),
+            email="sarah.johnson@example.com",
+            role=["Relationship Manager"],
+            created_at=None,
+            updated_at=None
+        ),
+        UserSchema(
+            id=uuid4(),
+            name="Michael Chen",
+            password=get_hashed_password('admin'),
+            email="michael.chen@example.com",
+            role=["BU Head"],
+            created_at=None,
+            updated_at=None
+        ),
+        UserSchema(
+            id=uuid4(),
+            name="James Martinez",
+            password=get_hashed_password('admin'),
+            email="james.martinez@example.com",
+            role=["Credit Analyst", "Relationship Manager"],
+            created_at=None,
+            updated_at=None
+        ),
+        UserSchema(
+            id=uuid4(),
+            name="Rachel Lee",
+            password=get_hashed_password('admin'),
+            email="rachel.lee@example.com",
+            role=["BU Head", "Country Head"],
+            created_at=None,
+            updated_at=None
+        ),
+        UserSchema(
+            id=uuid4(),
+            name="David Wilson",
+            password=get_hashed_password('admin'),
+            email="david.wilson@example.com",
+            role=["CRO"],
+            created_at=None,
+            updated_at=None
+        ),
+        UserSchema(
+            id=uuid4(),
+            name="Lisa Anderson",
+            password=get_hashed_password('admin'),
+            email="lisa.anderson@example.com",
+            role=["CEO"],
+            created_at=None,
+            updated_at=None
+        )
+    ]
+
+    # Add the users to the database
+    for user_schema in default_users:
+        db.add(User(**user_schema.model_dump()))
+    
+    db.commit()
 if __name__ == "__main__":
     from sqlalchemy import create_engine
     from sqlalchemy.orm import sessionmaker
@@ -306,10 +317,12 @@ if __name__ == "__main__":
 
     # Create a user
     
-    user = UserSchema(id=uuid4(), name="ashley",password=auth_handler.get_hash_password('1234'),
-                email="ashley.cherian@gmail.com", role="creator",created_at=None,updated_at=None)
-    db.add(User(**user.model_dump()))
-    db.commit()
+    # user = UserSchema(id=uuid4(), name="ashley",password=get_hashed_password('admin'),
+    #             email="ashley.cherian@gmail.com", role=[]"creator",created_at=None,updated_at=None)
+    # db.add(User(**user.model_dump()))
+    # db.commit()
+    create_default_users(db)
+    user=db.query(User).filter(User.email=='ashley.cherian@gmail.com').first()
     work_flow_cycle_id=uuid4()
     # Create initial workflow step with validation
     initial_workflow_data = WorkflowActionSchema(
@@ -350,16 +363,6 @@ if __name__ == "__main__":
 
     cloned_wf = initial_workflow_data.clone()
     processed_workflow_data=  WorkflowAction(**cloned_wf,id=uuid4()) # no need to clone this
-    # processed_workflow_data = WorkflowActionSchema(
-    #     id=uuid4(),
-    #     workflowcycle_id=work_flow_cycle_id,
-    #     customer_id=customer.id,
-    #     action_type=WorkflowStatus.GENERATED,
-    #     action_count_customer_level=initial_step.action_count_customer_level+1,
-    #     head=True,
-    #     action_by=str(user.id),created_at=None,updated_at=None, preceding_action_id=initial_step.id,succeeding_action_id=None,rating_instance_id=processed_instance.id
-
-    # )
 
     db.add(processed_workflow_data)
     initial_step.head=False
@@ -370,7 +373,7 @@ if __name__ == "__main__":
     db.commit()
     
     # Simulate a review
-    reviewer = User(id=uuid4(), name="reviewer",password=auth_handler.get_hash_password('1234'),
+    reviewer = User(id=uuid4(), name="reviewer",password=get_hashed_password('1234'),
                     email="reviewer@example.com", role="reviewer")
     db.add(reviewer)
     db.commit()

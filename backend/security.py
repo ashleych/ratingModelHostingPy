@@ -42,7 +42,7 @@ class AuthHandler():
             
     
     def auth_wrapper(self, auth: HTTPAuthorizationCredentials = Security(security)):
-        MOCK=True
+        MOCK=True  #TODO - toggle this to enable authentication
         if MOCK:
             user = db.query(User).first()
             return user

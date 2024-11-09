@@ -3,7 +3,8 @@ from fastapi import APIRouter, Request, Form, HTTPException, Depends, UploadFile
 from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
-from models.models import Template, TemplateSourceCSV
+from models.statement_models import Template
+from models.models import TemplateSourceCSV
 from dependencies import get_db, auth_handler
 from uuid import UUID
 

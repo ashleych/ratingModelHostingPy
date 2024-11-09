@@ -21,7 +21,7 @@ class User(Base):
     # id = Column(UUID, primary_key=True)
     name: Optional[str]=None
     email: str
-    role: Optional[str]=None
+    role: Optional[List[str]]=None
     password:str
 
 

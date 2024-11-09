@@ -1,4 +1,6 @@
 from fastapi.encoders import jsonable_encoder
+from models.policy_rules_model import PolicyRules, WorkflowStageConfig
+from models.statement_models import LineItemMeta, LineItemValue
 from models.models import Role
 from services.policy_service import PolicyRulesService
 import json
@@ -12,7 +14,7 @@ from typing import Any, Optional
 from enums_and_constants import ActionRight
 from dependencies import get_db
 from uuid import UUID
-from models.models import LineItemMeta, LineItemValue, Template
+from models.statement_models import Template
 from fastapi import APIRouter, Depends, Form, HTTPException
 from fastapi.responses import HTMLResponse
 from sqlalchemy.orm import Session
@@ -32,7 +34,7 @@ from datetime import datetime
 from uuid import UUID
 
 from enums_and_constants import WorkflowStage
-from models.models import PolicyRules, WorkflowStageConfig, User, BusinessUnit
+from models.models import User, BusinessUnit
 from schema.schema import (
     PolicyRuleCreate,
     PolicyRuleUpdate,

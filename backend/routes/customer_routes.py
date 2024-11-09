@@ -3,7 +3,11 @@ from fastapi.responses import RedirectResponse
 
 
 from fastapi.templating import Jinja2Templates
-from models.models import Customer,FinancialStatement,BusinessUnit,RatingInstance,RatingFactor,RatingFactorScore,RatingModel
+from models.rating_instance_model import RatingFactorScore
+from models.rating_model_model import RatingFactor, RatingModel
+from models.statement_models import FinancialStatement
+from models.rating_instance_model import RatingInstance
+from models.models import Customer,BusinessUnit
 from sqlalchemy.orm import Session
 from db.database import SessionLocal, engine
 from schema.schema import User

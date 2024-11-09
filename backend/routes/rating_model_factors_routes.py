@@ -2,7 +2,8 @@ from fastapi import APIRouter, Request, Form, HTTPException, Depends, Query
 from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
-from models.models import RatingModel, RatingFactor
+from models.rating_model_model import RatingFactor
+from models.rating_model_model import RatingModel
 from dependencies import get_db
 from uuid import UUID
 import re

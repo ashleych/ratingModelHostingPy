@@ -5,11 +5,14 @@ from pydantic import BaseModel
 from typing import List, Optional
 import csv
 import enum
+from models.rating_model_model import FactorInputSource, FactorType
+from models.statement_models import Template
+from models.rating_model_model import RatingFactor, RatingModel
+from models.rating_instance_model import RatingInstance
 from schema import schema
-from models.models import Template, RatingModel, RatingFactor, RatingFactorAttribute, RatingInstance, FactorInputSource
 
 from models.base import Base
-from models.models import FactorType,AttributeType
+from models.rating_model_model import AttributeType,RatingFactor,RatingFactorAttribute,RatingModel
 # Add other methods as needed
 
 # You'll need to implement the Template model and other necessary models

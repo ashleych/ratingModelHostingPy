@@ -1,7 +1,13 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import and_
 from typing import Dict, List, Optional,Tuple
-from models.models import RatingFactor,RatingFactorAttribute,RatingFactorScore
+from models.rating_model_model import FactorInputSource, ScoreToGradeMapping
+from models.statement_models import Template
+from models.rating_instance_model import RatingFactorScore
+from models.rating_model_model import RatingFactor, RatingModel
+from models.statement_models import FinancialStatement
+from models.rating_instance_model import RatingInstance
+from models.rating_model_model import RatingFactorAttribute
 from sqlalchemy import Column, Integer, String, Float, Boolean, ForeignKey
 from sqlalchemy.orm import relationship, Session
 from sqlalchemy.ext.declarative import declarative_base
@@ -11,7 +17,6 @@ import enum
 from decimal import Decimal
 
 from rating_model import configure_rating_model_factors, get_or_create_rating_model
-from models.models import RatingFactorAttribute, RatingInstance,RatingFactorScore,RatingModel,RatingFactor,FinancialStatement,FactorInputSource,ScoreToGradeMapping
 
 
 
@@ -218,7 +223,7 @@ def update_or_create_score(db: Session, rating_instance_id: int, factor_id: str,
 if __name__ == "__main__":
     from sqlalchemy import create_engine
     from sqlalchemy.orm import sessionmaker
-    from models.models import Template,FinancialStatement,ScoreToGradeMapping
+    from models.rating_model_model import ScoreToGradeMapping
     from schema import schema
 
     from main import create_engine_and_session, DB_NAME,init_db

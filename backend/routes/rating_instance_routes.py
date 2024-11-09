@@ -3,10 +3,13 @@ from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 import starlette
+from models.rating_instance_model import RatingFactorScore
+from models.rating_model_model import RatingFactor, RatingModel
+from models.statement_models import FinancialStatement
+from models.rating_instance_model import RatingInstance
 from db.database import SessionLocal
-from models.models import Customer, RatingInstance, RatingModel
+from models.models import Customer
 from schema import schema
-from models.models import RatingFactor,RatingFactorAttribute,RatingFactorScore,RatingInstance,RatingModel
 from collections import OrderedDict
 import docx
 from reportlab.pdfgen import canvas
@@ -17,7 +20,7 @@ from fastapi.templating import Jinja2Templates
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from db.database import SessionLocal
-from models.models import Customer, RatingInstance, RatingFactorScore, RatingFactor
+from models.models import Customer
 from sqlalchemy import and_
 from typing import Dict, List
 from collections import OrderedDict
@@ -25,7 +28,7 @@ from fastapi import BackgroundTasks
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from db.database import SessionLocal
-from models.models import Customer, RatingInstance, RatingFactorScore, RatingFactor
+from models.models import Customer
 from sqlalchemy import and_
 from typing import Dict, List
 from collections import OrderedDict
@@ -53,7 +56,6 @@ from pydantic import BaseModel
 from rating_model_instance import generate_qualitative_factor_data, score_quantitative_factors, update_qualitative_factor_scores
 
 
-from models.models import RatingFactorScore, RatingFactor, RatingFactorAttribute
 from calculate_derived_scores import DerivedFactor, calculate_derived_scores
 
 import os
@@ -490,7 +492,7 @@ def calculate_factor_score(db: Session, factor: RatingFactor, raw_value: str) ->
 
 
 from sqlalchemy.orm import Session
-from models.models import Customer, FinancialStatement, RatingModel, RatingFactor, RatingFactorAttribute, RatingInstance
+from models.models import Customer
 from typing import List,Any
 from sqlalchemy import desc
 
