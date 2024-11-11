@@ -1,4 +1,5 @@
 from sqlalchemy import Column, Integer, String, Float, Boolean, ForeignKey, and_
+from sqlalchemy.orm import joinedload
 from sqlalchemy.orm import relationship, Session
 from sqlalchemy.ext.declarative import declarative_base
 from pydantic import BaseModel
@@ -8,16 +9,14 @@ from decimal import Decimal
 
 from models.statement_models import Template
 from models.rating_instance_model import RatingFactorScore
-from models.rating_model_model import RatingFactor, RatingModel
+from models.rating_model_model import RatingFactor, RatingFactorAttribute, RatingModel
 from models.statement_models import FinancialStatement
 from models.rating_instance_model import RatingInstance
 from rating_model import configure_rating_model_factors, get_or_create_rating_model
 
-from calculate_derived_scores import calculate_derived_scores
 from typing import List, Tuple
 from sqlalchemy.orm import Session
 from uuid import UUID
-import json
 
 
 from customer_financial_statement import FsApp
@@ -208,7 +207,6 @@ def check_all_user_inputs_factor_availability(db: Session, rating_instance: Rati
 
     return all_inputs_available
 
-from sqlalchemy.orm import joinedload
 
 def score_quantitative_factors(db: Session, rating_instance: RatingInstance) -> None:
     if rating_instance.incomplete_financial_information:
@@ -333,4 +331,4 @@ if __name__ == "__main__":
     db.add(rating_instance)
     db.commit()
     db.flush()
-    process_rating_instance(db, rating_instance)
+    # process_rating_instance(db, rating_instance)

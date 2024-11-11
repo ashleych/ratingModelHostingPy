@@ -1,5 +1,5 @@
 from models.base import Base
-from schema.schema import WorkflowStatus
+from enums_and_constants import WorkflowStage
 
 
 from sqlalchemy import JSON, UUID, Boolean, Column, Enum as SQLAlchemyEnum, Float, ForeignKey, String, UniqueConstraint
@@ -20,7 +20,7 @@ class RatingInstance(Base):
     missing_financial_fields = Column(JSON, default={})
     overall_score=Column(Float,nullable=True)
     overall_rating=Column(String,nullable=True)
-    overall_status = Column(SQLAlchemyEnum(WorkflowStatus), nullable=False, default=WorkflowStatus.DRAFT)
+    overall_status = Column(SQLAlchemyEnum(WorkflowStage), nullable=False, default=WorkflowStage.MAKER)
 
     customer = relationship("Customer")
     rating_model = relationship("RatingModel")

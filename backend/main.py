@@ -1,18 +1,24 @@
+from email import policy
 import os
 import csv
 from datetime import datetime, timedelta
+from uuid import uuid4
 from fastapi.encoders import jsonable_encoder
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+from models.rating_model_model import MasterRatingScale, TemplateSourceCSV
 from models.statement_models import Template
 from models.statement_models import FinancialsPeriod, LineItemMeta
-from models.models import Base, BusinessUnit, MasterRatingScale, Customer, TemplateSourceCSV,Role
+from models.models import Base, BusinessUnit, Customer, Role, User
 from enum import Enum
 
 from enums_and_constants import WorkflowStage,RejectionFlow
 from typing import Dict,Any,List
-from models.policy_rules_model import PolicyRules, WorkflowStageConfig
+from models.policy_rules_model import PolicyRule, WorkflowStageConfig
 from sqlalchemy.orm import Session
+
+from schema.schema import User as UserSchema
+from security import get_hashed_password
 
 DB_NAME = "rating_model_py_app"
 # sudo postgres -d rating_model_py_app
@@ -76,19 +82,19 @@ def init_policy(session: Session, business_units: Dict[str, Any]) -> None:
                 {
                     "stage": WorkflowStage.MAKER,
                     "roles": [roles["Credit Analyst"], roles["Relationship Manager"]],
-                    "rights": ["CREATE", "EDIT"],
+                    "rights": ["CREATE", "EDIT","SUBMIT"],
                     "min_count": 1
                 },
                 {
                     "stage": WorkflowStage.CHECKER,
                     "roles": [roles["BU Head"], roles["Country Head"]],
-                    "rights": ["CREATE", "EDIT"],
+                    "rights": ["CREATE", "EDIT","SUBMIT"],
                     "min_count": 2
                 },
                 {
                     "stage": WorkflowStage.APPROVER,
                     "roles": [roles["CRO"], roles["CEO"]],
-                    "rights": ["CREATE", "EDIT", "DELETE"],
+                    "rights": ["CREATE", "EDIT", "DELETE","SUBMIT"],
                     "min_count": 1,
                     "sequential_approval": True,
                     "rejection_flow": RejectionFlow.TO_MAKER
@@ -102,19 +108,19 @@ def init_policy(session: Session, business_units: Dict[str, Any]) -> None:
                 {
                     "stage": WorkflowStage.MAKER,
                     "roles": [roles["Credit Analyst"], roles["Relationship Manager"]],
-                    "rights": ["CREATE", "EDIT"],
+                    "rights": ["CREATE", "EDIT","SUBMIT"],
                     "min_count": 1
                 },
                 {
                     "stage": WorkflowStage.CHECKER,
                     "roles": [roles["BU Head"]],
-                    "rights": ["CREATE", "EDIT"],
+                    "rights": ["CREATE", "EDIT","SUBMIT"],
                     "min_count": 1
                 },
                 {
                     "stage": WorkflowStage.APPROVER,
                     "roles": [roles["CRO"]],
-                    "rights": ["CREATE", "EDIT", "DELETE"],
+                    "rights": ["CREATE", "EDIT", "DELETE","SUBMIT"],
                     "min_count": 1,
                     "sequential_approval": True,
                     "rejection_flow": RejectionFlow.TO_MAKER
@@ -127,7 +133,7 @@ def init_policy(session: Session, business_units: Dict[str, Any]) -> None:
     for bu_name, policy_config in default_policies.items():
         if bu_name in business_units:
             # Create main policy rule
-            policy_rule = PolicyRules(
+            policy_rule = PolicyRule(
                 name=policy_config["name"],
                 business_unit_id=business_units[bu_name].id,
                 description=policy_config["description"],
@@ -170,8 +176,8 @@ def init_db(db_path):
     def drop_tables_in_order(engine):
         # Define the order to drop tables
         # Start with tables that have the most dependencies and work backwards
-        tables = ['businessunit', 'users', 'role', 'customer', 'financialsperiod', 'financialstatement', 'lineitemmeta', 'lineitemvalue', 'masterratingscale', 'ratingfactor', 'ratingfactorattribute', 'ratingfactorscore',
-            'ratinginstance', 'ratingmodel', 'template', 'templatesourcecsv', 'workflowaction', 'workflow_step', 'ratinginstance_version', 'workflow_assignment']  # Add any other tables that might be in your schema ]
+        tables = ['businessunit', 'users', 'role', 'customer', 'financialsperiod', 'financialstatement', 'lineitemmeta', 'lineitemvalue', 'masterratingscale', 'ratingfactor', 'ratingfactorattribute', 'ratingfactorscore','ratingmodelapplicabilityrules',
+            'ratinginstance', 'ratingmodel', 'template', 'templatesourcecsv', 'workflowaction', 'workflow_step', 'ratinginstance_version', 'workflow_assignment','workflow_stage_config','policy_rule']  # Add any other tables that might be in your schema ]
         with engine.begin() as conn:
             # Disable triggers temporarily
             conn.execute(text("SET session_replication_role = 'replica';"))
@@ -191,6 +197,7 @@ def init_db(db_path):
     # Create all tables
     Base.metadata.create_all(engine)
     template = create_template(session, "FinTemplate", "fin_template.csv")
+    create_default_users(session=session)
 
     session.commit()
     insert_quarter_end_dates(session, TEMPLATE_START_YEAR, TEMPLATE_END_YEAR)
@@ -322,6 +329,96 @@ def create_financial_template_line_items(session, records, template):
             )
             session.add(line_item)
             session.commit()
+
+
+
+
+def create_default_users(session:Session) -> None:
+    """
+    Create default users with various role combinations using UserSchema
+    """
+    # Define default users with their roles
+    default_users = [
+        UserSchema(
+            id=uuid4(),
+            name="ashley",
+            password=get_hashed_password('admin'),
+            email="ashley.cherian@gmail.com",
+            role=["Relationship Manager"],
+            created_at=None,
+            updated_at=None
+        ),
+        UserSchema(
+            id=uuid4(),
+            name="John Smith",
+            password=get_hashed_password('admin'),
+            email="john.smith@example.com",
+            role=["Credit Analyst"],
+            created_at=None,
+            updated_at=None
+        ),
+        UserSchema(
+            id=uuid4(),
+            name="Sarah Johnson",
+            password=get_hashed_password('admin'),
+            email="sarah.johnson@example.com",
+            role=["Relationship Manager"],
+            created_at=None,
+            updated_at=None
+        ),
+        UserSchema(
+            id=uuid4(),
+            name="Michael Chen",
+            password=get_hashed_password('admin'),
+            email="michael.chen@example.com",
+            role=["BU Head"],
+            created_at=None,
+            updated_at=None
+        ),
+        UserSchema(
+            id=uuid4(),
+            name="James Martinez",
+            password=get_hashed_password('admin'),
+            email="james.martinez@example.com",
+            role=["Credit Analyst", "Relationship Manager"],
+            created_at=None,
+            updated_at=None
+        ),
+        UserSchema(
+            id=uuid4(),
+            name="Rachel Lee",
+            password=get_hashed_password('admin'),
+            email="rachel.lee@example.com",
+            role=["BU Head", "Country Head"],
+            created_at=None,
+            updated_at=None
+        ),
+        UserSchema(
+            id=uuid4(),
+            name="David Wilson",
+            password=get_hashed_password('admin'),
+            email="david.wilson@example.com",
+            role=["CRO"],
+            created_at=None,
+            updated_at=None
+        ),
+        UserSchema(
+            id=uuid4(),
+            name="Lisa Anderson",
+            password=get_hashed_password('admin'),
+            email="lisa.anderson@example.com",
+            role=["CEO"],
+            created_at=None,
+            updated_at=None
+        )
+    ]
+
+    # Add the users to the database
+    for user_schema in default_users:
+        session.add(User(**user_schema.model_dump()))
+
+    session.commit()
+
 
 if __name__ == "__main__":
     init_db(DB_NAME)

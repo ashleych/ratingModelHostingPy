@@ -1,5 +1,5 @@
 from fastapi.encoders import jsonable_encoder
-from models.policy_rules_model import PolicyRules, WorkflowStageConfig
+from models.policy_rules_model import PolicyRule, WorkflowStageConfig
 from models.statement_models import LineItemMeta, LineItemValue
 from models.models import Role
 from services.policy_service import PolicyRulesService
@@ -75,7 +75,7 @@ async def list_policy_rules(
     is_htmx: bool = False
 ):
     """List all policy rules."""
-    policy_rules = db.query(PolicyRules).all()
+    policy_rules = db.query(PolicyRule).all()
 
     if is_htmx:
         return templates.TemplateResponse(
@@ -128,7 +128,7 @@ async def create_policy_rule(
     form_data = await request.form()
 
     # Create main policy rule
-    policy_rule = PolicyRules(
+    policy_rule = PolicyRule(
         name=form_data.get("name"),
         business_unit_id=form_data.get("business_unit"),
         description=form_data.get("description"),
@@ -199,12 +199,12 @@ async def view_policy_rule(
 ):
     """Get policy rule details."""
     policy = (
-        db.query(PolicyRules)
+        db.query(PolicyRule)
         .options(
-            joinedload(PolicyRules.business_unit),
-            joinedload(PolicyRules.workflow_stages)
+            joinedload(PolicyRule.business_unit),
+            joinedload(PolicyRule.workflow_stages)
         )
-        .filter(PolicyRules.id == policy_id)
+        .filter(PolicyRule.id == policy_id)
         .first()
     )
     
@@ -245,12 +245,12 @@ async def edit_policy_rule(
 ):
     """Show edit policy rule form."""
     policy = (
-        db.query(PolicyRules)
+        db.query(PolicyRule)
         .options(
-            joinedload(PolicyRules.business_unit),
-            joinedload(PolicyRules.workflow_stages)
+            joinedload(PolicyRule.business_unit),
+            joinedload(PolicyRule.workflow_stages)
         )
-        .filter(PolicyRules.id == policy_id)
+        .filter(PolicyRule.id == policy_id)
         .first()
     )
     
@@ -294,7 +294,7 @@ async def update_policy_rule(
     """Update an existing policy rule."""
     form_data = await request.form()
     
-    policy = db.query(PolicyRules).filter(PolicyRules.id == policy_id).first()
+    policy = db.query(PolicyRule).filter(PolicyRule.id == policy_id).first()
     if not policy:
         raise HTTPException(status_code=404, detail="Policy rule not found")
 
@@ -466,8 +466,8 @@ async def delete_policy_rule(
     current_user: User = Depends(auth_handler.auth_wrapper)
 ):
     """Delete a policy rule."""
-    policy_rule = db.query(PolicyRules).filter(
-        PolicyRules.id == policy_id).first()
+    policy_rule = db.query(PolicyRule).filter(
+        PolicyRule.id == policy_id).first()
     if not policy_rule:
         raise HTTPException(status_code=404, detail="Policy rule not found")
 

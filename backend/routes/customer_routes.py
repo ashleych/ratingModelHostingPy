@@ -1,17 +1,15 @@
-from fastapi import APIRouter, Request, Form, HTTPException,Depends
+from db.database import SessionLocal, engine
+from dependencies import auth_handler, get_db
+from fastapi import APIRouter, Depends, Form, HTTPException, Request
 from fastapi.responses import RedirectResponse
-
-
 from fastapi.templating import Jinja2Templates
-from models.rating_instance_model import RatingFactorScore
+from models.models import BusinessUnit, Customer
+from models.rating_instance_model import RatingFactorScore, RatingInstance
 from models.rating_model_model import RatingFactor, RatingModel
 from models.statement_models import FinancialStatement
-from models.rating_instance_model import RatingInstance
-from models.models import Customer,BusinessUnit
-from sqlalchemy.orm import Session
-from db.database import SessionLocal, engine
 from schema.schema import User
-from dependencies import get_db,auth_handler
+from sqlalchemy.orm import Session, joinedload
+
 router = APIRouter()
 
 templates = Jinja2Templates(directory="../frontend/templates")
@@ -33,7 +31,8 @@ async def new_customer(request: Request,  current_user:User = Depends(auth_handl
     return templates.TemplateResponse("customers/partials/new.html", {"request": request,'user':current_user,"business_units": business_units,"is_htmx":is_htmx})
 
 
-from sqlalchemy.orm import joinedload
+
+
 @router.get("/customers/{customer_id}")
 async def customer_detail(request: Request, customer_id: str, current_user:User = Depends(auth_handler.auth_wrapper),db: Session = Depends(get_db)):
     customer = (db.query(Customer)

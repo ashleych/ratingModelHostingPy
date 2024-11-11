@@ -1,20 +1,14 @@
-import string
-from pydantic import ConfigDict, BaseModel
-from sqlalchemy import ForeignKeyConstraint
-from sqlalchemy import Column, DateTime, UUID, null
-
-from sqlalchemy.sql import func
-from sqlalchemy.ext.declarative import as_declarative, declared_attr
-
-from sqlalchemy import Column, String, Float, Boolean, ForeignKey, JSON
-from sqlalchemy.orm import relationship
-from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.sql import func
 import enum
+import string
+
+from pydantic import BaseModel, ConfigDict
+from sqlalchemy import (JSON, UUID, Boolean, Column, DateTime, ForeignKey, ForeignKeyConstraint, String, null)
+from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.ext.declarative import as_declarative, declared_attr
+from sqlalchemy.orm import Session, relationship
+from sqlalchemy.sql import func
 
 from .base import Base
-from sqlalchemy.orm import Session
-
 
 
 class Role(Base):
@@ -24,9 +18,6 @@ class Role(Base):
 # class WorkflowActionType(enum.Enum):
 #     DRAFT = "draft"
     # Add other types as needed
-
-class TemplateSourceCSV(Base):
-    source_path = Column(String)
 
 class User(Base):
     __table__name= 'users'
@@ -41,9 +32,6 @@ class BusinessUnit(Base):
     template_id = Column(UUID, ForeignKey('template.id'),nullable=True)
     template = relationship("Template")
 
-class MasterRatingScale(Base):
-    rating_grade = Column(String, unique=True, nullable=False)
-    pd = Column(Float, nullable=False)
 class Customer(Base):
     customer_name = Column(String, nullable=False)
     cif_number = Column(String, nullable=False)

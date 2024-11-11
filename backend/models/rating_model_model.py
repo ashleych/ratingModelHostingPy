@@ -17,7 +17,6 @@ from .base import Base
 from typing import List
 from sqlalchemy.orm import Session
 
-from schema.schema import WorkflowStatus
 
 
 class RatingFactor(Base):
@@ -47,6 +46,13 @@ class RatingModel(Base):
 
     template = relationship("Template")
 
+
+class RatingModelApplicabilityRules(Base):
+    rating_model_id = Column(UUID, ForeignKey('ratingmodel.id'),nullable=False)
+    business_unit_id = Column(UUID, ForeignKey('businessunit.id'))
+
+    rating_model = relationship("RatingModel")
+    business_unit = relationship("BusinessUnit")
 
 class RatingFactorAttribute(Base):
 
@@ -91,3 +97,12 @@ class ScoreToGradeMapping(Base):
     grade=Column(String)
 
     rating_model = relationship("RatingModel")
+
+
+class TemplateSourceCSV(Base):
+    source_path = Column(String)
+
+
+class MasterRatingScale(Base):
+    rating_grade = Column(String, unique=True, nullable=False)
+    pd = Column(Float, nullable=False)

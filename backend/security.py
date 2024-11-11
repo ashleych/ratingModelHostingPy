@@ -1,3 +1,4 @@
+import bcrypt
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from fastapi import Security
 from passlib.context import CryptContext
@@ -90,3 +91,13 @@ class AuthHandler():
 
 class RequiresLoginException(Exception):
     pass
+
+
+def get_hashed_password(password: str) -> str:
+        # Convert the password to bytes
+        password_bytes = password.encode('utf-8')
+        # Generate a salt and hash the password
+        salt = bcrypt.gensalt()
+        hashed = bcrypt.hashpw(password_bytes, salt)
+        # Return the hash as a string
+        return hashed.decode('utf-8')

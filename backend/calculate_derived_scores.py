@@ -1,26 +1,23 @@
-from sqlalchemy.orm import Session
-from sqlalchemy import and_
-from typing import Dict, List, Optional,Tuple
-from models.rating_model_model import FactorInputSource, ScoreToGradeMapping
-from models.statement_models import Template
-from models.rating_instance_model import RatingFactorScore
-from models.rating_model_model import RatingFactor, RatingModel
-from models.statement_models import FinancialStatement
-from models.rating_instance_model import RatingInstance
-from models.rating_model_model import RatingFactorAttribute
-from sqlalchemy import Column, Integer, String, Float, Boolean, ForeignKey
-from sqlalchemy.orm import relationship, Session
-from sqlalchemy.ext.declarative import declarative_base
-from pydantic import BaseModel
-from typing import List, Optional, Dict
 import enum
 from decimal import Decimal
+from typing import Dict, List, Optional, Tuple
 
-from rating_model import configure_rating_model_factors, get_or_create_rating_model
-
-
-
+from models.rating_instance_model import RatingFactorScore, RatingInstance
+from models.rating_model_model import (
+    FactorInputSource,
+    RatingFactor,
+    RatingFactorAttribute,
+    RatingModel,
+    ScoreToGradeMapping,
+)
+from models.statement_models import FinancialStatement, Template
 from py_expression_eval import Parser
+from pydantic import BaseModel
+from rating_model import configure_rating_model_factors, get_or_create_rating_model
+from sqlalchemy import Boolean, Column, Float, ForeignKey, Integer, String, and_
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import Session, relationship
+
 
 class FactorNode:
     def __init__(self, factor: RatingFactor):
@@ -220,14 +217,14 @@ def update_or_create_score(db: Session, rating_instance_id: int, factor_id: str,
         raise
 
     return factor_score
+
 if __name__ == "__main__":
-    from sqlalchemy import create_engine
-    from sqlalchemy.orm import sessionmaker
+    from customer_financial_statement import FsApp
+    from main import DB_NAME, create_engine_and_session, init_db
     from models.rating_model_model import ScoreToGradeMapping
     from schema import schema
-
-    from main import create_engine_and_session, DB_NAME,init_db
-    from customer_financial_statement import FsApp
+    from sqlalchemy import create_engine
+    from sqlalchemy.orm import sessionmaker
     init_db(DB_NAME)
     _, db = create_engine_and_session(DB_NAME)
     configure_rating_model_factors(db)

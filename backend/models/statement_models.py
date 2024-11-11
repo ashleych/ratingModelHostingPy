@@ -18,7 +18,6 @@ from .base import Base
 from typing import List
 from sqlalchemy.orm import Session
 
-from schema.schema import WorkflowStatus
 
 
 class FinancialStatement(Base):

@@ -28,6 +28,7 @@ class NullableFloat:
     def __init__(self, value: float = None):
         self.value = value
         self.valid = value is not None
+
 class FsApp:
     def __init__(self, db: Session):
         self.db = db
@@ -499,6 +500,7 @@ class FsApp:
         self.db.commit()
 
         return updated_derived_values_map
+
     def find_best_preceding_statement(self, customer_id: UUID, statement_date: datetime = None):
         """
         Find the best preceding statement based on hierarchy:

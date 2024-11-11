@@ -4,7 +4,7 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 import starlette
 from models.rating_instance_model import RatingFactorScore
-from models.rating_model_model import RatingFactor, RatingModel
+from models.rating_model_model import RatingFactor, RatingFactorAttribute, RatingModel
 from models.statement_models import FinancialStatement
 from models.rating_instance_model import RatingInstance
 from db.database import SessionLocal

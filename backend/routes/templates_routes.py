@@ -4,7 +4,7 @@ from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 from models.statement_models import Template
-from models.models import TemplateSourceCSV
+from models.rating_model_model import TemplateSourceCSV
 from dependencies import get_db, auth_handler
 from uuid import UUID
 

@@ -7,8 +7,8 @@ from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
 
-class PolicyRules(Base):
-    __tablename__ = 'policy_rules'
+class PolicyRule(Base):
+    __tablename__ = 'policy_rule'
 
     business_unit_id = Column(UUID, ForeignKey('businessunit.id'), nullable=False)
     name = Column(String, nullable=False)
@@ -16,14 +16,14 @@ class PolicyRules(Base):
     is_active = Column(Boolean, default=True)
 
     # Relationships
-    workflow_stages = relationship("WorkflowStageConfig", back_populates="policy")
+    workflow_stages = relationship("WorkflowStageConfig")
     business_unit = relationship("BusinessUnit", lazy='joined')
 
 
 class WorkflowStageConfig(Base):
     __tablename__ = 'workflow_stage_config'
 
-    policy_id = Column(UUID, ForeignKey('policy_rules.id'), nullable=False)
+    policy_id = Column(UUID, ForeignKey('policy_rule.id'), nullable=False)
     stage = Column(SQLAlchemyEnum(WorkflowStage), nullable=False)
     min_count = Column(Integer, nullable=False, default=1)
     allowed_roles = Column(JSON, nullable=False)  # List of role IDs that can perform this stage
@@ -34,4 +34,4 @@ class WorkflowStageConfig(Base):
     is_sequential = Column(Boolean, default=True)
     rejection_flow = Column(SQLAlchemyEnum(RejectionFlow), default=RejectionFlow.TO_MAKER)
 
-    policy = relationship("PolicyRules", back_populates="workflow_stages")
+    policy = relationship("PolicyRule", back_populates="workflow_stages")
