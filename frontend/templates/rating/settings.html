@@ -15,8 +15,9 @@
                     
                     <!-- View Options -->
                     <div class="px-4 py-2 text-sm text-gray-700 dark:text-gray-300 font-medium">View Options</div>
-                    <a href="{{ url_for('view_customer_rating', customer_id=customer.id ).include_query_params(rating_instance_id=rating_instance.id,view_type='tabbed') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700 pl-8">Tabbed View</a>
-                    <a href="{{ url_for('view_customer_rating', customer_id=customer.id ).include_query_params(rating_instance_id=rating_instance.id,view_type='single') }}"  class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700 pl-8">Single Page View</a>
+                    
+                    <a href="{{ url_for('view_customer_rating', customer_id=customer.id ).include_query_params(rating_instance_id=rating_instance.id,view_type='tabbed',workflow_action_id=workflow_action.id) }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700 pl-8">Tabbed View</a>
+                    <a href="{{ url_for('view_customer_rating', customer_id=customer.id ).include_query_params(rating_instance_id=rating_instance.id,view_type='single',workflow_action_id=workflow_action.id) }}"  class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700 pl-8">Single Page View</a>
                     
                     <!-- Download Options -->
                     <div class="mt-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 font-medium">Download Options</div>
@@ -26,3 +27,125 @@
             </div>
         </div>
     </div>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const tabs = document.querySelectorAll('.tab-link');
+    const tabContents = document.querySelectorAll('.tab-content');
+    const settingsButton = document.getElementById('settingsButton');
+    const settingsMenu = document.getElementById('settingsMenu');
+
+    const editButtons = document.querySelectorAll('.edit-btn');
+        function activateTab(tabName) {
+            tabContents.forEach(content => content.classList.add('hidden'));
+            tabs.forEach(tab => tab.classList.remove('active'));
+
+            const activeContent = document.getElementById(tabName);
+            const activeTab = document.querySelector(`[data-tab="${tabName}"]`);
+
+            if (activeContent) activeContent.classList.remove('hidden');
+            if (activeTab) activeTab.classList.add('active');
+        }
+    tabs.forEach(tab => {
+        tab.addEventListener('click', (e) => {
+            e.preventDefault();
+            activateTab(tab.getAttribute('data-tab'));
+        });
+    });
+
+    // Activate the first tab by default in tabbed view
+    if (tabs.length > 0 && '{{ view_type }}' === 'tabbed') {
+        activateTab(tabs[0].getAttribute('data-tab'));
+    }
+
+    // Toggle settings menu
+    settingsButton.addEventListener('click', () => {
+        settingsMenu.classList.toggle('hidden');
+    });
+
+    // Close settings menu when clicking outside
+    document.addEventListener('click', (e) => {
+        if (!settingsButton.contains(e.target) && !settingsMenu.contains(e.target)) {
+            settingsMenu.classList.add('hidden');
+        }
+    });
+});
+
+</script>
+<script>
+
+function initializeSettings() {
+    const settingsButton = document.getElementById('settingsButton');
+    const settingsMenu = document.getElementById('settingsMenu');
+
+    if (!settingsButton || !settingsMenu) return;
+
+    // Remove any existing event listeners
+    const newSettingsButton = settingsButton.cloneNode(true);
+    settingsButton.parentNode.replaceChild(newSettingsButton, settingsButton);
+    
+    // Add click handler for settings button
+    newSettingsButton.addEventListener('click', (e) => {
+        e.stopPropagation();
+        settingsMenu.classList.toggle('hidden');
+    });
+
+    // Add click handler for document to close menu when clicking outside
+    const documentClickHandler = (e) => {
+        if (!settingsMenu.contains(e.target) && !newSettingsButton.contains(e.target)) {
+            settingsMenu.classList.add('hidden');
+        }
+    };
+
+    // Remove existing listener and add new one
+    document.removeEventListener('click', documentClickHandler);
+    document.addEventListener('click', documentClickHandler);
+}
+
+// Initialize on DOM content loaded
+document.addEventListener('DOMContentLoaded', initializeSettings);
+
+// Re-initialize after HTMX content swap
+document.body.addEventListener('htmx:afterSwap', initializeSettings);
+
+// Re-initialize after HTMX content load
+document.body.addEventListener('htmx:load', initializeSettings);
+
+</script>
+<script>
+    (function() {
+        function initializeTabs() {
+            const tabs = document.querySelectorAll('.tab-link');
+            const tabContents = document.querySelectorAll('.tab-content');
+
+            function activateTab(tabName) {
+                tabContents.forEach(content => content.classList.add('hidden'));
+                tabs.forEach(tab => tab.classList.remove('active'));
+
+                const activeContent = document.getElementById(tabName);
+                const activeTab = document.querySelector(`[data-tab="${tabName}"]`);
+
+                if (activeContent) activeContent.classList.remove('hidden');
+                if (activeTab) activeTab.classList.add('active');
+            }
+
+            tabs.forEach(tab => {
+                tab.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const tabName = tab.getAttribute('data-tab');
+                    activateTab(tabName);
+                });
+            });
+
+            // Activate first tab by default in tabbed view
+            if (tabs.length > 0 && '{{ view_type }}' === 'tabbed') {
+                activateTab(tabs[0].getAttribute('data-tab'));
+            }
+        }
+
+        // Initialize on DOM load
+        initializeTabs();
+
+        // Re-initialize after HTMX content swap
+        document.body.addEventListener('htmx:afterSwap', initializeTabs);
+    })();
+</script>

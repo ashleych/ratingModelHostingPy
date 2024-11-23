@@ -3,10 +3,12 @@ from dependencies import auth_handler, get_db
 from fastapi import APIRouter, Depends, Form, HTTPException, Request
 from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
+from enums_and_constants import WorkflowStage
 from models.models import BusinessUnit, Customer
 from models.rating_instance_model import RatingFactorScore, RatingInstance
 from models.rating_model_model import RatingFactor, RatingModel
 from models.statement_models import FinancialStatement
+from models.workflow_model import WorkflowAction
 from schema.schema import User
 from sqlalchemy.orm import Session, joinedload
 
@@ -30,8 +32,76 @@ async def new_customer(request: Request,  current_user:User = Depends(auth_handl
     is_htmx = request.headers.get("HX-Request") == "true"
     return templates.TemplateResponse("customers/partials/new.html", {"request": request,'user':current_user,"business_units": business_units,"is_htmx":is_htmx})
 
+from uuid import UUID
 
+from typing import List, Dict, Union
+from uuid import UUID
 
+def organise_workflow_actions(workflow_action_ids: List[Union[UUID, str]], db: Session) -> Dict[UUID, UUID]:
+    """
+    Organizes workflow actions by financial statement ID.
+    Prioritizes APPROVED stage actions, falls back to head=True actions if no APPROVED found.
+    
+    Args:
+        workflow_action_ids: List of workflow action IDs to organize
+        db: SQLAlchemy database session
+        
+    Returns:
+        Dict mapping financial statement IDs to their most relevant workflow action IDs
+    """
+    # Query workflow actions with their related rating instances
+    wf_actions = (
+        db.query(WorkflowAction)
+        .filter(WorkflowAction.id.in_(workflow_action_ids))
+        .join(WorkflowAction.rating_instance)
+        .all()
+    )
+    
+    # Group by financial statement ID
+    actions_by_statement: Dict[UUID, List[WorkflowAction]] = {}
+    for action in wf_actions:
+        if not action.rating_instance:
+            continue
+            
+        fin_stmt_id = action.rating_instance.financial_statement_id
+        if fin_stmt_id not in actions_by_statement:
+            actions_by_statement[fin_stmt_id] = []
+        actions_by_statement[fin_stmt_id].append(action)
+    
+    result: Dict[UUID, UUID] = {}
+    
+    # Process each financial statement's workflow actions
+    for fin_stmt_id, actions in actions_by_statement.items():
+        # First look for APPROVED stage actions
+        approved_actions = [
+            action for action in actions 
+            if action.workflow_stage == WorkflowStage.APPROVED
+        ]
+        
+        if approved_actions:
+            # Take the latest approved action
+            latest_approved = max(
+                approved_actions,
+                key=lambda x: x.created_at
+            )
+            result[fin_stmt_id] = latest_approved.id
+            continue
+            
+        # If no approved actions, look for head=True actions
+        head_actions = [
+            action for action in actions 
+            if action.head == True and not action.is_stale
+        ]
+        
+        if head_actions:
+            # Take the latest head action
+            latest_head = max(
+                head_actions,
+                key=lambda x: x.created_at
+            )
+            result[fin_stmt_id] = latest_head.id
+    
+    return result
 
 @router.get("/customers/{customer_id}")
 async def customer_detail(request: Request, customer_id: str, current_user:User = Depends(auth_handler.auth_wrapper),db: Session = Depends(get_db)):
@@ -54,17 +124,37 @@ async def customer_detail(request: Request, customer_id: str, current_user:User 
     # rating_instances = db.query(RatingInstance).filter(RatingInstance.financial_statement_id.in_(statement_ids)).all()
         # Fetch rating instances with rating model info for all statements
     statement_ids = [statement.id for statement in statements]
-    rating_instances = (db.query(RatingInstance, RatingModel)
+    workflow_actions = db.query(WorkflowAction).filter(WorkflowAction.head==True).all()
+    workflow_action_ids = [wf.id for wf in workflow_actions]
+
+    statement_wise_workflow_actions= organise_workflow_actions(workflow_action_ids=workflow_action_ids,db=db)
+    
+    def get_rating_instance_from_workflow_action_id(wf_id: str| UUID,db:Session):
+        return db.query(WorkflowAction).filter(WorkflowAction.id==wf_id).first().rating_instance_id
+
+
+        
+    rating_instance_ids= [get_rating_instance_from_workflow_action_id(wf_id,db) for stmt_id,wf_id in  statement_wise_workflow_actions.items()  ]
+
+    # rating_instances = (db.query(RatingInstance, RatingModel)
+    #     .join(RatingModel, RatingInstance.rating_model_id == RatingModel.id)
+    #     .filter(RatingInstance.id.in_(rating_instance_ids))
+    #     .all())
+    rating_instances = (
+        db.query(RatingInstance, RatingModel, WorkflowAction)
         .join(RatingModel, RatingInstance.rating_model_id == RatingModel.id)
-        .filter(RatingInstance.financial_statement_id.in_(statement_ids))
-        .all())
+        .join(WorkflowAction, RatingInstance.id == WorkflowAction.rating_instance_id)
+        .filter(WorkflowAction.id.in_(list(statement_wise_workflow_actions.values())))
+        .all()
+    )
+    # rating_instances = db.query(RatingInstance).filter(RatingInstance.id.in_(rating_instance_ids)).all()
     # Create a dictionary mapping financial statement IDs to rating instances
     # rating_map = {ri.financial_statement_id: ri for ri in rating_instances}
-    rating_map = {ri.financial_statement_id: ri for ri, _ in rating_instances}
+    # rating_map = {ri.financial_statement_id: ri[0] for ri in rating_instances}
 
-    # Attach rating instances to statements
-    for statement in statements:
-        statement.rating_instance = rating_map.get(statement.id)
+    # # Attach rating instances to statements
+    # for statement in statements:
+    #     statement.rating_instance = rating_map.get(statement.id)
     
     is_htmx = request.headers.get("HX-Request") == "true"
     return templates.TemplateResponse("customers/partials/detail.html", {
@@ -73,7 +163,10 @@ async def customer_detail(request: Request, customer_id: str, current_user:User 
         "rating_instances": rating_instances, 
         "statements": statements,
         "business_unit":business_unit_obj,
-        "is_htmx":is_htmx
+        "is_htmx":is_htmx,
+        'statement_wise_workflow_actions':statement_wise_workflow_actions
+
+
     })
 
 @router.delete("/customers/{customer_id}")

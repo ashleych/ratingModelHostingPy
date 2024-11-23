@@ -1,8 +1,8 @@
 from fastapi.encoders import jsonable_encoder
-from models.policy_rules_model import PolicyRule, WorkflowStageConfig
+from models.policy_rules_model import PolicyRule
 from models.statement_models import LineItemMeta, LineItemValue
 from models.models import Role
-from services.policy_service import PolicyRulesService
+# from services.policy_service import PolicyRulesService
 import json
 import logging
 from fastapi import APIRouter, Request, Form, HTTPException, Depends, Query, status
@@ -26,6 +26,7 @@ import re
 from typing import Tuple
 from dependencies import get_db, auth_handler
 
+from models.policy_rules_model import RatingAccessRule
 from schema.schema import PolicyRulesCreate, PolicyRulesResponse, User
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.orm import Session
@@ -118,123 +119,123 @@ async def new_policy_rule(
         }
     )
 
-@router.post("/", response_model=PolicyRuleResponse)
-async def create_policy_rule(
-    request: Request,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(auth_handler.auth_wrapper)
-):
-    """Create a new policy rule."""
-    form_data = await request.form()
+# @router.post("/", response_model=PolicyRuleResponse)
+# async def create_policy_rule(
+#     request: Request,
+#     db: Session = Depends(get_db),
+#     current_user: User = Depends(auth_handler.auth_wrapper)
+# ):
+#     """Create a new policy rule."""
+#     form_data = await request.form()
 
-    # Create main policy rule
-    policy_rule = PolicyRule(
-        name=form_data.get("name"),
-        business_unit_id=form_data.get("business_unit"),
-        description=form_data.get("description"),
-        is_active=True,
-    )
-    db.add(policy_rule)
-    db.flush()
+#     # Create main policy rule
+#     policy_rule = PolicyRule(
+#         name=form_data.get("name"),
+#         business_unit_id=form_data.get("business_unit"),
+#         description=form_data.get("description"),
+#         is_active=True,
+#     )
+#     db.add(policy_rule)
+#     db.flush()
 
-    # Create workflow stages
-    stages = [
-        {
-            "stage": WorkflowStage.MAKER,
-            "roles": form_data.getlist("maker_roles"),
-            "rights": form_data.getlist("maker_rights"),
-            "min_count": 1
-        },
-        {
-            "stage": WorkflowStage.CHECKER,
-            "roles": form_data.getlist("checker_roles"),
-            "rights": form_data.getlist("checker_rights"),
-            "min_count": int(form_data.get("min_checkers", 1))
-        },
-        {
-            "stage": WorkflowStage.APPROVER,
-            "roles": form_data.getlist("approver_roles"),
-            "rights": form_data.getlist("approver_rights"),
-            "min_count": int(form_data.get("min_approvers", 1)),
-            "sequential_approval": form_data.get("sequential_approval") == "on",
-            "rejection_flow": RejectionFlow.from_string(form_data.get("rejection_flow"))
-        }
-    ]
+#     # Create workflow stages
+#     stages = [
+#         {
+#             "stage": WorkflowStage.MAKER,
+#             "roles": form_data.getlist("maker_roles"),
+#             "rights": form_data.getlist("maker_rights"),
+#             "min_count": 1
+#         },
+#         {
+#             "stage": WorkflowStage.CHECKER,
+#             "roles": form_data.getlist("checker_roles"),
+#             "rights": form_data.getlist("checker_rights"),
+#             "min_count": int(form_data.get("min_checkers", 1))
+#         },
+#         {
+#             "stage": WorkflowStage.APPROVER,
+#             "roles": form_data.getlist("approver_roles"),
+#             "rights": form_data.getlist("approver_rights"),
+#             "min_count": int(form_data.get("min_approvers", 1)),
+#             "sequential_approval": form_data.get("sequential_approval") == "on",
+#             "rejection_flow": RejectionFlow.from_string(form_data.get("rejection_flow"))
+#         }
+#     ]
 
-    for stage_config in stages:
+#     for stage_config in stages:
 
-        workflow_stage = WorkflowStageConfig(
-            policy_id=policy_rule.id,
-            stage=stage_config["stage"],
-            allowed_roles=stage_config["roles"],
-            rights=stage_config["rights"],
-            min_count=stage_config["min_count"],
-
-
-        )
-        if stage_config['stage'] == WorkflowStage.APPROVER:
-            workflow_stage.is_sequential = stage_config["sequential_approval"]
-            workflow_stage.rejection_flow = stage_config["rejection_flow"]
-
-        db.add(workflow_stage)
-
-    db.commit()
-
-    return templates.TemplateResponse(
-        "policy_rules/partials/detail.html",
-        {
-            "request": request,
-            "policy": policy_rule,
-            "is_htmx": request.headers.get("HX-Request") == "true"
-        }
-    )
+#         workflow_stage = WorkflowStageConfig(
+#             policy_id=policy_rule.id,
+#             stage=stage_config["stage"],
+#             allowed_roles=stage_config["roles"],
+#             rights=stage_config["rights"],
+#             min_count=stage_config["min_count"],
 
 
-@router.get("/view/{policy_id}", response_model=PolicyRuleResponse)
-async def view_policy_rule(
-    policy_id: str,
-    request: Request,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(auth_handler.auth_wrapper)
-):
-    """Get policy rule details."""
-    policy = (
-        db.query(PolicyRule)
-        .options(
-            joinedload(PolicyRule.business_unit),
-            joinedload(PolicyRule.workflow_stages)
-        )
-        .filter(PolicyRule.id == policy_id)
-        .first()
-    )
+#         )
+#         if stage_config['stage'] == WorkflowStage.APPROVER:
+#             workflow_stage.is_sequential = stage_config["sequential_approval"]
+#             workflow_stage.rejection_flow = stage_config["rejection_flow"]
+
+#         db.add(workflow_stage)
+
+#     db.commit()
+
+#     return templates.TemplateResponse(
+#         "policy_rules/partials/detail.html",
+#         {
+#             "request": request,
+#             "policy": policy_rule,
+#             "is_htmx": request.headers.get("HX-Request") == "true"
+#         }
+#     )
+
+
+# @router.get("/view/{policy_id}", response_model=PolicyRuleResponse)
+# async def view_policy_rule(
+#     policy_id: str,
+#     request: Request,
+#     db: Session = Depends(get_db),
+#     current_user: User = Depends(auth_handler.auth_wrapper)
+# ):
+#     """Get policy rule details."""
+#     policy = (
+#         db.query(PolicyRule)
+#         .options(
+#             joinedload(PolicyRule.business_unit),
+#             joinedload(PolicyRule.workflow_stages)
+#         )
+#         .filter(PolicyRule.id == policy_id)
+#         .first()
+#     )
     
-    if not policy:
-        raise HTTPException(status_code=404, detail="Policy rule not found")
+#     if not policy:
+#         raise HTTPException(status_code=404, detail="Policy rule not found")
     
-    roles = db.query(Role).all()
+#     roles = db.query(Role).all()
 
-    # Group workflow stages by type for easier template access
-    workflow_config = {
-        WorkflowStage.MAKER: None,
-        WorkflowStage.CHECKER: None,
-        WorkflowStage.APPROVER: None
-    }
+#     # Group workflow stages by type for easier template access
+#     workflow_config = {
+#         WorkflowStage.MAKER: None,
+#         WorkflowStage.CHECKER: None,
+#         WorkflowStage.APPROVER: None
+#     }
     
-    for stage in policy.workflow_stages:
-        workflow_config[stage.stage] = stage
+#     for stage in policy.workflow_stages:
+#         workflow_config[stage.stage] = stage
 
-    return templates.TemplateResponse(
-        "policy_rules/partials/detail.html",
-        {
-            "request": request,
-            "policy": policy,
-            "roles": jsonable_encoder(roles),
-            "action_rights": ActionRight,
-            "workflow_config": workflow_config,
-            "WorkflowStage": WorkflowStage,
-            "is_htmx": request.headers.get("HX-Request") == "true"
-        }
-    )
+#     return templates.TemplateResponse(
+#         "policy_rules/partials/detail.html",
+#         {
+#             "request": request,
+#             "policy": policy,
+#             "roles": jsonable_encoder(roles),
+#             "action_rights": ActionRight,
+#             "workflow_config": workflow_config,
+#             "WorkflowStage": WorkflowStage,
+#             "is_htmx": request.headers.get("HX-Request") == "true"
+#         }
+#     )
 
 @router.get("/{policy_id}/edit")
 async def edit_policy_rule(
@@ -284,77 +285,77 @@ async def edit_policy_rule(
         }
     )
 
-@router.post("/{policy_id}")
-async def update_policy_rule(
-    policy_id: str,
-    request: Request,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(auth_handler.auth_wrapper)
-):
-    """Update an existing policy rule."""
-    form_data = await request.form()
+# @router.post("/{policy_id}")
+# async def update_policy_rule(
+#     policy_id: str,
+#     request: Request,
+#     db: Session = Depends(get_db),
+#     current_user: User = Depends(auth_handler.auth_wrapper)
+# ):
+#     """Update an existing policy rule."""
+#     form_data = await request.form()
     
-    policy = db.query(PolicyRule).filter(PolicyRule.id == policy_id).first()
-    if not policy:
-        raise HTTPException(status_code=404, detail="Policy rule not found")
+#     policy = db.query(PolicyRule).filter(PolicyRule.id == policy_id).first()
+#     if not policy:
+#         raise HTTPException(status_code=404, detail="Policy rule not found")
 
-    # Update main policy rule
-    policy.name = form_data.get("name")
-    policy.business_unit_id = form_data.get("business_unit")
-    policy.description = form_data.get("description")
+#     # Update main policy rule
+#     policy.name = form_data.get("name")
+#     policy.business_unit_id = form_data.get("business_unit")
+#     policy.description = form_data.get("description")
 
-    # Delete existing workflow stages
-    db.query(WorkflowStageConfig).filter(
-        WorkflowStageConfig.policy_id == policy_id
-    ).delete()
+#     # Delete existing workflow stages
+#     db.query(WorkflowStageConfig).filter(
+#         WorkflowStageConfig.policy_id == policy_id
+#     ).delete()
     
-    # Create new workflow stages
-    stages = [
-        {
-            "stage": WorkflowStage.MAKER,
-            "roles": form_data.getlist("maker_roles"),
-            "rights": form_data.getlist("maker_rights"),
-            "min_count": 1
-        },
-        {
-            "stage": WorkflowStage.CHECKER,
-            "roles": form_data.getlist("checker_roles"),
-            "rights": form_data.getlist("checker_rights"),
-            "min_count": int(form_data.get("min_checkers", 1))
-        },
-        {
-            "stage": WorkflowStage.APPROVER,
-            "roles": form_data.getlist("approver_roles"),
-            "rights": form_data.getlist("approver_rights"),
-            "min_count": int(form_data.get("min_approvers", 1)),
-            "sequential_approval": form_data.get("sequential_approval") == "on",
-            "rejection_flow": RejectionFlow.from_string(form_data.get("rejection_flow"))
-        }
-    ]
+#     # Create new workflow stages
+#     stages = [
+#         {
+#             "stage": WorkflowStage.MAKER,
+#             "roles": form_data.getlist("maker_roles"),
+#             "rights": form_data.getlist("maker_rights"),
+#             "min_count": 1
+#         },
+#         {
+#             "stage": WorkflowStage.CHECKER,
+#             "roles": form_data.getlist("checker_roles"),
+#             "rights": form_data.getlist("checker_rights"),
+#             "min_count": int(form_data.get("min_checkers", 1))
+#         },
+#         {
+#             "stage": WorkflowStage.APPROVER,
+#             "roles": form_data.getlist("approver_roles"),
+#             "rights": form_data.getlist("approver_rights"),
+#             "min_count": int(form_data.get("min_approvers", 1)),
+#             "sequential_approval": form_data.get("sequential_approval") == "on",
+#             "rejection_flow": RejectionFlow.from_string(form_data.get("rejection_flow"))
+#         }
+#     ]
 
-    for stage_config in stages:
-        workflow_stage = WorkflowStageConfig(
-            policy_id=policy.id,
-            stage=stage_config["stage"],
-            allowed_roles=stage_config["roles"],
-            rights=stage_config["rights"],
-            min_count=stage_config["min_count"]
-        )
+#     for stage_config in stages:
+#         workflow_stage = WorkflowStageConfig(
+#             policy_id=policy.id,
+#             stage=stage_config["stage"],
+#             allowed_roles=stage_config["roles"],
+#             rights=stage_config["rights"],
+#             min_count=stage_config["min_count"]
+#         )
         
-        if stage_config['stage'] == WorkflowStage.APPROVER:
-            workflow_stage.is_sequential = stage_config["sequential_approval"]
-            workflow_stage.rejection_flow = stage_config["rejection_flow"]
+#         if stage_config['stage'] == WorkflowStage.APPROVER:
+#             workflow_stage.is_sequential = stage_config["sequential_approval"]
+#             workflow_stage.rejection_flow = stage_config["rejection_flow"]
 
-        db.add(workflow_stage)
+#         db.add(workflow_stage)
 
-    db.commit()
-    db.refresh(policy)
+#     db.commit()
+#     db.refresh(policy)
 
-    # Redirect to detail view
-    return RedirectResponse(
-        url=request.url_for('view_policy_rule', policy_id=policy.id),
-        status_code=303
-    )
+#     # Redirect to detail view
+#     return RedirectResponse(
+#         url=request.url_for('view_policy_rule', policy_id=policy.id),
+#         status_code=303
+#     )
 
 # @router.get("/{policy_id}/edit")
 # async def edit_policy_rule(
@@ -534,3 +535,177 @@ async def delete_policy_rule(
 #             "is_htmx": True
 #         }
 #     )
+@router.post("/", response_model=PolicyRuleResponse)
+async def create_policy_rule(
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(auth_handler.auth_wrapper)
+):
+    """Create a new policy rule."""
+    form_data = await request.form()
+
+    # Create main policy rule
+    policy_rule = PolicyRule(
+        name=form_data.get("name"),
+        business_unit_id=form_data.get("business_unit"),
+        description=form_data.get("description"),
+        is_active=True,
+    )
+    db.add(policy_rule)
+    db.flush()
+
+    # Create access rules for each role in each stage
+    stages_config = {
+        WorkflowStage.MAKER: {
+            "roles": form_data.getlist("maker_roles"),
+            "rights": form_data.getlist("maker_rights"),
+            "is_mandatory": True
+        },
+        WorkflowStage.CHECKER: {
+            "roles": form_data.getlist("checker_roles"),
+            "rights": form_data.getlist("checker_rights"),
+            "is_mandatory": True
+        },
+        WorkflowStage.APPROVER: {
+            "roles": form_data.getlist("approver_roles"),
+            "rights": form_data.getlist("approver_rights"),
+            "is_mandatory": True,
+            "approval_order": 1
+        }
+    }
+
+    for stage, config in stages_config.items():
+        for role_name in config["roles"]:
+            access_rule = RatingAccessRule(
+                policy_id=policy_rule.id,
+                role_name=role_name,
+                workflow_stage=stage,
+                action_rights=[ActionRight.from_string(right) for right in config["rights"]],
+                is_mandatory=config["is_mandatory"],
+                approval_order=config.get("approval_order")
+            )
+
+            # Add stage-specific configurations
+            if stage == WorkflowStage.APPROVER:
+                access_rule.rejection_flow = RejectionFlow.from_string(form_data.get("rejection_flow", "TO_MAKER"))
+
+            db.add(access_rule)
+
+    db.commit()
+
+    return templates.TemplateResponse(
+        "policy_rules/partials/detail.html",
+        {
+            "request": request,
+            "policy": policy_rule,
+            "is_htmx": request.headers.get("HX-Request") == "true"
+        }
+    )
+
+@router.get("/view/{policy_id}", response_model=PolicyRuleResponse)
+async def view_policy_rule(
+    policy_id: str,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(auth_handler.auth_wrapper)
+):
+    """Get policy rule details."""
+    policy = (
+        db.query(PolicyRule)
+        .options(
+            joinedload(PolicyRule.business_unit),
+            joinedload(PolicyRule.access_rules)  # Updated relationship name
+        )
+        .filter(PolicyRule.id == policy_id)
+        .first()
+    )
+    
+    if not policy:
+        raise HTTPException(status_code=404, detail="Policy rule not found")
+    
+    # Group access rules by stage and role
+    access_config = defaultdict(list)
+    for rule in policy.access_rules:
+        access_config[rule.workflow_stage].append(rule)
+
+    return templates.TemplateResponse(
+        "policy_rules/partials/detail.html",
+        {
+            "request": request,
+            "policy": policy,
+            "access_config": dict(access_config),
+            "WorkflowStage": WorkflowStage,
+            "is_htmx": request.headers.get("HX-Request") == "true"
+        }
+    )
+
+@router.post("/{policy_id}")
+async def update_policy_rule(
+    policy_id: str,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(auth_handler.auth_wrapper)
+):
+    """Update an existing policy rule."""
+    form_data = await request.form()
+    
+    policy = db.query(PolicyRule).filter(PolicyRule.id == policy_id).first()
+    if not policy:
+        raise HTTPException(status_code=404, detail="Policy rule not found")
+
+    # Update main policy rule
+    policy.name = form_data.get("name")
+    policy.business_unit_id = form_data.get("business_unit")
+    policy.description = form_data.get("description")
+
+    # Delete existing access rules
+    db.query(RatingAccessRule).filter(
+        RatingAccessRule.policy_id == policy_id
+    ).delete()
+    
+    # Create new access rules for each role in each stage
+    stages_config = {
+        WorkflowStage.MAKER: {
+            "roles": form_data.getlist("maker_roles"),
+            "rights": form_data.getlist("maker_rights"),
+            "is_mandatory": True
+        },
+        WorkflowStage.CHECKER: {
+            "roles": form_data.getlist("checker_roles"),
+            "rights": form_data.getlist("checker_rights"),
+            "is_mandatory": True
+        },
+        WorkflowStage.APPROVER: {
+            "roles": form_data.getlist("approver_roles"),
+            "rights": form_data.getlist("approver_rights"),
+            "is_mandatory": True,
+            "approval_order": 1
+        }
+    }
+
+    for stage, config in stages_config.items():
+        for role_name in config["roles"]:
+            access_rule = RatingAccessRule(
+                policy_id=policy.id,
+                role_name=role_name,
+                workflow_stage=stage,
+                action_rights=[ActionRight.from_string(right) for right in config["rights"]],
+                is_mandatory=config["is_mandatory"],
+                approval_order=config.get("approval_order")
+            )
+
+            # Add stage-specific configurations
+            if stage == WorkflowStage.APPROVER:
+                access_rule.rejection_flow = RejectionFlow.from_string(
+                    form_data.get("rejection_flow", "TO_MAKER")
+                )
+
+            db.add(access_rule)
+
+    db.commit()
+    db.refresh(policy)
+
+    return RedirectResponse(
+        url=request.url_for('view_policy_rule', policy_id=policy.id),
+        status_code=303
+    )

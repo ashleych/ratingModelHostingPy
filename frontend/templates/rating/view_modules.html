@@ -2,7 +2,7 @@
 {% if not is_htmx %}
 {% extends "_layout.html" %}
 {% endif %}
-{% macro render_factor(factor) %}
+{% macro render_factor(factor,available_actions) %}
 {% include "rating/render_factor_macro.html" %}
 {% endmacro %}
 
@@ -15,9 +15,10 @@
 
 
 
-<div class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8" id="ratingView">
+<div class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8" id="ratingView" data-view-type="{{ view_type }}">
 {% include "rating/settings.html" %}
     
+{% include "rating/settings.js" %}
     <!-- Rest of the content remains the same -->
         {% if view_type == 'tabbed' %}
     <div class="mt-6">
@@ -43,8 +44,9 @@
                 <div>Raw Value</div>
                 <div>Score</div>
             </div>
+
             {% for factor in factors %}
-            {{ render_factor(factor) }}
+            {{ render_factor(factor,available_actions) }}
             {% endfor %}
         </div>
         {% endfor %}
@@ -60,7 +62,7 @@
                 <div>Score</div>
             </div>
             {% for factor in factors %}
-            {{ render_factor(factor) }}
+            {{ render_factor(factor,available_actions) }}
             {% endfor %}
         </div>
         {% endfor %}
@@ -98,10 +100,9 @@
     }
 </style>
 
-{% include "rating/settings.js" %}
 <script>
 
     {% include "rating/rating_edit.js" %}
 </script>
-
+    {% include "rating/submit_rating.html" %}
 {% endblock %}

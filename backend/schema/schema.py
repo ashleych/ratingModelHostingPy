@@ -17,19 +17,19 @@ from enums_and_constants import FactorType
 from enums_and_constants import FactorInputSource
 
 
-class Base(BaseModel):
+class BaseSchema(BaseModel):
     id: Optional[UUID] = Field(None, description="Unique identifier")
     created_at: Optional[datetime] = Field(None, description="Creation datetime")
     updated_at: Optional[datetime] = Field(None, description="Update datetime")
-    model_config = ConfigDict(from_attributes=True, arbitrary_types_allowed=True)
+    model_config = ConfigDict(from_attributes=True, arbitrary_types_allowed=True,extra='allow')
 
 
-class User(Base):
+class User(BaseSchema):
 
     # id = Column(UUID, primary_key=True)
     name: Optional[str] = None
     email: str
-    role: Optional[List[str]] = None
+    role: Optional[List[str|UUID]] = None
     password: str
 
 
@@ -59,31 +59,35 @@ class FactorValue(BaseModel):
 #     score: float
 
 
-class TemplateSourceCSV(Base):
+class TemplateSourceCSV(BaseSchema):
     source_path: Optional[str | UUID] = None
 
 
-class Template(Base):
+class Template(BaseSchema):
     name: str
     description: Optional[str] = None
     template_source_csv: Optional[TemplateSourceCSV] = None
-    template_source_csv_id: Optional[UUID | str] = None
+    template_source_csv_id: Optional[UUID ] = None
 
 
-class PolicyRuleBase(Base):
+class PolicyRuleBase(BaseSchema):
     name: str
     business_unit_id: UUID4
     description: Optional[str] = None
     sequential_approval: bool = True
     rejection_flow: RejectionFlow = RejectionFlow.TO_MAKER
 
+# class WorkflowCycle(BaseSchema):
 
-class WorkflowAction(Base):
+
+
+
+class WorkflowAction(BaseSchema):
     workflow_cycle_id: UUID = Field(..., alias="workflow_cycle_id")
 
     customer_id: UUID = Field(..., alias="customer_id")
     action_count_customer_level: int = Field(..., alias="action_count_customer_level")
-    action_by: UUID = Field(..., alias="action_by")
+    user_id: UUID = Field(...)
     workflow_stage: WorkflowStage = Field(..., alias="workflow_stage")
     action_type: ActionRight = Field(..., alias="action_type")
     rating_instance_id: Optional[UUID] = None
@@ -93,22 +97,25 @@ class WorkflowAction(Base):
     preceding_action_id: Optional[UUID] = Field(None, alias="preceding_action_id")
     succeeding_action_id: Optional[UUID] = Field(None, alias="succeeding_action_id")
     head: bool
+    is_stale: bool
     policy_rule_id: UUID
 
-    def clone(self, action_by=None, action_type=None,stage=None):
+    def clone(self, user_id=None, action_type=None,stage=None):
         if self.head:
             self.head = False
+            self.is_stale= True
             cloned_wf = {
                 "workflow_cycle_id": self.workflow_cycle_id,
                 "customer_id": self.customer_id,
                 "action_count_customer_level": self.action_count_customer_level + 1,
-                "action_by": action_by if action_by else self.action_by,
+                "user_id": user_id if user_id else self.user_id,
                 "action_type": action_type if action_type else self.action_type,
                 "rating_instance_id": self.rating_instance_id,
                 "workflow_stage":stage if stage else self.workflow_stage,
                 "description": None,
                 "preceding_action_id": self.id,
                 "succeeding_action_id": None,
+                "is_stale": False,
                 "policy_rule_id": self.policy_rule_id,
                 "head": True,
             }
@@ -117,12 +124,21 @@ class WorkflowAction(Base):
             raise ValueError("Unable to clone the workflow as it is not the head")
 
 
+    def available_next_steps(self):
+        if (self.workflow_stage==WorkflowStage.MAKER) & (self.action_type==ActionRight.SUBMIT):
+            return WorkflowStage.CHECKER
+        if (self.workflow_stage==WorkflowStage.CHECKER) & (self.action_type==ActionRight.SUBMIT):
+            return WorkflowStage.APPROVER
+        
+        
+
+
 class WorkflowActionCreate(BaseModel):
     workflow_cycle_id: UUID = Field(...)
     id: UUID
     customer_id: UUID
     action_count_customer_level: int
-    action_by: UUID
+    user_id: UUID
     workflow_stage: WorkflowStage
     action_type:ActionRight 
     description: Optional[str] = None
@@ -130,20 +146,21 @@ class WorkflowActionCreate(BaseModel):
     preceding_action_id: Optional[UUID] = None
     succeeding_action_id: Optional[UUID] = None
     head: bool
+    is_stale: bool
 
     model_config = ConfigDict(from_attributes=True)
 
 
-class BusinessUnit(Base):
+class BusinessUnit(BaseSchema):
     name: str
 
 
-class MasterRatingScale(Base):
+class MasterRatingScale(BaseSchema):
     rating_grade: str = Field(..., alias="ratingGrade")
     pd: float
 
 
-class Customer(Base):
+class Customer(BaseSchema):
     customer_name: str = Field(..., alias="customerName")
     cif_number: str = Field(..., alias="cifNumber")
     group_name: str = Field(..., alias="groupName")
@@ -157,7 +174,7 @@ class Customer(Base):
     # workflow_action_type: WorkflowActionType = Field(..., alias="workflowActionType")
 
 
-class RatingFactorAttribute(Base):
+class RatingFactorAttribute(BaseSchema):
     rating_factor_name: str = Field(..., alias="ratingFactorName")
     rating_model_id: int = Field(..., alias="ratingModelID")
     name: str
@@ -168,7 +185,7 @@ class RatingFactorAttribute(Base):
     score: float
 
 
-class RatingFactor(Base):
+class RatingFactor(BaseSchema):
     name: str
     label: str
     weightage: float
@@ -192,7 +209,7 @@ class RatingModule(BaseModel):
     )
 
 
-class RatingModel(Base):
+class RatingModel(BaseSchema):
     name: str
     label: str
     template: Template
@@ -205,7 +222,7 @@ class RatingModel(Base):
     model_config = ConfigDict(from_attributes=True, arbitrary_types_allowed=True)
 
 
-class RatingFactorScore(Base):
+class RatingFactorScore(BaseSchema):
     """Base schema with common attributes"""
 
     raw_value_text: Optional[str] = None
@@ -226,7 +243,7 @@ class RatingFactorScoreCreate(BaseModel):
     rating_factor_id: UUID
 
 
-class RatingInstance(Base):
+class RatingInstance(BaseSchema):
     """Base Pydantic model for RatingInstance data validation"""
 
     customer_id: UUID
@@ -270,7 +287,7 @@ class RatingInstanceCreate(BaseModel):
     inputs_completion_status: bool = False
     incomplete_financial_information: bool = False
     missing_financial_fields: Optional[Any] = None
-    workflow_action_id:UUID | str
+    workflow_action_id:UUID 
     overall_score: Optional[float] = None
     overall_rating: Optional[str] = None
     overall_status: WorkflowStage = WorkflowStage.MAKER
@@ -278,7 +295,7 @@ class RatingInstanceCreate(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
-class FinancialsPeriod(Base):
+class FinancialsPeriod(BaseSchema):
     year: int
     month: int
     date: int
@@ -487,7 +504,7 @@ class PolicyRuleResponse(PolicyRuleBase):
     created_by: UUID4
 
 
-class RatingModelApplicabilityRulesCreate(Base):
+class RatingModelApplicabilityRulesCreate(BaseSchema):
     rating_model_id: UUID
     business_unit_id: UUID
 
@@ -495,7 +512,7 @@ class RatingModelApplicabilityRulesCreate(Base):
     business_unit: BusinessUnit
 
 
-class RatingModelApplicabilityRules(Base):
+class RatingModelApplicabilityRules(BaseSchema):
     rating_model_id: UUID
     business_unit_id: UUID
 

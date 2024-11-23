@@ -12,11 +12,12 @@ from models.statement_models import FinancialsPeriod, LineItemMeta
 from models.models import Base, BusinessUnit, Customer, Role, User
 from enum import Enum
 
-from enums_and_constants import WorkflowStage,RejectionFlow
+from enums_and_constants import ActionRight, WorkflowStage,RejectionFlow
 from typing import Dict,Any,List
-from models.policy_rules_model import PolicyRule, WorkflowStageConfig
+from models.policy_rules_model import PolicyRule, RatingAccessRule
 from sqlalchemy.orm import Session
 
+from models.workflow_model import WorkflowAction
 from schema.schema import User as UserSchema
 from security import get_hashed_password
 
@@ -55,111 +56,236 @@ from enum import Enum
 from typing import Dict, Any
 
 
-
 def init_policy(session: Session, business_units: Dict[str, Any]) -> None:
-    """
-    Initialize policy rules for each business unit.
-    
-    Args:
-        session: SQLAlchemy session
-        business_units: Dictionary of business units with their IDs
-    """
-    # First, get all role IDs
-    roles = {
-        role.name: role.id 
-        for role in session.query(Role).filter(Role.name.in_([
-            "Credit Analyst", "Relationship Manager", "BU Head", 
-            "Country Head", "CRO", "CEO"
-        ])).all()
-    }
-    
-    # Define the base policy template
     default_policies = {
         "Large Corporate": {
             "name": "Large Corporate Credit Approval Policy",
             "description": "Standard workflow for large corporate credit approval process",
-            "stages": [
+            "access_rules": [
+                # Maker stage rules
                 {
-                    "stage": WorkflowStage.MAKER,
-                    "roles": [roles["Credit Analyst"], roles["Relationship Manager"]],
-                    "rights": ["CREATE", "EDIT","SUBMIT"],
-                    "min_count": 1
-                },
-                {
-                    "stage": WorkflowStage.CHECKER,
-                    "roles": [roles["BU Head"], roles["Country Head"]],
-                    "rights": ["CREATE", "EDIT","SUBMIT"],
-                    "min_count": 2
-                },
-                {
-                    "stage": WorkflowStage.APPROVER,
-                    "roles": [roles["CRO"], roles["CEO"]],
-                    "rights": ["CREATE", "EDIT", "DELETE","SUBMIT"],
-                    "min_count": 1,
-                    "sequential_approval": True,
+                    "role_name": "Credit Analyst",
+                    "workflow_stage": WorkflowStage.MAKER,
+                    "action_rights": [
+                        ActionRight.VIEW,
+                        ActionRight.CREATE,
+                        ActionRight.EDIT,
+                        ActionRight.SUBMIT
+                    ],
+                    "is_mandatory": True,
                     "rejection_flow": RejectionFlow.TO_MAKER
-                }
-            ]
-        },
-        "Mid Corporate": {
-            "name": "Mid Corporate Credit Approval Policy",
-            "description": "Standard workflow for mid corporate credit approval process",
-            "stages": [
-                {
-                    "stage": WorkflowStage.MAKER,
-                    "roles": [roles["Credit Analyst"], roles["Relationship Manager"]],
-                    "rights": ["CREATE", "EDIT","SUBMIT"],
-                    "min_count": 1
                 },
                 {
-                    "stage": WorkflowStage.CHECKER,
-                    "roles": [roles["BU Head"]],
-                    "rights": ["CREATE", "EDIT","SUBMIT"],
-                    "min_count": 1
+                    "role_name": "Relationship Manager",
+                    "workflow_stage": WorkflowStage.MAKER,
+                    "action_rights": [
+                        ActionRight.VIEW,
+                        ActionRight.CREATE,
+                        ActionRight.EDIT,
+                        ActionRight.SUBMIT
+                    ]
                 },
                 {
-                    "stage": WorkflowStage.APPROVER,
-                    "roles": [roles["CRO"]],
-                    "rights": ["CREATE", "EDIT", "DELETE","SUBMIT"],
-                    "min_count": 1,
-                    "sequential_approval": True,
+                    "role_name": "Relationship Manager",
+                    "workflow_stage": WorkflowStage.CHECKER,
+                    "action_rights": [
+                        ActionRight.VIEW
+                    ]
+                },
+                {
+                    "role_name": "Relationship Manager",
+                    "workflow_stage": WorkflowStage.APPROVER,
+                    "action_rights": [
+                        ActionRight.VIEW
+                    ]
+                },
+                {
+                    "role_name": "Relationship Manager",
+                    "workflow_stage": WorkflowStage.APPROVED,
+                    "action_rights": [
+                        ActionRight.VIEW
+                    ]
+                },
+                {
+                    "role_name": "Credit Analyst",
+                    "workflow_stage": WorkflowStage.CHECKER,
+                    "action_rights": [
+                        ActionRight.VIEW,
+                        ActionRight.EDIT,
+                        ActionRight.SUBMIT
+
+                    ]
+                },
+                {
+                    "role_name": "Credit Analyst",
+                    "workflow_stage": WorkflowStage.APPROVER,
+                    "action_rights": [
+                        ActionRight.VIEW
+                    ]
+                },
+                {
+                    "role_name": "Credit Analyst",
+                    "workflow_stage": WorkflowStage.APPROVED,
+                    "action_rights": [
+                        ActionRight.VIEW
+                    ]
+                },
+                # Checker stage rules
+                {
+                    "role_name": "BU Head",
+                    "workflow_stage": WorkflowStage.CHECKER,
+                    "action_rights": [
+                        ActionRight.VIEW,
+                        ActionRight.EDIT,
+                        ActionRight.SUBMIT,
+                        ActionRight.COMMENT
+                    ],
+                    "is_mandatory": True,
+                    "rejection_flow": RejectionFlow.TO_MAKER
+                },
+                # Approver stage rules
+                {
+                    "role_name": "CRO",
+                    "workflow_stage": WorkflowStage.APPROVER,
+                    "action_rights": [
+                        ActionRight.VIEW,
+                        ActionRight.EDIT,
+                        ActionRight.SUBMIT,
+                        ActionRight.DELETE,
+                        ActionRight.COMMENT
+                    ],
+                    "approval_order": 1,
+                    "is_mandatory": True,
                     "rejection_flow": RejectionFlow.TO_MAKER
                 }
             ]
         }
     }
 
-    # Create policy rules for each business unit
     for bu_name, policy_config in default_policies.items():
         if bu_name in business_units:
-            # Create main policy rule
-            policy_rule = PolicyRule(
+            policy = PolicyRule(
                 name=policy_config["name"],
                 business_unit_id=business_units[bu_name].id,
                 description=policy_config["description"],
                 is_active=True
             )
-            session.add(policy_rule)
-            session.flush()  # Get the policy ID
+            session.add(policy)
+            session.flush()
 
-            # Create workflow stages
-            for stage_config in policy_config["stages"]:
-                workflow_stage = WorkflowStageConfig(
-                    policy_id=policy_rule.id,
-                    stage=stage_config["stage"],
-                    allowed_roles=jsonable_encoder(stage_config["roles"]),  # Now contains role IDs instead of names
-                    rights=stage_config["rights"],
-                    min_count=stage_config["min_count"]
+            for rule_config in policy_config["access_rules"]:
+                access_rule = RatingAccessRule(
+                    policy_id=policy.id,
+                    **rule_config
                 )
-
-                # Add approver-specific configurations
-                if stage_config["stage"] == WorkflowStage.APPROVER:
-                    workflow_stage.is_sequential = stage_config["sequential_approval"]
-                    workflow_stage.rejection_flow = stage_config["rejection_flow"]
-
-                session.add(workflow_stage)
+                session.add(access_rule)
 
     session.commit()
+
+# def init_policy(session: Session, business_units: Dict[str, Any]) -> None:
+#     """
+#     Initialize policy rules for each business unit.
+    
+#     Args:
+#         session: SQLAlchemy session
+#         business_units: Dictionary of business units with their IDs
+#     """
+#     # First, get all role IDs
+#     roles = {
+#         role.name: role.id 
+#         for role in session.query(Role).filter(Role.name.in_([
+#             "Credit Analyst", "Relationship Manager", "BU Head", 
+#             "Country Head", "CRO", "CEO"
+#         ])).all()
+#     }
+    
+#     # Define the base policy template
+#     default_policies = {
+#         "Large Corporate": {
+#             "name": "Large Corporate Credit Approval Policy",
+#             "description": "Standard workflow for large corporate credit approval process",
+#             "stages": [
+#                 {
+#                     "stage": WorkflowStage.MAKER,
+#                     "roles": [roles["Credit Analyst"], roles["Relationship Manager"]],
+#                     "rights": ["CREATE", "EDIT","SUBMIT"],
+#                     "min_count": 1
+#                 },
+#                 {
+#                     "stage": WorkflowStage.CHECKER,
+#                     "roles": [roles["BU Head"], roles["Country Head"]],
+#                     "rights": ["CREATE", "EDIT","SUBMIT"],
+#                     "min_count": 2
+#                 },
+#                 {
+#                     "stage": WorkflowStage.APPROVER,
+#                     "roles": [roles["CRO"], roles["CEO"]],
+#                     "rights": ["CREATE", "EDIT", "DELETE","SUBMIT"],
+#                     "min_count": 1,
+#                     "sequential_approval": True,
+#                     "rejection_flow": RejectionFlow.TO_MAKER
+#                 }
+#             ]
+#         },
+#         "Mid Corporate": {
+#             "name": "Mid Corporate Credit Approval Policy",
+#             "description": "Standard workflow for mid corporate credit approval process",
+#             "stages": [
+#                 {
+#                     "stage": WorkflowStage.MAKER,
+#                     "roles": [roles["Credit Analyst"], roles["Relationship Manager"]],
+#                     "rights": ["CREATE", "EDIT","SUBMIT"],
+#                     "min_count": 1
+#                 },
+#                 {
+#                     "stage": WorkflowStage.CHECKER,
+#                     "roles": [roles["BU Head"]],
+#                     "rights": ["CREATE", "EDIT","SUBMIT"],
+#                     "min_count": 1
+#                 },
+#                 {
+#                     "stage": WorkflowStage.APPROVER,
+#                     "roles": [roles["CRO"]],
+#                     "rights": ["CREATE", "EDIT", "DELETE","SUBMIT"],
+#                     "min_count": 1,
+#                     "sequential_approval": True,
+#                     "rejection_flow": RejectionFlow.TO_MAKER
+#                 }
+#             ]
+#         }
+#     }
+
+#     # Create policy rules for each business unit
+#     for bu_name, policy_config in default_policies.items():
+#         if bu_name in business_units:
+#             # Create main policy rule
+#             policy_rule = PolicyRule(
+#                 name=policy_config["name"],
+#                 business_unit_id=business_units[bu_name].id,
+#                 description=policy_config["description"],
+#                 is_active=True
+#             )
+#             session.add(policy_rule)
+#             session.flush()  # Get the policy ID
+
+#             # Create workflow stages
+#             for stage_config in policy_config["stages"]:
+#                 workflow_stage = WorkflowStageConfig(
+#                     policy_id=policy_rule.id,
+#                     stage=stage_config["stage"],
+#                     allowed_roles=jsonable_encoder(stage_config["roles"]),  # Now contains role IDs instead of names
+#                     rights=stage_config["rights"],
+#                     min_count=stage_config["min_count"]
+#                 )
+
+#                 # Add approver-specific configurations
+#                 if stage_config["stage"] == WorkflowStage.APPROVER:
+#                     workflow_stage.is_sequential = stage_config["sequential_approval"]
+#                     workflow_stage.rejection_flow = stage_config["rejection_flow"]
+
+#                 session.add(workflow_stage)
+
+#     session.commit()
 
 def init_db(db_path):
     engine, session = create_engine_and_session(db_path)
@@ -177,7 +303,7 @@ def init_db(db_path):
         # Define the order to drop tables
         # Start with tables that have the most dependencies and work backwards
         tables = ['businessunit', 'users', 'role', 'customer', 'financialsperiod', 'financialstatement', 'lineitemmeta', 'lineitemvalue', 'masterratingscale', 'ratingfactor', 'ratingfactorattribute', 'ratingfactorscore','ratingmodelapplicabilityrules',
-            'ratinginstance', 'ratingmodel', 'template', 'templatesourcecsv', 'workflowaction', 'workflow_step', 'ratinginstance_version', 'workflow_assignment','workflow_stage_config','policy_rule']  # Add any other tables that might be in your schema ]
+            'ratinginstance', 'ratingmodel', 'template', 'templatesourcecsv', 'workflowaction', 'workflow_step', 'ratinginstance_version', 'workflow_assignment','workflow_stage_config','policy_rule','rating_access_rules']  # Add any other tables that might be in your schema ]
         with engine.begin() as conn:
             # Disable triggers temporarily
             conn.execute(text("SET session_replication_role = 'replica';"))
@@ -197,7 +323,6 @@ def init_db(db_path):
     # Create all tables
     Base.metadata.create_all(engine)
     template = create_template(session, "FinTemplate", "fin_template.csv")
-    create_default_users(session=session)
 
     session.commit()
     insert_quarter_end_dates(session, TEMPLATE_START_YEAR, TEMPLATE_END_YEAR)
@@ -221,7 +346,6 @@ def init_db(db_path):
                                   MasterRatingScale(rating_grade="5", pd=0.008550), MasterRatingScale(rating_grade="5-", pd=0.013760), MasterRatingScale(rating_grade="6+", pd=0.022150), MasterRatingScale(rating_grade="6", pd=0.035670), MasterRatingScale(rating_grade="6-", pd=0.057420), MasterRatingScale(rating_grade="7+", pd=0.092440), MasterRatingScale(rating_grade="7", pd=0.148820), MasterRatingScale(rating_grade="7-", pd=0.239590), MasterRatingScale(rating_grade="8", pd=1.000000), MasterRatingScale(rating_grade="9", pd=1.000000), MasterRatingScale(rating_grade="10", pd=1.000000)]
     session.add_all(mrs_data)
         # Add customers
-    customers = [ Customer( customer_name="ABC Corporation", cif_number="CIF-123456", group_name="ABC Group", business_unit_id=business_units["Large Corporate"].id, relationship_type="Prospect", internal_risk_rating="2", ), Customer( customer_name="XYZ Enterprises", cif_number="CIF-789012", group_name="XYZ Group", business_unit_id=business_units["Mid Corporate"].id, relationship_type="Existing", internal_risk_rating="2", ), Customer( customer_name="DEF Ltd", cif_number="1001", group_name="ABC Group", business_unit_id=business_units["Large Corporate"].id, relationship_type="Prospect", internal_risk_rating="5", ), Customer( customer_name="PQR Inc", cif_number="1002", group_name="XYZ Group", business_unit_id=business_units["Large Corporate"].id, relationship_type="Existing", internal_risk_rating="5+", ), Customer( customer_name="GHI Corporation", cif_number="1003", group_name="DEF Group", business_unit_id=business_units["Large Corporate"].id, relationship_type="Prospect", internal_risk_rating="2-", ), Customer( customer_name="LMN Enterprises", cif_number="1004", group_name="PQR Group", business_unit_id=business_units["Large Corporate"].id, relationship_type="Existing", internal_risk_rating="2", ), Customer( customer_name="JKL Ltd", cif_number="1005", group_name="LMN Group", business_unit_id=business_units["Large Corporate"].id, relationship_type="Prospect", internal_risk_rating="2", ) ]
 
     default_roles = [ { "name": "Credit Analyst", "description": "Analyzes credit applications and prepares credit assessments", "is_active": True }, { "name": "BU Head", "description": "Head of Business Unit, responsible for overseeing department operations", "is_active": True }, { "name": "CRO", "description": "Chief Risk Officer, oversees all aspects of risk management", "is_active": True }, { "name": "CEO", "description": "Chief Executive Officer, highest-ranking executive officer", "is_active": True }, { "name": "Country Head", "description": "Manages and oversees all operations within a country", "is_active": True }, { "name": "Relationship Manager", "description": "Manages client relationships and portfolio", "is_active": True } ]
    # Add each role if it doesn't exist
@@ -245,6 +369,9 @@ def init_db(db_path):
             print(f"Updated role: {role_data['name']}")
 
         session.commit()
+
+    create_default_users(session=session)
+    customers = [ Customer( customer_name="ABC Corporation", cif_number="CIF-123456", group_name="ABC Group", business_unit_id=business_units["Large Corporate"].id, relationship_type="Prospect", internal_risk_rating="2", ), Customer( customer_name="XYZ Enterprises", cif_number="CIF-789012", group_name="XYZ Group", business_unit_id=business_units["Mid Corporate"].id, relationship_type="Existing", internal_risk_rating="2", ), Customer( customer_name="DEF Ltd", cif_number="1001", group_name="ABC Group", business_unit_id=business_units["Large Corporate"].id, relationship_type="Prospect", internal_risk_rating="5", ), Customer( customer_name="PQR Inc", cif_number="1002", group_name="XYZ Group", business_unit_id=business_units["Large Corporate"].id, relationship_type="Existing", internal_risk_rating="5+", ), Customer( customer_name="GHI Corporation", cif_number="1003", group_name="DEF Group", business_unit_id=business_units["Large Corporate"].id, relationship_type="Prospect", internal_risk_rating="2-", ), Customer( customer_name="LMN Enterprises", cif_number="1004", group_name="PQR Group", business_unit_id=business_units["Large Corporate"].id, relationship_type="Existing", internal_risk_rating="2", ), Customer( customer_name="JKL Ltd", cif_number="1005", group_name="LMN Group", business_unit_id=business_units["Large Corporate"].id, relationship_type="Prospect", internal_risk_rating="2", ) ]
     init_policy(session,business_units=business_units) 
     # After defining the customers list
     for customer in customers:
@@ -268,13 +395,13 @@ def insert_quarter_end_dates(session, start_year, end_year):
             )
             session.add(fp)
 
-def create_update_workflow_action(session, cif_number, status):
+def create_update_workflow_action(session, cif_number, status,user):
     max_action = session.query(WorkflowAction).filter_by(customer_id=cif_number).order_by(WorkflowAction.id.desc()).first()
     
     new_action = WorkflowAction(
         customer_id=cif_number,
         action_count_customer_level=max_action.action_count_customer_level + 1 if max_action else 1,
-        action_by="Maker",
+        user_id=user.id,
         action_type=status.value,
         preceding_action_id=max_action.id if max_action else None,
         head=True
@@ -337,6 +464,12 @@ def create_default_users(session:Session) -> None:
     """
     Create default users with various role combinations using UserSchema
     """
+    ## Get dict of role names and ids
+
+    roles=session.query(Role).all()
+    roles_dict = { r.name : r.id for r in roles }
+
+
     # Define default users with their roles
     default_users = [
         UserSchema(
@@ -412,12 +545,11 @@ def create_default_users(session:Session) -> None:
             updated_at=None
         )
     ]
-
+    breakpoint()
     # Add the users to the database
     for user_schema in default_users:
         session.add(User(**user_schema.model_dump()))
-
-    session.commit()
+        session.commit()
 
 
 if __name__ == "__main__":

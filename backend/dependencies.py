@@ -1,4 +1,5 @@
 
+from uuid import UUID
 from security import AuthHandler, RequiresLoginException
 from db.database import SessionLocal 
 from models.models import User
@@ -20,3 +21,8 @@ def get_db():
 
 
 auth_handler = AuthHandler()
+
+
+def ensure_uuid(value: UUID | str ) -> UUID:
+    """Convert string to UUID if necessary."""
+    return UUID(value) if isinstance(value, str) else value

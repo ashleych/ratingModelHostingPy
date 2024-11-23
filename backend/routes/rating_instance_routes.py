@@ -3,12 +3,15 @@ from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 import starlette
+from enums_and_constants import ActionRight
+from models.policy_rules_model import RatingAccessRule
 from models.rating_instance_model import RatingFactorScore
 from models.rating_model_model import RatingFactor, RatingFactorAttribute, RatingModel
 from models.statement_models import FinancialStatement
 from models.rating_instance_model import RatingInstance
 from db.database import SessionLocal
 from models.models import Customer
+from models.workflow_model import WorkflowAction
 from schema import schema
 from collections import OrderedDict
 import docx
@@ -59,7 +62,7 @@ from rating_model_instance import generate_qualitative_factor_data, score_quanti
 from calculate_derived_scores import DerivedFactor, calculate_derived_scores
 
 import os
-from rating_workflow_processing import process_rating_instance
+# from rating_workflow_processing import check_if_user_has_any_associated_roles, identify_available_actions_for_wf_step, process_rating_instance
 from schema.schema import User
 from dependencies import get_db,auth_handler
 router = APIRouter()
@@ -98,19 +101,153 @@ async def new_rating(request: Request, customer_id: str, current_user:User = Dep
 # Add more routes as needed for updating ratings, etc.
 
 @router.get("/ratingView/{customer_id}")
+# async def view_customer_rating(
+#     request: Request, 
+#     customer_id: str, 
+#     rating_instance_id:str=Query(),
+#     workflow_action_id:str=Query(),
+#     current_user:User = Depends(auth_handler.auth_wrapper),db: Session = Depends(get_db),
+#     view_type: str = Query("tabbed", description="View type: 'tabbed' or 'single'")
+# ):
+#     customer = db.query(Customer).filter(Customer.id == customer_id).first()
+#     if not customer:
+#         raise HTTPException(status_code=404, detail="Customer not found")
+
+#     if rating_instance_id:
+        
+#         rating_instance = db.query(RatingInstance)\
+#             .filter(RatingInstance.id == rating_instance_id)\
+#             .first()
+#     else:
+#         rating_instance = db.query(RatingInstance)\
+#             .filter(RatingInstance.customer_id == customer_id)\
+#             .order_by(RatingInstance.created_at.desc())\
+#             .first()
+
+#     if not rating_instance:
+#         return templates.TemplateResponse("rating/no_rating.html", {
+#             "request": request,'user':current_user,
+#             "customer": customer
+#         })
+
+#     factor_scores = db.query(RatingFactorScore, RatingFactor)\
+#         .join(RatingFactor, RatingFactorScore.rating_factor_id == RatingFactor.id)\
+#         .filter(RatingFactorScore.rating_instance_id == rating_instance.id)\
+#         .all()
+
+#     factors = []
+#     for score, factor in factor_scores:
+#         factor_attributes = db.query(RatingFactorAttribute)\
+#             .filter(RatingFactorAttribute.rating_factor_id == factor.id)\
+#             .all()
+        
+#         factor_data = {
+#             "id": score.id,
+#             "factor_name": factor.name,
+#             "label": factor.label,
+#             "score": score.score,
+#             "raw_value_text": score.raw_value_text,
+#             "raw_value_float": score.raw_value_float,
+#             "factor_type": factor.factor_type,
+#             "parent_factor_name": factor.parent_factor_name,
+#             "weightage": factor.weightage,
+#             "module_name": factor.module_name,
+#             "module_order": factor.module_order,
+#             "order_no": factor.order_no,
+#             "input_source": factor.input_source,
+#             "factor_attributes": [
+#                 {
+#                     "label": attr.label,
+#                     "score": attr.score
+#                 } for attr in factor_attributes
+#             ]
+#         }
+#         factors.append(factor_data)
+
+#     structured_data = structure_rating_data(factors)
+#     workflow_action = db.query(WorkflowAction).filter(WorkflowAction.id==workflow_action_id).first()
+#     available_actions=None
+#     if workflow_action:
+#         if check_if_user_has_any_associated_roles(current_user,workflow_action=workflow_action,db=db):
+#             print("Has rights to perform available actions; else only view would have been allowed")
+#             available_actions= identify_available_actions_for_wf_step(workflow_action,db)
+#             if available_actions:    
+#                 available_actions=[a.value for a in available_actions]
+#     is_htmx = request.headers.get("HX-Request") == "true"
+#     # Render the updated.html template with the updated customer information
+#     return templates.TemplateResponse("rating/view_modules.html", {
+#         "request": request,'user':current_user,
+#         "customer": customer,
+#         "rating_instance": rating_instance,
+#         "structured_data": structured_data,
+#         "view_type": view_type,
+#         'available_actions':available_actions,
+#     "workflow_action":workflow_action,
+#         "is_htmx":is_htmx
+
+#     })
+
+
+# @router.post("/rating/{rating_instance_id}/{workflow_action_id}")
+# async def submit_rating(
+#     request: Request,
+#     rating_instance_id: str,
+#     workflow_action_id: str,
+#     current_user: User = Depends(auth_handler.auth_wrapper),
+#     db: Session = Depends(get_db)
+# ):
+#         from uuid import uuid4
+#         # Get the rating instance
+#         rating_instance = db.query(RatingInstance).filter(RatingInstance.id == rating_instance_id).first()
+#         if not rating_instance:
+#             raise HTTPException(status_code=404, detail="Rating instance not found")
+
+#         # Get the workflow action
+#         workflow_action = db.query(WorkflowAction).filter(WorkflowAction.id == workflow_action_id).first()
+#         if not workflow_action:
+#             raise HTTPException(status_code=404, detail="Workflow action not found")
+#         wf_action= schema.WorkflowAction.model_validate(workflow_action)
+
+#         workflow_action.head=False
+
+#         wf_action_clone = wf_action.clone(action_type=ActionRight.VIEW)
+#         next_stage = wf_action.available_next_steps()
+
+#         wf_clone_db=  WorkflowAction(**wf_action_clone,id=uuid4())
+#         wf_clone_db.workflow_stage=next_stage
+
+
+#         db.add(wf_clone_db)
+#         db.add(workflow_action)
+#         db.commit()
+
+#         # Redirect back to the rating view
+#         return RedirectResponse(
+#             url=request.url_for(
+#                 'customer_detail', 
+#                 customer_id=rating_instance.customer_id
+#             ),
+#             status_code=303
+#         )
+
+
+@router.get("/ratingView/{customer_id}")
 async def view_customer_rating(
-    request: Request, 
-    customer_id: str, 
-    rating_instance_id:str=Query(),
-    current_user:User = Depends(auth_handler.auth_wrapper),db: Session = Depends(get_db),
+    request: Request,
+    customer_id: str,
+    rating_instance_id: str = Query(),
+    workflow_action_id: str = Query(),
+    current_user: User = Depends(auth_handler.auth_wrapper),
+    db: Session = Depends(get_db),
     view_type: str = Query("tabbed", description="View type: 'tabbed' or 'single'")
 ):
+    # Get customer
     customer = db.query(Customer).filter(Customer.id == customer_id).first()
     if not customer:
         raise HTTPException(status_code=404, detail="Customer not found")
 
+    # Get rating instance
     if rating_instance_id:
-        
         rating_instance = db.query(RatingInstance)\
             .filter(RatingInstance.id == rating_instance_id)\
             .first()
@@ -122,10 +259,12 @@ async def view_customer_rating(
 
     if not rating_instance:
         return templates.TemplateResponse("rating/no_rating.html", {
-            "request": request,'user':current_user,
+            "request": request,
+            'user': current_user,
             "customer": customer
         })
 
+    # Get factor scores and build structured data
     factor_scores = db.query(RatingFactorScore, RatingFactor)\
         .join(RatingFactor, RatingFactorScore.rating_factor_id == RatingFactor.id)\
         .filter(RatingFactorScore.rating_instance_id == rating_instance.id)\
@@ -136,7 +275,7 @@ async def view_customer_rating(
         factor_attributes = db.query(RatingFactorAttribute)\
             .filter(RatingFactorAttribute.rating_factor_id == factor.id)\
             .all()
-        
+
         factor_data = {
             "id": score.id,
             "factor_name": factor.name,
@@ -161,20 +300,70 @@ async def view_customer_rating(
         factors.append(factor_data)
 
     structured_data = structure_rating_data(factors)
-    
+
+    # Get workflow action and available actions
+    workflow_action = db.query(WorkflowAction).filter(
+        WorkflowAction.id == workflow_action_id
+    ).first()
+
+    available_actions = []
+    if workflow_action:
+        # Get access rules for current user in current workflow stage
+        access_rules = RatingAccessRule.get_user_access(
+            db,
+            policy_id=workflow_action.policy_rule_id,
+            user_id=current_user.id,
+            workflow_stage=workflow_action.workflow_stage
+        )
+        
+        # Combine all allowed actions from all applicable rules
+        all_actions = []
+        for rule in access_rules:
+            all_actions.extend(rule.get_allowed_actions())
+        
+        # Remove duplicates and convert to string values for template
+        available_actions = [action.value for action in set(all_actions)]
+
     is_htmx = request.headers.get("HX-Request") == "true"
-    # Render the updated.html template with the updated customer information
+
     return templates.TemplateResponse("rating/view_modules.html", {
-        "request": request,'user':current_user,
+        "request": request,
+        'user': current_user,
         "customer": customer,
         "rating_instance": rating_instance,
         "structured_data": structured_data,
         "view_type": view_type,
-        "is_htmx":is_htmx
+        'available_actions': available_actions,
+        "workflow_action": workflow_action,
+        "is_htmx": is_htmx
     })
 
+@router.post("/rating/{rating_instance_id}/{workflow_action_id}")
+async def submit_rating(
+    request: Request,
+    rating_instance_id: str,
+    workflow_action_id: str,
+    current_user: User = Depends(auth_handler.auth_wrapper),
+    db: Session = Depends(get_db)
+):
+    # Get the workflow action
+    workflow_action = db.query(WorkflowAction).get(workflow_action_id)
+    if not workflow_action:
+        raise HTTPException(status_code=404, detail="Workflow action not found")
 
-
+    try:
+        # This will handle all the cloning and db operations
+        new_workflow = workflow_action.submit(db, user_id=current_user.id)
+        
+        return RedirectResponse(
+            url=request.url_for(
+                'customer_detail', 
+                customer_id=new_workflow.customer_id
+            ),
+            status_code=303
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 # @router.get("/rating/{customer_id}")
 # async def view_customer_rating(
 #     request: Request, 

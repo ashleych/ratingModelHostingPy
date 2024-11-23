@@ -12,7 +12,7 @@ from .base import Base
 
 
 class Role(Base):
-    name = Column(String)
+    name = Column(String,unique=True)
     description= Column(String,nullable=True)
     is_active=Column(Boolean,default=True)
 # class WorkflowActionType(enum.Enum):

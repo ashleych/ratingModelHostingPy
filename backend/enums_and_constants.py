@@ -117,6 +117,7 @@ class WorkflowErrorCode(Enum):
     MISSING_MAKER_STAGE = "MISSING_MAKER_STAGE"
     UNAUTHORIZED_ACTION = "UNAUTHORIZED_ACTION"
     STATEMENT_NOT_FOUND = "STATEMENT_NOT_FOUND"
+    WORKFLOW_CREATION_FAILED="WORKFLOW_CREATION_FAILED"
 
 
 # Define error messages
@@ -128,5 +129,6 @@ ERROR_MESSAGES = {
     WorkflowErrorCode.ALREADY_SUBMITTED: "Workflow has already been submitted",
     WorkflowErrorCode.MISSING_MAKER_STAGE: "No maker stage configuration found for this policy",
     WorkflowErrorCode.UNAUTHORIZED_ACTION: "User is not authorized to perform {action} action",
-    WorkflowErrorCode.STATEMENT_NOT_FOUND: "No financial statement found for customer {customer_id} for year {year}"
+    WorkflowErrorCode.STATEMENT_NOT_FOUND: "No financial statement found for customer {customer_id} for year {year}",
+    WorkflowErrorCode.WORKFLOW_CREATION_FAILED: "Workflow unable to be created for {customer_id} "
 }

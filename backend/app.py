@@ -238,6 +238,14 @@ async def sign_in(request: Request, response: Response,
     except Exception as err:
         return templates.TemplateResponse("login/error.html",
             {"request": request, 'detail': 'Incorrect Username or Password', 'status_code': 401 })
+
+@app.get("/logout")
+async def logout(request: Request):
+    """Handle logout by clearing the authorization cookie"""
+    response = RedirectResponse(url="/", status_code=303)
+    response.delete_cookie("Authorization")
+    return response
+
 # @app.get("/")
 # async def root(request: Request):
 #     return templates.TemplateResponse("index.html", {"request": request})

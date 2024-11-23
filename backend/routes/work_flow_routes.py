@@ -10,7 +10,7 @@ from fastapi.templating import Jinja2Templates
 from models.models import Customer
 from sqlalchemy.orm import Session
 from db.database import SessionLocal, engine
-from rating_workflow_processing import create_workflow_for_customer
+from rating_workflow_processing import create_rating_workflow_for_customer
 from schema import schema
 from customer_financial_statement import FsApp
 
@@ -49,7 +49,7 @@ async def create_workflow(
 ):
     try:
         customer=db.query(Customer).filter(Customer.cif_number==cif_number).first()
-        workflow = create_workflow_for_customer(db, cif_number, current_user,customer)
+        workflow = create_rating_workflow_for_customer(db, cif_number, current_user,customer)
         return {"success": True, "workflow_id": str(workflow.id)}
     except WorkflowError as e:
         return JSONResponse(

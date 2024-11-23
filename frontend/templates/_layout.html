@@ -4,8 +4,8 @@
 <head>
     <script>
         // Immediately invoked function to set the theme
-        (function() {
-            if (localStorage.getItem('color-theme') === 'dark' || 
+        (function () {
+            if (localStorage.getItem('color-theme') === 'dark' ||
                 (!('color-theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
                 document.documentElement.classList.remove('light');
                 document.documentElement.classList.add('dark');
@@ -36,7 +36,7 @@
 <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script> -->
 
     <!-- <script defer src="/static/js/alpine.morph.js"></script> -->
-    <script defer src="/static/js/alpine.js"></script> 
+    <script defer src="/static/js/alpine.js"></script>
     <!-- Your existing CSS and JS imports -->
     <link rel="stylesheet" href="/static/output.css" />
     <link rel="stylesheet" href="/static/src/formula_tooltip.css" />
@@ -144,6 +144,8 @@
         <!-- Sidebar -->
         <div
             class="bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 w-64 space-y-6 py-7 px-2 absolute inset-y-0 left-0 transform -translate-x-full md:relative md:translate-x-0 transition duration-200 ease-in-out">
+
+            <!-- In _layout.html, in the user profile section -->
             <div class="px-4 py-2 border-b border-gray-200 dark:border-gray-700">
                 <div class="flex items-center space-x-4">
                     <div class="w-10 h-10 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center">
@@ -165,7 +167,10 @@
                         </p>
                         <p class="text-xs text-gray-500 dark:text-gray-400">
                             {% if user %}
-                            Logged In
+                            <a href="/logout"
+                                class="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300">
+                                Logout
+                            </a>
                             {% else %}
                             Not Logged In
                             {% endif %}
@@ -173,7 +178,6 @@
                     </div>
                 </div>
             </div>
-
             <!-- Updated navigation with HTMX -->
             <nav>
                 <a hx-get="/" hx-target="#main-content" hx-push-url="true" hx-indicator=".loading-indicator"
@@ -248,119 +252,119 @@
             </div>
         </div>
     </div>
-<script>
-document.addEventListener('DOMContentLoaded', function () {
-    const loadingIndicator = document.querySelector('.loading-indicator');
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const loadingIndicator = document.querySelector('.loading-indicator');
 
-    function showLoading() {
-        loadingIndicator?.classList.remove('hidden');
-    }
+            function showLoading() {
+                loadingIndicator?.classList.remove('hidden');
+            }
 
-    function hideLoading() {
-        loadingIndicator?.classList.add('hidden');
-    }
+            function hideLoading() {
+                loadingIndicator?.classList.add('hidden');
+            }
 
-    function initializeTheme() {
-        if (localStorage.getItem('color-theme') === 'dark' || 
-            (!('color-theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-            document.documentElement.classList.add('dark');
-        } else {
-            document.documentElement.classList.remove('dark');
-        }
-    }
-
-    function initializeAll() {
-        // Navigation active state
-        document.querySelectorAll('.nav-link').forEach(link => {
-            link.classList.remove('active');
-        });
-
-        const currentPath = window.location.pathname;
-        document.querySelector(`a[hx-get="${currentPath}"]`)?.classList.add('active');
-        
-        // Reinitialize theme
-        initializeTheme();
-        
-        // Ensure loading is hidden
-        hideLoading();
-    }
-
-    // Theme toggle setup
-    function setupThemeToggle() {
-        const themeToggleBtn = document.getElementById("toggle-theme");
-        if (themeToggleBtn) {
-            themeToggleBtn.addEventListener("click", function () {
-                if (localStorage.getItem("color-theme")) {
-                    if (localStorage.getItem("color-theme") === "light") {
-                        document.documentElement.classList.add("dark");
-                        localStorage.setItem("color-theme", "dark");
-                    } else {
-                        document.documentElement.classList.remove("dark");
-                        localStorage.setItem("color-theme", "light");
-                    }
+            function initializeTheme() {
+                if (localStorage.getItem('color-theme') === 'dark' ||
+                    (!('color-theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                    document.documentElement.classList.add('dark');
                 } else {
-                    if (document.documentElement.classList.contains("dark")) {
-                        document.documentElement.classList.remove("dark");
-                        localStorage.setItem("color-theme", "light");
-                    } else {
-                        document.documentElement.classList.add("dark");
-                        localStorage.setItem("color-theme", "dark");
-                    }
+                    document.documentElement.classList.remove('dark');
+                }
+            }
+
+            function initializeAll() {
+                // Navigation active state
+                document.querySelectorAll('.nav-link').forEach(link => {
+                    link.classList.remove('active');
+                });
+
+                const currentPath = window.location.pathname;
+                document.querySelector(`a[hx-get="${currentPath}"]`)?.classList.add('active');
+
+                // Reinitialize theme
+                initializeTheme();
+
+                // Ensure loading is hidden
+                hideLoading();
+            }
+
+            // Theme toggle setup
+            function setupThemeToggle() {
+                const themeToggleBtn = document.getElementById("toggle-theme");
+                if (themeToggleBtn) {
+                    themeToggleBtn.addEventListener("click", function () {
+                        if (localStorage.getItem("color-theme")) {
+                            if (localStorage.getItem("color-theme") === "light") {
+                                document.documentElement.classList.add("dark");
+                                localStorage.setItem("color-theme", "dark");
+                            } else {
+                                document.documentElement.classList.remove("dark");
+                                localStorage.setItem("color-theme", "light");
+                            }
+                        } else {
+                            if (document.documentElement.classList.contains("dark")) {
+                                document.documentElement.classList.remove("dark");
+                                localStorage.setItem("color-theme", "light");
+                            } else {
+                                document.documentElement.classList.add("dark");
+                                localStorage.setItem("color-theme", "dark");
+                            }
+                        }
+                    });
+                    themeToggleBtn.setAttribute('data-initialized', 'true');
+                }
+            }
+
+            // Initial setup
+            initializeAll();
+            setupThemeToggle();
+
+            // HTMX event handlers
+            document.body.addEventListener('htmx:afterOnLoad', initializeAll);
+            document.body.addEventListener('htmx:beforeRequest', showLoading);
+            document.body.addEventListener('htmx:afterRequest', hideLoading);
+            document.body.addEventListener('htmx:error', hideLoading);
+            document.body.addEventListener('htmx:timeout', hideLoading);
+
+            // Handle back/forward navigation
+            window.addEventListener('popstate', function () {
+                // Use requestAnimationFrame to ensure DOM is updated
+                requestAnimationFrame(() => {
+                    initializeAll();
+                    setupThemeToggle();
+                });
+            });
+
+            // Also handle htmx:afterSwap for cases where content is swapped
+            document.body.addEventListener('htmx:afterSwap', function () {
+                requestAnimationFrame(() => {
+                    initializeAll();
+                    setupThemeToggle();
+                });
+            });
+
+            // Handle history restoration
+            window.addEventListener('load', function () {
+                if (performance.navigation.type === 2) { // Back/forward navigation
+                    alert("backward")
+                    requestAnimationFrame(() => {
+                        initializeAll();
+                        setupThemeToggle();
+                    });
                 }
             });
-            themeToggleBtn.setAttribute('data-initialized', 'true');
-        }
-    }
-
-    // Initial setup
-    initializeAll();
-    setupThemeToggle();
-
-    // HTMX event handlers
-    document.body.addEventListener('htmx:afterOnLoad', initializeAll);
-    document.body.addEventListener('htmx:beforeRequest', showLoading);
-    document.body.addEventListener('htmx:afterRequest', hideLoading);
-    document.body.addEventListener('htmx:error', hideLoading);
-    document.body.addEventListener('htmx:timeout', hideLoading);
-
-    // Handle back/forward navigation
-    window.addEventListener('popstate', function() {
-        // Use requestAnimationFrame to ensure DOM is updated
-        requestAnimationFrame(() => {
-            initializeAll();
-            setupThemeToggle();
         });
-    });
-
-    // Also handle htmx:afterSwap for cases where content is swapped
-    document.body.addEventListener('htmx:afterSwap', function() {
-        requestAnimationFrame(() => {
-            initializeAll();
-            setupThemeToggle();
-        });
-    });
-
-    // Handle history restoration
-    window.addEventListener('load', function() {
-        if (performance.navigation.type === 2) { // Back/forward navigation
-            alert("backward")
-            requestAnimationFrame(() => {
-                initializeAll();
-                setupThemeToggle();
-            });
-        }
-    });
-});
-</script>
+    </script>
     <!-- HTMX specific scripts -->
 
 
-   <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
     <script>
         // needed for mermaid charts used to show the dependencies
         mermaid.initialize({
             startOnLoad: true,
-             securityLevel: 'loose',
+            securityLevel: 'loose',
             theme: document.documentElement.classList.contains('dark') ? 'dark' : 'default',
             flowchart: {
                 curve: 'basis',
@@ -369,9 +373,9 @@ document.addEventListener('DOMContentLoaded', function () {
                 padding: 20
             }
         });
-   document.body.addEventListener('htmx:afterSwap', function(evt) {
-        mermaid.contentLoaded();
-    });
+        document.body.addEventListener('htmx:afterSwap', function (evt) {
+            mermaid.contentLoaded();
+        });
         // Theme observer
         window.mermaidThemeObserver = new MutationObserver(function (mutations) {
             mutations.forEach(function (mutation) {
@@ -389,90 +393,90 @@ document.addEventListener('DOMContentLoaded', function () {
             console.log('inside theme observer');
         }
     </script>
-<script>
-    // Define functions in global scope
-showDeleteModal = function (id, name, url) {
-        const modal = document.getElementById('deleteModal');
-        const nameSpan = document.getElementById('deleteItemName');
-        const confirmButton = document.getElementById('confirmDeleteButton');
+    <script>
+        // Define functions in global scope
+        showDeleteModal = function (id, name, url) {
+            const modal = document.getElementById('deleteModal');
+            const nameSpan = document.getElementById('deleteItemName');
+            const confirmButton = document.getElementById('confirmDeleteButton');
 
-        // Set the name in the modal
-        nameSpan.textContent = name;
+            // Set the name in the modal
+            nameSpan.textContent = name;
 
-        // Setup delete action
-        confirmButton.setAttribute('hx-delete', url);
+            // Setup delete action
+            confirmButton.setAttribute('hx-delete', url);
 
-        confirmButton.setAttribute('hx-target', '#main-content');
-        confirmButton.setAttribute('hx-push-url', 'true');
-        confirmButton.setAttribute('hx-headers', '{"X-Requested-With": "XMLHttpRequest"}');
+            confirmButton.setAttribute('hx-target', '#main-content');
+            confirmButton.setAttribute('hx-push-url', 'true');
+            confirmButton.setAttribute('hx-headers', '{"X-Requested-With": "XMLHttpRequest"}');
 
-        // Initialize HTMX on the button
-        htmx.process(confirmButton);
+            // Initialize HTMX on the button
+            htmx.process(confirmButton);
 
-        // Show modal with animation
-        modal.classList.remove('hidden');
+            // Show modal with animation
+            modal.classList.remove('hidden');
 
-        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                const backdrop = modal.querySelector('.bg-gray-500');
+                const panel = modal.querySelector('.transform');
+
+                backdrop.classList.add('ease-out', 'duration-300', 'opacity-100');
+                backdrop.classList.remove('opacity-0');
+
+                panel.classList.add('ease-out', 'duration-300', 'opacity-100', 'translate-y-0', 'sm:scale-100');
+                panel.classList.remove('opacity-0', 'translate-y-4', 'sm:translate-y-0', 'sm:scale-95');
+            });
+
+            // Prevent body scroll
+            document.body.style.overflow = 'hidden';
+        };
+
+        hideDeleteModal = function () {
+            const modal = document.getElementById('deleteModal');
             const backdrop = modal.querySelector('.bg-gray-500');
             const panel = modal.querySelector('.transform');
 
-            backdrop.classList.add('ease-out', 'duration-300', 'opacity-100');
-            backdrop.classList.remove('opacity-0');
+            backdrop.classList.remove('ease-out', 'duration-300', 'opacity-100');
+            backdrop.classList.add('ease-in', 'duration-200', 'opacity-0');
 
-            panel.classList.add('ease-out', 'duration-300', 'opacity-100', 'translate-y-0', 'sm:scale-100');
-            panel.classList.remove('opacity-0', 'translate-y-4', 'sm:translate-y-0', 'sm:scale-95');
+            panel.classList.remove('ease-out', 'duration-300', 'opacity-100', 'translate-y-0', 'sm:scale-100');
+            panel.classList.add('ease-in', 'duration-200', 'opacity-0', 'translate-y-4', 'sm:translate-y-0', 'sm:scale-95');
+
+            setTimeout(() => {
+                modal.classList.add('hidden');
+                backdrop.classList.remove('ease-in', 'duration-200', 'opacity-0');
+                panel.classList.remove('ease-in', 'duration-200', 'opacity-0', 'translate-y-4', 'sm:translate-y-0', 'sm:scale-95');
+            }, 200);
+
+            document.body.style.overflow = '';
+        };
+
+        // Set up event listeners when the DOM is loaded
+        document.addEventListener('DOMContentLoaded', function () {
+            // Close modal on backdrop click
+            document.getElementById('deleteModal')?.addEventListener('click', function (event) {
+                if (event.target === this) {
+                    hideDeleteModal();
+                }
+            });
         });
 
-        // Prevent body scroll
-        document.body.style.overflow = 'hidden';
-    };
-
-    hideDeleteModal = function () {
-        const modal = document.getElementById('deleteModal');
-        const backdrop = modal.querySelector('.bg-gray-500');
-        const panel = modal.querySelector('.transform');
-
-        backdrop.classList.remove('ease-out', 'duration-300', 'opacity-100');
-        backdrop.classList.add('ease-in', 'duration-200', 'opacity-0');
-
-        panel.classList.remove('ease-out', 'duration-300', 'opacity-100', 'translate-y-0', 'sm:scale-100');
-        panel.classList.add('ease-in', 'duration-200', 'opacity-0', 'translate-y-4', 'sm:translate-y-0', 'sm:scale-95');
-
-        setTimeout(() => {
-            modal.classList.add('hidden');
-            backdrop.classList.remove('ease-in', 'duration-200', 'opacity-0');
-            panel.classList.remove('ease-in', 'duration-200', 'opacity-0', 'translate-y-4', 'sm:translate-y-0', 'sm:scale-95');
-        }, 200);
-
-        document.body.style.overflow = '';
-    };
-
-    // Set up event listeners when the DOM is loaded
-    document.addEventListener('DOMContentLoaded', function () {
-        // Close modal on backdrop click
-        document.getElementById('deleteModal')?.addEventListener('click', function (event) {
-            if (event.target === this) {
+        // Global event listeners
+        document.addEventListener('keydown', function (event) {
+            if (event.key === 'Escape' && !document.getElementById('deleteModal').classList.contains('hidden')) {
                 hideDeleteModal();
             }
         });
-    });
 
-    // Global event listeners
-    document.addEventListener('keydown', function (event) {
-        if (event.key === 'Escape' && !document.getElementById('deleteModal').classList.contains('hidden')) {
+        document.body.addEventListener('htmx:afterSwap', function (evt) {
             hideDeleteModal();
-        }
-    });
+        });
 
-    document.body.addEventListener('htmx:afterSwap', function (evt) {
-        hideDeleteModal();
-    });
-
-    document.body.addEventListener('htmx:error', function (evt) {
-        alert('Error deleting item. Please try again.');
-        hideDeleteModal();
-    });
-</script>
+        document.body.addEventListener('htmx:error', function (evt) {
+            alert('Error deleting item. Please try again.');
+            hideDeleteModal();
+        });
+    </script>
 </body>
 
 </html>
