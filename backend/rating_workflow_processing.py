@@ -52,6 +52,50 @@ from schema.schema import ErrorResponse
 from security import get_hashed_password
 from schema import schema
 
+def clone_rating_instance(db: Session, original_instance: RatingInstanceCreate, new_workflow_step: WorkflowActionSchema) -> schema.RatingInstance:
+    # Validate using Pydantic schema
+    if new_workflow_step.id is None:
+        raise ValueError("new_workflow_step ID cannot be None when performing action")
+    
+    
+    instance_data = RatingInstanceCreate(
+        id=uuid4(),
+        customer_id=original_instance.customer_id,
+        financial_statement_id=original_instance.financial_statement_id,
+        rating_model_id=original_instance.rating_model_id,
+        workflow_action_id=new_workflow_step.id,
+        overall_status=new_workflow_step.workflow_stage,
+        incomplete_financial_information=original_instance.incomplete_financial_information,
+        missing_financial_fields=original_instance.missing_financial_fields,
+        overall_score=original_instance.overall_score,
+        overall_rating=original_instance.overall_rating
+    )
+
+    new_instance_db = RatingInstance(**instance_data.model_dump())
+    db.add(new_instance_db)
+    db.flush()
+    new_instance=schema.RatingInstance(**new_instance_db.__dict__)
+    if new_instance.id is None:
+        raise ValueError("new_instance ID cannot be None when performing action")
+
+    rf_scores_db= db.query(RatingFactorScore).filter(RatingFactorScore.rating_instance_id == original_instance.id).all()
+
+    rf_scores= [schema.RatingFactorScore(**rf.__dict__) for rf in rf_scores_db]
+        
+    # Clone and validate factor scores
+    for score in rf_scores:
+        score_data = RatingFactorScoreCreate(
+            rating_instance_id=new_instance.id,
+            rating_factor_id=score.rating_factor_id,
+                raw_value_text=score.raw_value_text,
+                raw_value_float= score.raw_value_float,
+                score= score.score
+            
+        )
+        new_score = RatingFactorScore(**score_data.model_dump())
+        db.add(new_score)
+        db.commit()
+    return new_instance
 
 def create_rating_instance_for_initial_step(wf_data:WorkflowAction,rating_model_id:UUID, statement_id:UUID,user:User, db:Session):
             customer_id=wf_data.customer_id

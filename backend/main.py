@@ -545,7 +545,6 @@ def create_default_users(session:Session) -> None:
             updated_at=None
         )
     ]
-    breakpoint()
     # Add the users to the database
     for user_schema in default_users:
         session.add(User(**user_schema.model_dump()))

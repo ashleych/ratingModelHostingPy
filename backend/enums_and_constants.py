@@ -1,5 +1,6 @@
 import enum
 from enum import Enum
+from typing import Dict
 
 
 class WorkflowStage(enum.Enum):
@@ -7,6 +8,34 @@ class WorkflowStage(enum.Enum):
     CHECKER = "checker"
     APPROVER = "approver"
     APPROVED="approved"
+
+    @classmethod
+    def get_stage_order(cls) -> Dict[str, int]:
+        """Get the order of stages in the workflow"""
+        return {
+            cls.MAKER.value: 1,
+            cls.CHECKER.value: 2,
+            cls.APPROVER.value: 3,
+            cls.APPROVED.value: 4
+        }
+
+    def __lt__(self, other):
+        if not isinstance(other, WorkflowStage):
+            return NotImplemented
+        return self.get_stage_order()[self.value] < self.get_stage_order()[other.value]
+
+    @property
+    def order(self) -> int:
+        """Get numerical order of this stage"""
+        return self.get_stage_order()[self.value]
+
+    def is_before(self, other: 'WorkflowStage') -> bool:
+        """Check if this stage comes before another stage"""
+        return self.order < other.order
+
+    def is_after(self, other: 'WorkflowStage') -> bool:
+        """Check if this stage comes after another stage"""
+        return self.order > other.order
 
 class ActionRight(enum.Enum):
     CREATE = "create"

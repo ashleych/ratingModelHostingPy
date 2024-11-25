@@ -21,6 +21,9 @@ class RatingInstance(Base):
     overall_score=Column(Float,nullable=True)
     overall_rating=Column(String,nullable=True)
     overall_status = Column(SQLAlchemyEnum(WorkflowStage), nullable=False, default=WorkflowStage.MAKER)
+    maker_approved = Column(Boolean, nullable=False, default=False)
+    checker_approved = Column(Boolean, nullable=False, default=False)
+    approver_approved = Column(Boolean, nullable=False, default=False)
 
     customer = relationship("Customer")
     rating_model = relationship("RatingModel")
