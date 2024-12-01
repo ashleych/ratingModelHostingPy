@@ -40,7 +40,7 @@ class ApprovalTracking(BaseModel):
         if stage==WorkflowStage.MAKER:
              return self.maker_stage_approved
         if stage==WorkflowStage.CHECKER:
-             return self.maker_stage_approved
+             return self.checker_stage_approved
         if stage==WorkflowStage.APPROVER:
-             return self.maker_stage_approved
+             return self.approver_stage_approved
         return None

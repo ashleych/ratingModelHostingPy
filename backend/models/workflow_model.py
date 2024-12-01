@@ -12,6 +12,7 @@ from sqlalchemy import (
     ForeignKey,
     Integer,
     String,
+    null,
 )
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship, Session
@@ -86,7 +87,7 @@ class WorkflowAction(Base):
     customer_id = Column(UUID, nullable=False)
     action_count_customer_level = Column(Integer)
 
-    user_id = Column(UUID, ForeignKey("user.id"))
+    user_id = Column(UUID, ForeignKey("user.id"),nullable=True)
     description = Column(String)
     action_type = Column(
         SQLAlchemyEnum(ActionRight), nullable=False, default=ActionRight.VIEW
@@ -112,8 +113,9 @@ class WorkflowAction(Base):
     user = relationship("User")
     # ... your existing fields ...
 
+
     def clone(
-        self, db: Session, user_id=None, action_type=None, stage=None
+        self, db: Session, user_id, action_type=None, stage=None,rating_instance_id=None
     ) -> "WorkflowAction":
         """
         Clone the current workflow action and handle all database operations.
@@ -129,16 +131,23 @@ class WorkflowAction(Base):
                 self.head = False
                 self.is_stale = True
                 db.add(self)
-
+                if action_type==ActionRight.MOVE_TO_NEXT_STAGE:
+                    """
+                    its s system trigger, not really a user action, when a set of conditions are met the system automatically moves the workflow to the next stage, and ehnce we dont want it to eb associated with any one user
+                    this is particularly needed hwne say 3 approvals are needed for the wf to mvoe to next stage, in this case it is the systme that checks if 3 approvals are in palce and then transfers it. itwould be incorrect to record the last approvers user id as hte uset that moved the wf to the next stage
+                    """
+                    action_done_by=None 
+                else:
+                    action_done_by=user_id
                 # Create new workflow action
                 new_workflow = WorkflowAction(
                     id=uuid4(),
                     workflow_cycle_id=self.workflow_cycle_id,
                     customer_id=self.customer_id,
                     action_count_customer_level=self.action_count_customer_level + 1,
-                    user_id=user_id if user_id else self.user_id,
+                    user_id=action_done_by,
                     action_type=action_type if action_type else self.action_type,
-                    rating_instance_id=self.rating_instance_id,
+                    rating_instance_id= rating_instance_id if rating_instance_id else self.rating_instance_id,
                     workflow_stage=stage if stage else self.workflow_stage,
                     description=None,
                     preceding_action_id=self.id,
@@ -267,7 +276,6 @@ class WorkflowAction(Base):
             return None
 
     def approve(self, db: Session, user_id=None) -> "WorkflowAction":
-
         from check_policy_rule import get_approval_tracking
         """Approve workflow action and update rating instance approval status"""
         rating_instance = (
@@ -278,18 +286,11 @@ class WorkflowAction(Base):
 
         if not rating_instance:
             raise ValueError("Rating instance not found")
+        previous_action_type= self.action_type
 
         self.action_type=ActionRight.APPROVE
 
-        # if self.workflow_stage == WorkflowStage.MAKER:
-        #     rating_instance.maker_approved = True
-        # elif self.workflow_stage == WorkflowStage.CHECKER:
-        #     rating_instance.checker_approved = True
-        # elif self.workflow_stage == WorkflowStage.APPROVER:
-        #     rating_instance.approver_approved = True
-        # self.action_type=ActionRight.APPROVE
         db.add(self)
-        # db.add(rating_instance)
         db.commit()
         approval_tracking = get_approval_tracking( rating_instance_id=self.rating_instance_id, workflow_action_id=self.id, db=db)
 
@@ -299,87 +300,64 @@ class WorkflowAction(Base):
         #     if stage==current_stage:
         if not approval_tracking.get_stage_level_approval_status(current_stage):
             #means approval not done, we need more Approvals in the same stage
-            cloned_wf=self.clone(db,user_id=user_id)
+            #but before that we need to check if there was an edit in this stage that hasnt been approved by the maker yet, in which case, it needs to go back to the maker stage for their approval
+            if previous_action_type==ActionRight.EDIT:
+                next_stage=WorkflowStage.MAKER
+                cloned_wf=self.clone( db=db, action_type=ActionRight.MOVE_TO_NEXT_STAGE, stage=next_stage,user_id=None )
+            else:
+                cloned_wf=self.clone(db,user_id=self.user_id,action_type=ActionRight.VIEW,stage=self.workflow_stage)
             return cloned_wf
         else:
-            next_stage = self.get_next_stage(db)
-            db.add(rating_instance)
-            return self.clone( db=db, user_id=user_id, action_type=ActionRight.VIEW, stage=next_stage )
+            # All approvals needed for this stage is done. Move to next stage
+            next_stage =   WorkflowStage.MAKER if previous_action_type==ActionRight.EDIT else self.get_next_stage(db)
+            # db.add(rating_instance)
+            return self.clone( db=db, action_type=ActionRight.MOVE_TO_NEXT_STAGE, stage=next_stage,user_id=None )
 
-
-
-        # next_stage = self.get_next_stage(db)
-
-        # rating_instance.overall_status = next_stage
-        # db.add(rating_instance)
-        # db.commit()
-
-        # return self
     
-    def submit(self, db: Session, user_id=None) -> "WorkflowAction":
-        """Approve workflow action and update rating instance approval status"""
-        rating_instance = (
-            db.query(RatingInstance)
-            .filter(RatingInstance.id == self.rating_instance_id)
-            .first()
-        )
+    # def submit(self, db: Session, user_id=None) -> "WorkflowAction":
+    #     """Approve workflow action and update rating instance approval status"""
+    #     rating_instance = (
+    #         db.query(RatingInstance)
+    #         .filter(RatingInstance.id == self.rating_instance_id)
+    #         .first()
+    #     )
+    #     if not rating_instance:
+    #         raise ValueError("Rating instance not found")
 
-        if not rating_instance:
-            raise ValueError("Rating instance not found")
+    #     self.action_type=ActionRight.APPROVE
+    #     db.add(self)
+    #     db.commit()
 
-        self.action_type=ActionRight.APPROVE
+    #     next_stage = self.get_next_stage(db)
 
-        # if self.workflow_stage == WorkflowStage.MAKER:
-        #     rating_instance.maker_approved = True
-        # elif self.workflow_stage == WorkflowStage.CHECKER:
-        #     rating_instance.checker_approved = True
-        # elif self.workflow_stage == WorkflowStage.APPROVER:
-        #     rating_instance.approver_approved = True
-        # self.action_type=ActionRight.APPROVE
-        db.add(self)
-        # db.add(rating_instance)
-        db.commit()
+    #     rating_instance.overall_status = next_stage
+    #     db.add(rating_instance)
+    #     db.commit()
 
-
-
-        next_stage = self.get_next_stage(db)
-
-        rating_instance.overall_status = next_stage
-        db.add(rating_instance)
-        db.commit()
-
-        return self.clone(
-            db=db, user_id=user_id, action_type=ActionRight.VIEW, stage=next_stage
-        )
+    #     return self.clone(
+    #         db=db, user_id=user_id, action_type=ActionRight.VIEW, stage=next_stage
+    #     )
 
     def edit(self, db: Session, user_id=None) -> "WorkflowAction":
         """Edit workflow action and reset relevant approval flags"""
         if not self.head:
             raise ValueError("Cannot edit non-head workflow action")
 
+        if self.action_type == ActionRight.EDIT:
+            #if already in edit, no need to create another clone
+            return self
         rating_instance = (
             db.query(RatingInstance)
             .filter(RatingInstance.id == self.rating_instance_id)
             .first()
         )
-        # Reset approval flags based on editor's stage
-        if self.workflow_stage in [WorkflowStage.CHECKER, WorkflowStage.APPROVER]:
-            # If edited by checker or approver, reset to maker
-            rating_instance.maker_approved = False
-            rating_instance.checker_approved = False
-            rating_instance.approver_approved = False
-            next_stage = WorkflowStage.MAKER
-        elif self.workflow_stage == WorkflowStage.MAKER:
-            # If edited by maker, just reset maker's approval
-            rating_instance.maker_approved = False
-            next_stage = WorkflowStage.MAKER
-
-        rating_instance.overall_status = next_stage
-        db.add(rating_instance)
-
-        return self.clone(
-            db=db, user_id=user_id, action_type=ActionRight.EDIT, stage=next_stage
-        )
+        if rating_instance:
+            if self.action_type!=ActionRight.EDIT and self.action_type !=ActionRight.APPROVE:
+                cloned_rating_instance= rating_instance.clone_rating_instance(db=db)
+                cloned_wf= self.clone(db=db,user_id=user_id,rating_instance_id=cloned_rating_instance.id,action_type=ActionRight.EDIT)
+                return cloned_wf
+        else:
+            return self
 
     def get_next_stage(self, db: Session) -> WorkflowStage:
         """Get next stage based on current stage and approvals"""
@@ -406,6 +384,33 @@ class WorkflowAction(Base):
             # and rating_instance.approver_approved
         ):
             return WorkflowStage.APPROVED
+
+        return self.workflow_stage
+    def get_previous_stage(self, db: Session) -> WorkflowStage:
+        """Get next stage based on current stage and approvals"""
+        rating_instance = (
+            db.query(RatingInstance)
+            .filter(RatingInstance.id == self.rating_instance_id)
+            .first()
+        )
+
+        if not rating_instance:
+            raise ValueError("Rating instance not found")
+        if (
+            self.workflow_stage == WorkflowStage.MAKER
+            # and rating_instance.maker_approved
+        ):
+            return None
+        elif (
+            self.workflow_stage == WorkflowStage.CHECKER
+            # and rating_instance.checker_approved
+        ):
+            return WorkflowStage.MAKER
+        elif (
+            self.workflow_stage == WorkflowStage.APPROVER
+            # and rating_instance.approver_approved
+        ):
+            return WorkflowStage.CHECKER
 
         return self.workflow_stage
 

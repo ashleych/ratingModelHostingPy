@@ -359,18 +359,23 @@ async def view_customer_rating(
         db=db,
     )
     current_stage = workflow_action.workflow_stage
-    has_already_approved = False
+    # has_already_approved = False
     
-    if current_stage == WorkflowStage.MAKER:
-        has_already_approved = any(approver.id == current_user.id 
-                                 for approver in approval_tracking.acutal_maker_approvers or [])
-    elif current_stage == WorkflowStage.CHECKER:
-        has_already_approved = any(approver.id == current_user.id 
-                                 for approver in approval_tracking.actual_checker_approvers or [])
-    elif current_stage == WorkflowStage.APPROVER:
-        has_already_approved = any(approver.id == current_user.id 
-                                 for approver in approval_tracking.actual_approver_approvers or [])
-
+    # if current_stage == WorkflowStage.MAKER:
+    #     has_already_approved = any(approver.id == current_user.id 
+    #                              for approver in approval_tracking.acutal_maker_approvers or [])
+    # elif current_stage == WorkflowStage.CHECKER:
+    #     has_already_approved = any(approver.id == current_user.id 
+    #                              for approver in approval_tracking.actual_checker_approvers or [])
+    # elif current_stage == WorkflowStage.APPROVER:
+    #     has_already_approved = any(approver.id == current_user.id 
+    #                              for approver in approval_tracking.actual_approver_approvers or [])
+  # Check if user has approved in any stage
+    has_already_approved = (
+        any(approver.id == current_user.id for approver in (approval_tracking.acutal_maker_approvers or [])) or
+        any(approver.id == current_user.id for approver in (approval_tracking.actual_checker_approvers or [])) or
+        any(approver.id == current_user.id for approver in (approval_tracking.actual_approver_approvers or []))
+    )
     # Remove EDIT and APPROVE rights if user has already approved
     if has_already_approved:
         available_actions = [action for action in available_actions 
@@ -424,62 +429,32 @@ async def submit_rating(
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
+@router.post("/edit_rating/{rating_instance_id}/{workflow_action_id}")
+async def edit_rating(
+    request: Request,
+    rating_instance_id: str,
+    workflow_action_id: str,
+    current_user: User = Depends(auth_handler.auth_wrapper),
+    db: Session = Depends(get_db),
+):
+    # Get the workflow action
+    workflow_action = db.query(WorkflowAction).get(workflow_action_id)
+    if not workflow_action:
+        raise HTTPException(status_code=404, detail="Workflow action not found")
 
-# @router.get("/rating/{customer_id}")
-# async def view_customer_rating(
-#     request: Request,
-#     customer_id: str,
-#     current_user:User = Depends(auth_handler.auth_wrapper),db: Session = Depends(get_db),
-#     view_type: str = Query("tabbed", description="View type: 'tabbed' or 'single'")
-# ):
-#     customer = db.query(Customer).filter(Customer.id == customer_id).first()
-#     if not customer:
-#         raise HTTPException(status_code=404, detail="Customer not found")
-
-#     rating_instance = db.query(RatingInstance)\
-#         .filter(RatingInstance.customer_id == customer_id)\
-#         .order_by(RatingInstance.created_at.desc())\
-#         .first()
-
-#     if not rating_instance:
-#         return templates.TemplateResponse("rating/no_rating.html", {
-#             "request": request,'user':current_user,
-#             "customer": customer
-#         })
-
-#     factor_scores = db.query(RatingFactorScore, RatingFactor)\
-#         .join(RatingFactor, RatingFactorScore.rating_factor_id == RatingFactor.id)\
-#         .filter(RatingFactorScore.rating_instance_id == rating_instance.id)\
-#         .all()
-
-#     factors = []
-#     for score, factor in factor_scores:
-#         factor_data = {
-#             "factor_name": factor.name,
-#             "label": factor.label,
-#             "score": score.score,
-#             "raw_value_text": score.raw_value_text,
-#             "raw_value_float": score.raw_value_float,
-#             "factor_type": factor.factor_type,
-#             "parent_factor_name": factor.parent_factor_name,
-#             "weightage": factor.weightage,
-#             "module_name": factor.module_name,
-#             "module_order": factor.module_order,
-#             "order_no": factor.order_no
-#         }
-#         factors.append(factor_data)
-
-#     structured_data = structure_rating_data(factors)
-
-#     return templates.TemplateResponse("rating/view_modules.html", {
-#         "request": request,'user':current_user,
-#         "customer": customer,
-#         "rating_instance": rating_instance,
-#         "structured_data": structured_data,
-#         "view_type": view_type
-#     })
-
-# # Other routes remain the same...
+    try:
+        # This will handle all the cloning and db operations
+        new_or_existing_workflow = workflow_action.edit(db, user_id=current_user.id)
+        # check if approval is now enough to move to next stage
+        
+        return RedirectResponse(
+            url=request.url_for(
+                "view_customer_rating", customer_id= new_or_existing_workflow.customer_id).include_query_params(rating_instance_id=str(new_or_existing_workflow.rating_instance_id),workflow_action_id=new_or_existing_workflow.id
+            ),
+            status_code=303
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 def structure_rating_data(factors: List[Dict]) -> OrderedDict:

@@ -46,6 +46,7 @@ class ActionRight(enum.Enum):
     TRANSFER='transfer'
     APPROVE='approve'
     REJECT='reject'
+    MOVE_TO_NEXT_STAGE='move to next stage'
     # SUBMIT='submit'
 
     @classmethod
@@ -60,6 +61,7 @@ class ActionRight(enum.Enum):
             "COMMENT": cls.COMMENT,
             "TRANSFER": cls.TRANSFER,
             "REJECT": cls.REJECT,
+            "MOVE_TO_NEXT_STAGE": cls.MOVE_TO_NEXT_STAGE,
             # "SUBMIT": cls.SUBMIT
         }
         return value_map.get(value.upper(),cls.VIEW)

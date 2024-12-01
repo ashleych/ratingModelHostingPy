@@ -34,6 +34,7 @@
                                     viewBox="0 0 20 20" fill="currentColor">
                                     <path
                                         d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                                        
                                 </svg>
                                 {% endif %}
                             </span>
@@ -42,10 +43,11 @@
                         <div class="min-w-0 flex-1 pt-1.5 flex justify-between space-x-4">
                             <div x-data="{ open: false }" x-on:click="open = ! open" @click.away="open = false">
                                 <p class="text-sm text-gray-500 dark:text-gray-400">
-                                    Create by
+                                    {% if action.user%}
                                     <span
-                                        class="font-medium text-gray-900 dark:text-gray-100 relative inline-block cursor-pointer">
-                                        {{ action.user.name }}
+                                    class="font-medium text-gray-900 dark:text-gray-100 relative inline-block cursor-pointer">
+                                    {{ action.action_type.value.upper() }}
+                                    by {{ action.user.name }}
                                         <!-- Tooltip -->
                                         <div x-show="open" 
                                             class="absolute z-50 bg-gray-900 text-white p-3 rounded-lg shadow-lg mt-2 -ml-2 w-56">
@@ -76,6 +78,7 @@
                                             <div class="absolute -top-1 left-4 w-2 h-2 bg-gray-900 transform rotate-45">
                                             </div>
                                         </div>
+                                        {% endif %}
                                     </span>
                                     in {{ action.workflow_stage.value | title }} stage
                                 </p>
