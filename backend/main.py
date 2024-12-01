@@ -4,8 +4,6 @@ import csv
 from datetime import datetime, timedelta
 from uuid import uuid4
 from fastapi.encoders import jsonable_encoder
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
 from models.rating_model_model import MasterRatingScale, TemplateSourceCSV
 from models.statement_models import Template
 from models.statement_models import FinancialsPeriod, LineItemMeta
@@ -14,24 +12,19 @@ from enum import Enum
 
 from enums_and_constants import ActionRight, WorkflowStage,RejectionFlow
 from typing import Dict,Any,List
-from models.policy_rules_model import PolicyRule, RatingAccessRule
+from models.policy_rules_model import PolicyRule, RatingAccessRule, RatingStageApprovalRule
 from sqlalchemy.orm import Session
 
 from models.workflow_model import WorkflowAction
 from schema.schema import User as UserSchema
 from security import get_hashed_password
 
-DB_NAME = "rating_model_py_app"
 # sudo postgres -d rating_model_py_app
 PROJECT_DIR = os.path.dirname(os.path.abspath(__file__))
 TEMPLATE_DIRECTORY = os.path.join(PROJECT_DIR, "Template-Basic")
 TEMPLATE_START_YEAR = 2020
 TEMPLATE_END_YEAR = 2025
-
-
-# class WorkflowActionType(Enum):
-#     DRAFT = "draft"
-
+from config import DB_NAME, create_engine_and_session
 
 class FinStatementType(Enum):
     PNL = "pnl"
@@ -43,13 +36,6 @@ class FinStatementType(Enum):
     def _missing_(cls, value):
         return cls.ALL
 
-
-def create_engine_and_session(db_path):
-    SQLALCHEMY_DATABASE_URL = f"postgresql://postgres:postgres@localhost/{db_path}"
-
-    engine = create_engine(SQLALCHEMY_DATABASE_URL, echo=False)
-    Session = sessionmaker(bind=engine, autocommit=False, autoflush=False)
-    return engine, Session()
 
 from sqlalchemy.orm import Session
 from enum import Enum
@@ -70,7 +56,7 @@ def init_policy(session: Session, business_units: Dict[str, Any]) -> None:
                         ActionRight.VIEW,
                         ActionRight.CREATE,
                         ActionRight.EDIT,
-                        ActionRight.SUBMIT
+                        ActionRight.APPROVE
                     ],
                     "is_mandatory": True,
                     "rejection_flow": RejectionFlow.TO_MAKER
@@ -82,7 +68,7 @@ def init_policy(session: Session, business_units: Dict[str, Any]) -> None:
                         ActionRight.VIEW,
                         ActionRight.CREATE,
                         ActionRight.EDIT,
-                        ActionRight.SUBMIT
+                        ActionRight.APPROVE
                     ]
                 },
                 {
@@ -112,7 +98,7 @@ def init_policy(session: Session, business_units: Dict[str, Any]) -> None:
                     "action_rights": [
                         ActionRight.VIEW,
                         ActionRight.EDIT,
-                        ActionRight.SUBMIT
+                        ActionRight.APPROVE
 
                     ]
                 },
@@ -137,7 +123,7 @@ def init_policy(session: Session, business_units: Dict[str, Any]) -> None:
                     "action_rights": [
                         ActionRight.VIEW,
                         ActionRight.EDIT,
-                        ActionRight.SUBMIT,
+                        ActionRight.APPROVE,
                         ActionRight.COMMENT
                     ],
                     "is_mandatory": True,
@@ -150,7 +136,7 @@ def init_policy(session: Session, business_units: Dict[str, Any]) -> None:
                     "action_rights": [
                         ActionRight.VIEW,
                         ActionRight.EDIT,
-                        ActionRight.SUBMIT,
+                        ActionRight.APPROVE,
                         ActionRight.DELETE,
                         ActionRight.COMMENT
                     ],
@@ -158,9 +144,42 @@ def init_policy(session: Session, business_units: Dict[str, Any]) -> None:
                     "is_mandatory": True,
                     "rejection_flow": RejectionFlow.TO_MAKER
                 }
+            ],
+            "approval_rules": [
+                {
+                    "role_name": "Relationship Manager",
+                    "workflow_stage": WorkflowStage.MAKER,
+                    "no_of_approvals_needed_for_stage": 1,
+                },
+                {
+                    "role_name": "Credit Analyst",
+                    "workflow_stage": WorkflowStage.CHECKER,
+                    "no_of_approvals_needed_for_stage": 1,
+                },
+                {
+                    "role_name": "CRO",
+                    "workflow_stage": WorkflowStage.APPROVER,
+                    "no_of_approvals_needed_for_stage": 3,
+                },
+                {
+                    "role_name": "BU Head",
+                    "workflow_stage": WorkflowStage.APPROVER,
+                    "no_of_approvals_needed_for_stage": 3,
+                },
+                {
+                    "role_name": "CEO",
+                    "workflow_stage": WorkflowStage.APPROVER,
+                    "no_of_approvals_needed_for_stage": 3,
+                }
             ]
+
         }
     }
+    # First, get all the required role IDs
+    role_names = {rule["role_name"] for policy in default_policies.values() 
+                 for rule in policy["approval_rules"]}
+    roles = {role.name: role.id for role in session.query(Role).filter(Role.name.in_(role_names)).all()}
+       # Create approval rules
 
     for bu_name, policy_config in default_policies.items():
         if bu_name in business_units:
@@ -179,6 +198,15 @@ def init_policy(session: Session, business_units: Dict[str, Any]) -> None:
                     **rule_config
                 )
                 session.add(access_rule)
+        for rule_config in policy_config["approval_rules"]:
+            approver_role_id = roles[rule_config["role_name"]]
+            approval_rule = RatingStageApprovalRule(
+                policy_id=policy.id,
+                workflow_stage=rule_config["workflow_stage"],
+                no_of_approvals_needed_for_stage=rule_config["no_of_approvals_needed_for_stage"],
+                approver_role_id=approver_role_id
+            )
+            session.add(approval_rule)
 
     session.commit()
 
@@ -303,7 +331,7 @@ def init_db(db_path):
         # Define the order to drop tables
         # Start with tables that have the most dependencies and work backwards
         tables = ['businessunit', 'users', 'role', 'customer', 'financialsperiod', 'financialstatement', 'lineitemmeta', 'lineitemvalue', 'masterratingscale', 'ratingfactor', 'ratingfactorattribute', 'ratingfactorscore','ratingmodelapplicabilityrules',
-            'ratinginstance', 'ratingmodel', 'template', 'templatesourcecsv', 'workflowaction', 'workflow_step', 'ratinginstance_version', 'workflow_assignment','workflow_stage_config','policy_rule','rating_access_rules']  # Add any other tables that might be in your schema ]
+            'ratinginstance', 'ratingmodel', 'template', 'templatesourcecsv', 'workflowaction', 'workflow_step','ratingstageapprovalrule', 'ratinginstance_version', 'workflow_assignment','workflow_stage_config','policy_rule','rating_access_rules']  # Add any other tables that might be in your schema ]
         with engine.begin() as conn:
             # Disable triggers temporarily
             conn.execute(text("SET session_replication_role = 'replica';"))

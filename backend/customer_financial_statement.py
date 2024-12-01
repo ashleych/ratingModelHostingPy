@@ -8,7 +8,7 @@ from models.statement_models import FinancialStatement, FinancialsPeriod, LineIt
 from models.models import Customer
 import csv
 from typing import List, Dict
-from main import create_engine_and_session
+from config import create_engine_and_session
 from main import TEMPLATE_DIRECTORY
 from sqlalchemy.orm import joinedload
 from sqlalchemy.dialects.postgresql import insert
@@ -621,7 +621,7 @@ class FsApp:
 
 
 if __name__ == "__main__":
-    from main import DB_NAME
+    from config import DB_NAME
     _, db = create_engine_and_session(DB_NAME)
     app = FsApp(db)
     customer = app.create_statement_data_for_customer("CIF-123456")

@@ -12,6 +12,7 @@ from sqlalchemy.orm import sessionmaker
 
 # sys.path.insert(1, "/home/ashleyubuntu/ratingModelPython/backend")
 from app import app
+from config import DB_NAME, create_engine_and_session
 from models.rating_model_model import FactorInputSource
 from models.rating_instance_model import RatingFactorScore
 from models.rating_model_model import RatingFactor, RatingModel
@@ -37,7 +38,7 @@ from sqlalchemy.orm import sessionmaker
 from models.statement_models import Template
 from schema import schema
 
-from main import create_engine_and_session, DB_NAME,init_db
+from main import init_db
 from customer_financial_statement import FsApp
 from models.rating_instance_model import RatingInstance
 from rating_model import configure_rating_model_factors, get_or_create_rating_model

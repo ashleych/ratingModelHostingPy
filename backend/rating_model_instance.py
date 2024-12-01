@@ -7,6 +7,7 @@ from typing import List, Optional, Dict
 import enum
 from decimal import Decimal
 
+from config import DB_NAME, create_engine_and_session
 from models.statement_models import Template
 from models.rating_instance_model import RatingFactorScore
 from models.rating_model_model import RatingFactor, RatingFactorAttribute, RatingModel
@@ -276,7 +277,7 @@ if __name__ == "__main__":
     from models.rating_model_model import ScoreToGradeMapping
     from schema import schema
 
-    from main import create_engine_and_session, DB_NAME,init_db
+    from main import init_db
     from customer_financial_statement import FsApp
     init_db(DB_NAME)
     _, db = create_engine_and_session(DB_NAME)

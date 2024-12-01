@@ -23,13 +23,21 @@ class BaseSchema(BaseModel):
     updated_at: Optional[datetime] = Field(None, description="Update datetime")
     model_config = ConfigDict(from_attributes=True, arbitrary_types_allowed=True,extra='allow')
 
+class Role(BaseModel):
+    model_config = ConfigDict(from_attributes=True, arbitrary_types_allowed=True,extra='allow')
+
+    name :str 
+    description:str
+    is_active:bool
 
 class User(BaseSchema):
 
     # id = Column(UUID, primary_key=True)
     name: Optional[str] = None
     email: str
+    # role: Optional[List[str|UUID]] = None
     role: Optional[List[str|UUID]] = None
+    # role: Optional[List[Role]] = None
     password: str
 
 
@@ -125,9 +133,9 @@ class WorkflowAction(BaseSchema):
 
 
     def available_next_steps(self):
-        if (self.workflow_stage==WorkflowStage.MAKER) & (self.action_type==ActionRight.SUBMIT):
+        if (self.workflow_stage==WorkflowStage.MAKER) & (self.action_type==ActionRight.APPROVE):
             return WorkflowStage.CHECKER
-        if (self.workflow_stage==WorkflowStage.CHECKER) & (self.action_type==ActionRight.SUBMIT):
+        if (self.workflow_stage==WorkflowStage.CHECKER) & (self.action_type==ActionRight.APPROVE):
             return WorkflowStage.APPROVER
         
         
@@ -256,8 +264,10 @@ class RatingInstance(BaseSchema):
     missing_financial_fields: Optional[Any] = None
     overall_score: Optional[float] = None
     overall_rating: Optional[str] = None
-    overall_status: WorkflowStage = WorkflowStage.MAKER
-
+    # overall_status: WorkflowStage = WorkflowStage.MAKER
+    maker_approved :Optional[bool]=False
+    checker_approved :Optional[bool]=False
+    approver_approved :Optional[bool]=False
     model_config = ConfigDict(from_attributes=True)
 
     def clone(self):
@@ -287,7 +297,11 @@ class RatingInstanceCreate(BaseModel):
     inputs_completion_status: bool = False
     incomplete_financial_information: bool = False
     missing_financial_fields: Optional[Any] = None
-    workflow_action_id:UUID 
+
+    maker_approved :Optional[bool]=False
+    checker_approved :Optional[bool]=False
+    approver_approved :Optional[bool]=False
+    # workflow_action_id:UUID 
     overall_score: Optional[float] = None
     overall_rating: Optional[str] = None
     overall_status: WorkflowStage = WorkflowStage.MAKER

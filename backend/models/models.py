@@ -15,6 +15,8 @@ class Role(Base):
     name = Column(String,unique=True)
     description= Column(String,nullable=True)
     is_active=Column(Boolean,default=True)
+
+    roles_approval = relationship("RatingStageApprovalRule", back_populates="role")
 # class WorkflowActionType(enum.Enum):
 #     DRAFT = "draft"
     # Add other types as needed

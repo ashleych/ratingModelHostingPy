@@ -44,7 +44,9 @@ class ActionRight(enum.Enum):
     VIEW = "view"
     COMMENT = "comment"
     TRANSFER='transfer'
-    SUBMIT='submit'
+    APPROVE='approve'
+    REJECT='reject'
+    # SUBMIT='submit'
 
     @classmethod
     def from_string(cls, value: str) -> 'ActionRight':
@@ -53,10 +55,12 @@ class ActionRight(enum.Enum):
             "CREATE": cls.CREATE,
             "EDIT": cls.EDIT,
             "DELETE": cls.DELETE,
+            "APPROVE": cls.APPROVE,
             "VIEW": cls.VIEW,
             "COMMENT": cls.COMMENT,
             "TRANSFER": cls.TRANSFER,
-            "SUBMIT": cls.SUBMIT
+            "REJECT": cls.REJECT,
+            # "SUBMIT": cls.SUBMIT
         }
         return value_map.get(value.upper(),cls.VIEW)
     

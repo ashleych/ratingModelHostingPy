@@ -5,6 +5,7 @@ from pydantic import BaseModel
 from typing import List, Optional
 import csv
 import enum
+from config import DB_NAME, create_engine_and_session
 from models.rating_model_model import FactorInputSource, FactorType
 from models.statement_models import Template
 from models.rating_model_model import RatingFactor, RatingModel
@@ -277,7 +278,7 @@ def configure_rating_model_from_csv(self, rating_model: RatingModel, factors_fil
 # Usage example
 if __name__ == "__main__":
 
-    from main import create_engine_and_session, DB_NAME,init_db
+    from main import init_db
     init_db(DB_NAME)
     _, db = create_engine_and_session(DB_NAME)
     rating_model = db.query(RatingModel).first()  # Or create a new one

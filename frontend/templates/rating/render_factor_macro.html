@@ -5,7 +5,7 @@
         {% if factor.weightage %}
             <span class="ml-1">({{ "{:.2f}".format(factor.weightage * 100) }}%)</span>
         {% endif %}
-        {% if factor.input_source == 'user_input' and factor.factor_attributes  and 'edit' in available_actions%}
+        {% if factor.input_source == 'user_input' and factor.factor_attributes  and ActionRight.EDIT in available_actions%}
             <button class="edit-btn ml-2 text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300"
                     data-factor-id="{{ factor.id }}">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">

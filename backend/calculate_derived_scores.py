@@ -2,6 +2,7 @@ import enum
 from decimal import Decimal
 from typing import Dict, List, Optional, Tuple
 
+from config import DB_NAME
 from models.rating_instance_model import RatingFactorScore, RatingInstance
 from models.rating_model_model import (
     FactorInputSource,
@@ -220,7 +221,7 @@ def update_or_create_score(db: Session, rating_instance_id: int, factor_id: str,
 
 if __name__ == "__main__":
     from customer_financial_statement import FsApp
-    from main import DB_NAME, create_engine_and_session, init_db
+    from main import init_db
     from models.rating_model_model import ScoreToGradeMapping
     from schema import schema
     from sqlalchemy import create_engine

@@ -1,4 +1,11 @@
 from typing import List
+import sys
+import os
+
+from config import DB_NAME, create_engine_and_session
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+
 from uuid import uuid4
 from enums_and_constants import AcceptFlow, ActionRight, EditFlow, RejectionFlow, WorkflowStage
 from models.base import Base
@@ -42,19 +49,31 @@ from models.models import Role, User
 #         # Get access rules that match user's roles
 #         return (
 #             db.query(cls)
-#             .filter(
+#             .filter(if 
 #                 cls.policy_id == policy_id,
 #                 cls.workflow_stage == workflow_stage,
 #                 cls.role_name.in_(user.role)  # user.role is the JSON array of role names
 #             )
 #             .all()
 #         )
-class RatingAccessRule(Base):
 
+class RatingStageApprovalRule(Base):
+
+    policy_id = Column(UUID(as_uuid=True), ForeignKey('policy_rule.id'), nullable=False)
+    workflow_stage = Column(SQLAlchemyEnum(WorkflowStage), nullable=False)
+    no_of_approvals_needed_for_stage= Column(Integer,default=1)
+    approver_role_id = Column(UUID(as_uuid=True), ForeignKey('role.id'), nullable=False)
+
+    policy = relationship("PolicyRule", back_populates="approval_rules")
+    role = relationship("Role", back_populates="roles_approval")
+
+
+
+
+class RatingAccessRule(Base):
 
     __tablename__ = 'rating_access_rules'
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
     policy_id = Column(UUID(as_uuid=True), ForeignKey('policy_rule.id'), nullable=False)
     role_name = Column(String, nullable=False)
     workflow_stage = Column(SQLAlchemyEnum(WorkflowStage), nullable=False)
@@ -94,34 +113,14 @@ class RatingAccessRule(Base):
         return self.action_rights if self.action_rights else []
 
 
-# class PolicyRule(Base):
-#     __tablename__ = 'policy_rule'
-
-#     business_unit_id = Column(UUID, ForeignKey('businessunit.id'), nullable=False)
-#     name = Column(String, nullable=False)
-#     description = Column(String)
-#     is_active = Column(Boolean, default=True)
-
-#     # Relationships
-#     # workflow_stages = relationship("WorkflowStageConfig")
-#     business_unit = relationship("BusinessUnit", lazy='joined')
+    def get_approvers_for_rule(self):
+        if ActionRight.APPROVE in self.action_rights:
+            return self.role_name
+        else:
+            return None
 
 
-# class WorkflowStageConfig(Base):
-#     __tablename__ = 'workflow_stage_config'
 
-#     policy_id = Column(UUID, ForeignKey('policy_rule.id'), nullable=False)
-#     stage = Column(SQLAlchemyEnum(WorkflowStage), nullable=False)
-#     min_count = Column(Integer, nullable=False, default=1)
-#     allowed_roles = Column(JSON, nullable=False)  # List of role IDs that can perform this stage
-#     rights = Column(JSON, nullable=False)  # List of ActionRights
-#     order_in_stage = Column(Integer, nullable=False, default=1)  # For multiple approvers
-
-#     # For Approver stage
-#     is_sequential = Column(Boolean, default=True)
-#     rejection_flow = Column(SQLAlchemyEnum(RejectionFlow), default=RejectionFlow.TO_MAKER)
-
-#     policy = relationship("PolicyRule", back_populates="workflow_stages")
 
 class PolicyRule(Base):
     __tablename__ = 'policy_rule'
@@ -134,6 +133,7 @@ class PolicyRule(Base):
     # Relationships
     business_unit = relationship("BusinessUnit", lazy='joined')
     access_rules = relationship("RatingAccessRule", back_populates="policy")
+    approval_rules = relationship("RatingStageApprovalRule", back_populates="policy")
 
     def get_stage_rules(self, stage: WorkflowStage) -> List[RatingAccessRule]:
         """Get all access rules for a specific stage"""
@@ -155,3 +155,27 @@ class PolicyRule(Base):
             if rule.workflow_stage == stage
         }
         return any(role in allowed_roles for role in user.role)
+
+
+
+    def get_approvers_for_policy(self,stage: WorkflowStage):
+        access_rules = self.access_rules
+        return access_rules
+
+
+if __name__=='__main__':
+
+    import sys
+    sys.path.append("/home/ashleyubuntu/ratingModelPython/backend")
+    from enums_and_constants import AcceptFlow, ActionRight, EditFlow, RejectionFlow, WorkflowStage
+    from config import create_engine_and_session,DB_NAME
+    # from main import init_db
+    # init_db(DB_NAME)
+    _, db = create_engine_and_session(DB_NAME)
+    user=db.query(User).filter(User.email=='ashley.cherian@gmail.com').first()
+
+    breakpoint()
+    policy=db.query(PolicyRule).filter(PolicyRule.name=='Large Corporate Credit Approval Policy').first()
+
+    approvers=policy.get_approvers_for_policy(WorkflowStage.MAKER)
+    print(approvers)

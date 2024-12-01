@@ -1,0 +1,141 @@
+
+<!-- Role badge component -->
+{% macro role_badge(role_name) %}
+<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200">
+    {{ role_name }}
+</span>
+{% endmacro %}
+
+<!-- Status badge component -->
+{% macro status_badge(current, required) %}
+<span class="px-2 py-1 text-xs rounded-full {% if current >= required %}bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200{% else %}bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200{% endif %}">
+    {{ current }}/{{ required }} Approvals
+</span>
+{% endmacro %}
+
+<div class="bg-white dark:bg-gray-800 shadow rounded-lg">
+    <div class="px-4 py-5 sm:px-6">
+        <h3 class="text-lg font-medium text-gray-900 dark:text-white">Approval Status</h3>
+    </div>
+    
+    <div class="border-t border-gray-200 dark:border-gray-700">
+        <dl>
+            <!-- Maker Stage -->
+            <div class="bg-gray-50 dark:bg-gray-900 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Maker Stage</dt>
+                <dd class="mt-1 text-sm text-gray-900 dark:text-gray-100 sm:col-span-2">
+                    <div class="space-y-2">
+                        <div class="flex items-center justify-between">
+                            <span>Required Approvals: {{ approval_tracking.required_maker_approvers }}</span>
+                            {{ status_badge(approval_tracking.acutal_maker_approvers|length, approval_tracking.required_maker_approvers) }}
+                        </div>
+                        
+                        {% if approval_tracking.allowed_maker_approvers %}
+                        <div class="text-sm text-gray-500 dark:text-gray-400">
+                            Allowed Approvers: 
+                            {% for role in approval_tracking.allowed_maker_approvers %}
+                                {{ role_badge(role.name) }}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                        
+                        {% if approval_tracking.acutal_maker_approvers %}
+                        <div class="mt-2">
+                            <p class="text-sm text-gray-500 dark:text-gray-400 mb-1">Approved by:</p>
+                            <ul class="space-y-1">
+                            {% for approver in approval_tracking.acutal_maker_approvers %}
+                                <li class="flex items-center text-sm">
+                                    <svg class="h-4 w-4 text-green-500 dark:text-green-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                    </svg>
+                                    {{ approver.name }} 
+                                    <span class="ml-1 text-gray-500 dark:text-gray-400">({{ approver.role.name }})</span>
+                                </li>
+                            {% endfor %}
+                            </ul>
+                        </div>
+                        {% endif %}
+                    </div>
+                </dd>
+            </div>
+
+            <!-- Checker Stage -->
+            <div class="bg-white dark:bg-gray-800 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Checker Stage</dt>
+                <dd class="mt-1 text-sm text-gray-900 dark:text-gray-100 sm:col-span-2">
+                    <div class="space-y-2">
+                        <div class="flex items-center justify-between">
+                            <span>Required Approvals: {{ approval_tracking.required_checker_approvers }}</span>
+                            {{ status_badge(approval_tracking.actual_checker_approvers|length, approval_tracking.required_checker_approvers) }}
+                        </div>
+                        
+                        {% if approval_tracking.allowed_checker_approvers %}
+                        <div class="text-sm text-gray-500 dark:text-gray-400">
+                            Allowed Approvers: 
+                            {% for role in approval_tracking.allowed_checker_approvers %}
+                                {{ role_badge(role.name) }}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                        
+                        {% if approval_tracking.actual_checker_approvers %}
+                        <div class="mt-2">
+                            <p class="text-sm text-gray-500 dark:text-gray-400 mb-1">Approved by:</p>
+                            <ul class="space-y-1">
+                            {% for approver in approval_tracking.actual_checker_approvers %}
+                                <li class="flex items-center text-sm">
+                                    <svg class="h-4 w-4 text-green-500 dark:text-green-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                    </svg>
+                                    {{ approver.name }}
+                                    <span class="ml-1 text-gray-500 dark:text-gray-400">({{ approver.role.name }})</span>
+                                </li>
+                            {% endfor %}
+                            </ul>
+                        </div>
+                        {% endif %}
+                    </div>
+                </dd>
+            </div>
+
+            <!-- Approver Stage -->
+            <div class="bg-gray-50 dark:bg-gray-900 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Approver Stage</dt>
+                <dd class="mt-1 text-sm text-gray-900 dark:text-gray-100 sm:col-span-2">
+                    <div class="space-y-2">
+                        <div class="flex items-center justify-between">
+                            <span>Required Approvals: {{ approval_tracking.required_approver_approvers }}</span>
+                            {{ status_badge(approval_tracking.actual_approver_approvers|length, approval_tracking.required_approver_approvers) }}
+                        </div>
+                        
+                        {% if approval_tracking.allowed_approver_approvers %}
+                        <div class="text-sm text-gray-500 dark:text-gray-400">
+                            Allowed Approvers: 
+                            {% for role in approval_tracking.allowed_approver_approvers %}
+                                {{ role_badge(role.name) }}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                        
+                        {% if approval_tracking.actual_approver_approvers %}
+                        <div class="mt-2">
+                            <p class="text-sm text-gray-500 dark:text-gray-400 mb-1">Approved by:</p>
+                            <ul class="space-y-1">
+                            {% for approver in approval_tracking.actual_approver_approvers %}
+                                <li class="flex items-center text-sm">
+                                    <svg class="h-4 w-4 text-green-500 dark:text-green-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                    </svg>
+                                    {{ approver.name }}
+                                    <span class="ml-1 text-gray-500 dark:text-gray-400">({{ approver.role.name }})</span>
+                                </li>
+                            {% endfor %}
+                            </ul>
+                        </div>
+                        {% endif %}
+                    </div>
+                </dd>
+            </div>
+        </dl>
+    </div>
+</div>

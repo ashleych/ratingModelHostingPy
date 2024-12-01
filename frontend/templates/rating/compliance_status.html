@@ -1,0 +1,95 @@
+<!-- Approval Status Section -->
+<div class="mb-6 bg-white dark:bg-gray-800 shadow rounded-lg p-4">
+    <h3 class="text-lg font-medium leading-6 text-gray-900 dark:text-gray-100 mb-4">Approval Status</h3>
+    <div class="grid grid-cols-3 gap-4">
+        <!-- Maker Status -->
+        <div class="flex items-center">
+            <div class="flex-shrink-0">
+                {% if rating_instance.maker_approved %}
+                <span class="h-8 w-8 rounded-full bg-green-100 dark:bg-green-800 flex items-center justify-center">
+                    <svg class="h-5 w-5 text-green-600 dark:text-green-200" xmlns="http://www.w3.org/2000/svg"
+                        viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd"
+                            d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                            clip-rule="evenodd" />
+                    </svg>
+                </span>
+                {% else %}
+                <span class="h-8 w-8 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
+                    <span class="text-gray-500 dark:text-gray-400">M</span>
+                </span>
+                {% endif %}
+            </div>
+            <div class="ml-3">
+                <p class="text-sm font-medium text-gray-900 dark:text-gray-100">Maker</p>
+                <p class="text-xs text-gray-500 dark:text-gray-400">
+                    {% if rating_instance.maker_approved %}
+                    Approved
+                    {% else %}
+                    Pending
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+
+        <!-- Checker Status -->
+        <div class="flex items-center">
+            <div class="flex-shrink-0">
+                {% if rating_instance.checker_approved %}
+                <span class="h-8 w-8 rounded-full bg-green-100 dark:bg-green-800 flex items-center justify-center">
+                    <svg class="h-5 w-5 text-green-600 dark:text-green-200" xmlns="http://www.w3.org/2000/svg"
+                        viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd"
+                            d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                            clip-rule="evenodd" />
+                    </svg>
+                </span>
+                {% else %}
+                <span class="h-8 w-8 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
+                    <span class="text-gray-500 dark:text-gray-400">C</span>
+                </span>
+                {% endif %}
+            </div>
+            <div class="ml-3">
+                <p class="text-sm font-medium text-gray-900 dark:text-gray-100">Checker</p>
+                <p class="text-xs text-gray-500 dark:text-gray-400">
+                    {% if rating_instance.checker_approved %}
+                    Approved
+                    {% else %}
+                    Pending
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+
+        <!-- Approver Status -->
+        <div class="flex items-center">
+            <div class="flex-shrink-0">
+                {% if rating_instance.approver_approved %}
+                <span class="h-8 w-8 rounded-full bg-green-100 dark:bg-green-800 flex items-center justify-center">
+                    <svg class="h-5 w-5 text-green-600 dark:text-green-200" xmlns="http://www.w3.org/2000/svg"
+                        viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd"
+                            d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                            clip-rule="evenodd" />
+                    </svg>
+                </span>
+                {% else %}
+                <span class="h-8 w-8 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
+                    <span class="text-gray-500 dark:text-gray-400">A</span>
+                </span>
+                {% endif %}
+            </div>
+            <div class="ml-3">
+                <p class="text-sm font-medium text-gray-900 dark:text-gray-100">Approver</p>
+                <p class="text-xs text-gray-500 dark:text-gray-400">
+                    {% if rating_instance.approver_approved %}
+                    Approved
+                    {% else %}
+                    Pending
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
