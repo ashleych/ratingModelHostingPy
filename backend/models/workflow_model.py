@@ -2,7 +2,6 @@ from pickle import APPEND
 from re import I
 from typing import Optional, Tuple
 
-from requests import session
 from enums_and_constants import ActionRight, WorkflowStage
 from models.base import Base
 
@@ -333,7 +332,8 @@ class WorkflowAction(Base):
     def check_approval_completion(self,db:Session):
     
         from check_policy_rule import get_approval_tracking
-        approval_tracking = get_approval_tracking( rating_instance_id=self.rating_instance_id, workflow_action_id=self.id, db=db)
+        # approval_tracking = get_approval_tracking( rating_instance_id=self.rating_instance_id, workflow_action_id=self.id, db=db)
+        approval_tracking = get_approval_tracking( rating_instance_id=self.rating_instance_id, db=db)
         return approval_tracking.get_stage_level_approval_status(self.workflow_stage)
 
 
@@ -359,33 +359,79 @@ class WorkflowAction(Base):
         else:
             return self
 
+    # def get_next_stage(self, db: Session) -> WorkflowStage:
+    #     """Get next stage based on current stage and approvals"""
+    #     rating_instance = (
+    #         db.query(RatingInstance)
+    #         .filter(RatingInstance.id == self.rating_instance_id)
+    #         .first()
+    #     )
+    #     approval_tracking= get_approval_tracking(rating_instance_id=self.rating_instance_id,db=db)
+    #     if not rating_instance:
+    #         raise ValueError("Rating instance not found")
+    #     if (
+    #         self.workflow_stage == WorkflowStage.MAKER
+    #         # and rating_instance.maker_approved
+    #     ):
+    #         next_stage= WorkflowStage.CHECKER
+    #         if approval_tracking.get_stage_level_approval_status(next_stage):
+    #             next_stage=WorkflowStage.APPROVER
+    #             #i want to recursively check this
+    #         return WorkflowStage.CHECKER
+    #     elif (
+    #         self.workflow_stage == WorkflowStage.CHECKER
+    #         # and rating_instance.checker_approved
+    #     ):
+    #         return WorkflowStage.APPROVER
+    #     elif (
+    #         self.workflow_stage == WorkflowStage.APPROVER
+    #         # and rating_instance.approver_approved
+    #     ):
+    #         return WorkflowStage.APPROVED
+
+    #     return self.workflow_stage
+
+
     def get_next_stage(self, db: Session) -> WorkflowStage:
-        """Get next stage based on current stage and approvals"""
+        """Get next stage based on current stage and approvals, recursively checking if next stage is already approved"""
+
+        from check_policy_rule import get_approval_tracking
+        def check_next_stage(current_stage: WorkflowStage, approval_tracking) -> WorkflowStage:
+            if current_stage == WorkflowStage.APPROVED:
+                return WorkflowStage.APPROVED
+                
+            stage_progression = {
+                WorkflowStage.MAKER: WorkflowStage.CHECKER,
+                WorkflowStage.CHECKER: WorkflowStage.APPROVER,
+                WorkflowStage.APPROVER: WorkflowStage.APPROVED
+            }
+            
+            next_stage = stage_progression.get(current_stage)
+            if not next_stage:
+                return current_stage
+                
+            # If next stage is already approved, recursively check the stage after that
+            if approval_tracking.get_stage_level_approval_status(next_stage):
+                return check_next_stage(next_stage, approval_tracking)
+                
+            return next_stage
+
         rating_instance = (
             db.query(RatingInstance)
             .filter(RatingInstance.id == self.rating_instance_id)
             .first()
         )
-
+        
         if not rating_instance:
             raise ValueError("Rating instance not found")
-        if (
-            self.workflow_stage == WorkflowStage.MAKER
-            # and rating_instance.maker_approved
-        ):
-            return WorkflowStage.CHECKER
-        elif (
-            self.workflow_stage == WorkflowStage.CHECKER
-            # and rating_instance.checker_approved
-        ):
-            return WorkflowStage.APPROVER
-        elif (
-            self.workflow_stage == WorkflowStage.APPROVER
-            # and rating_instance.approver_approved
-        ):
-            return WorkflowStage.APPROVED
+            
+        approval_tracking = get_approval_tracking(
+            rating_instance_id=self.rating_instance_id,
+            db=db
+        )
+        
+        return check_next_stage(self.workflow_stage, approval_tracking)
 
-        return self.workflow_stage
     def get_previous_stage(self, db: Session) -> WorkflowStage:
         """Get next stage based on current stage and approvals"""
         rating_instance = (
@@ -430,7 +476,8 @@ class WorkflowAction(Base):
         # Can't submit if already in approved state
         if self.workflow_stage == WorkflowStage.APPROVED:
             return False
-        approval_tracking= get_approval_tracking(rating_instance_id=rating_instance.id,workflow_action_id=self.id,db=db)
+        # approval_tracking= get_approval_tracking(rating_instance_id=rating_instance.id,workflow_action_id=self.id,db=db)
+        approval_tracking= get_approval_tracking(rating_instance_id=rating_instance.id,db=db)
         if approval_tracking:
             if approval_tracking.get_stage_level_approval_status(self.workflow_stage):
                 return False

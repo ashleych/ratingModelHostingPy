@@ -355,7 +355,7 @@ async def view_customer_rating(
     )
     approval_tracking = get_approval_tracking(
         rating_instance_id=rating_instance_id,
-        workflow_action_id=workflow_action_id,
+        # workflow_action_id=workflow_action_id,
         db=db,
     )
     current_stage = workflow_action.workflow_stage

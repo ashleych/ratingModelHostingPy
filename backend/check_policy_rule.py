@@ -28,7 +28,7 @@ from schema.approval_tracking import ApprovalTracking
 # approvers=policy.get_approvers_for_policy(WorkflowStage.MAKER)
 
 
-def get_approval_tracking(rating_instance_id: str |UUID, workflow_action_id: str|UUID, db: Session) -> ApprovalTracking:
+def get_approval_tracking(rating_instance_id: str |UUID, db: Session) -> ApprovalTracking:
     from models.workflow_model import WorkflowAction
 
     # Get the rating instance and its associated policy

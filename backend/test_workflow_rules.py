@@ -140,6 +140,16 @@ def workflow_test_data():
     assert  rating_instance.id is not None
     return initial_step
 
+
+@pytest.fixture
+def db():
+    """Provide a database session for tests"""
+    db = next(get_db())
+    try:
+        yield db
+    finally:
+        db.close()
+
 @pytest.fixture
 def auth_client():
     """Returns an authenticated client"""
@@ -439,9 +449,9 @@ def test_double_submission_by_same_user(client, test_user, workflow_test_data):
 
 
 def test_submission_by_approver(client, test_user, test_credit_analyst_user, workflow_test_data, 
-                            test_approver_1_user, test_approver_2_user, test_approver_3_user):
+                            test_approver_1_user, test_approver_2_user, test_approver_3_user,db):
     # Get database session
-    db = next(get_db())
+    # db = next(get_db())
     maker_auth_cookie = test_login(client, test_user)
     test_user_id = db.query(models.User).filter(models.User.email == test_user['email']).first()
     test_credit_analyst_user_id = db.query(models.User).filter(models.User.email == test_credit_analyst_user['email']).first()
@@ -600,3 +610,139 @@ def test_submission_by_approver(client, test_user, test_credit_analyst_user, wor
     # Final workflow stage check
     assert final_workflow.workflow_stage == WorkflowStage.APPROVED, \
         f"Final workflow stage should be APPROVED, got {final_workflow.workflow_stage}"
+
+
+
+def test_checker_edit_workflow(
+    client,
+    db,
+    test_user,
+    test_credit_analyst_user,
+    workflow_test_data
+):
+    """
+    Test workflow when checker makes an edit:
+    1. Maker approves initially
+    2. Checker makes an edit (stays in checker stage)
+    3. Checker approves the edit
+    4. Goes back to maker for approval
+    5. Maker approves
+    6. Goes to approver stage
+    """
+    # Initial maker approval
+    maker_auth_cookie = test_login(client, test_user)
+    workflow_action = workflow_test_data
+    assert workflow_action.workflow_stage == WorkflowStage.MAKER, "Should start at MAKER stage"
+    
+    # Submit as maker
+    maker_response = client.post(
+        f"/submit_rating/{workflow_action.rating_instance_id}/{workflow_action.id}",
+        cookies={"Authorization": maker_auth_cookie},
+        allow_redirects=False
+    )
+    assert maker_response.status_code == 303
+    
+    # Get checker action and verify stage
+    db.expire_all()
+    checker_action = (
+        db.query(WorkflowAction)
+        .filter(WorkflowAction.workflow_cycle_id == workflow_action.workflow_cycle_id)
+        .filter(WorkflowAction.workflow_stage == WorkflowStage.CHECKER)
+        .filter(WorkflowAction.head == True)
+        .first()
+    )
+    assert checker_action is not None, "Should have progressed to CHECKER stage"
+    
+    # Checker makes an edit
+    checker_auth_cookie = test_login(client, test_credit_analyst_user)
+    edit_response = client.post(
+        f"/edit_rating/{checker_action.rating_instance_id}/{checker_action.id}",
+        cookies={"Authorization": checker_auth_cookie},
+        allow_redirects=False
+    )
+    assert edit_response.status_code == 303
+    
+    # Verify still in CHECKER stage after edit
+    db.expire_all()
+    checker_after_edit = (
+        db.query(WorkflowAction)
+        .filter(WorkflowAction.workflow_cycle_id == workflow_action.workflow_cycle_id)
+        .filter(WorkflowAction.head == True)
+        .first()
+    )
+    assert checker_after_edit.workflow_stage == WorkflowStage.CHECKER, "Should remain in CHECKER stage after edit"
+    assert checker_after_edit.action_type == ActionRight.EDIT, "Should have EDIT action type"
+    
+    # Checker approves their edit
+    checker_approve_response = client.post(
+        f"/submit_rating/{checker_after_edit.rating_instance_id}/{checker_after_edit.id}",
+        cookies={"Authorization": checker_auth_cookie},
+        allow_redirects=False
+    )
+    assert checker_approve_response.status_code == 303
+    
+    # Verify it went back to MAKER stage after checker approved their edit
+    db.expire_all()
+    maker_action_after_edit = (
+        db.query(WorkflowAction)
+        .filter(WorkflowAction.workflow_cycle_id == workflow_action.workflow_cycle_id)
+        .filter(WorkflowAction.head == True)
+        .first()
+    )
+    assert maker_action_after_edit.workflow_stage == WorkflowStage.MAKER, \
+        "Should return to MAKER stage after checker approves their edit"
+    
+    # Maker approves the edited version
+    maker_approve_edit_response = client.post(
+        f"/submit_rating/{maker_action_after_edit.rating_instance_id}/{maker_action_after_edit.id}",
+        cookies={"Authorization": maker_auth_cookie},
+        allow_redirects=False
+    )
+    assert maker_approve_edit_response.status_code == 303
+    
+    # Verify progression to APPROVER stage
+    db.expire_all()
+    final_action = (
+        db.query(WorkflowAction)
+        .filter(WorkflowAction.workflow_cycle_id == workflow_action.workflow_cycle_id)
+        .filter(WorkflowAction.head == True)
+        .first()
+    )
+    assert final_action.workflow_stage == WorkflowStage.APPROVER, "Should progress to APPROVER stage"
+    
+    # Verify the complete sequence of actions
+    all_actions = (
+        db.query(WorkflowAction)
+        .filter(WorkflowAction.workflow_cycle_id == workflow_action.workflow_cycle_id)
+        .order_by(WorkflowAction.action_count_customer_level)
+        .all()
+    )
+    
+    expected_sequence = [
+        (WorkflowStage.MAKER, ActionRight.INIT),
+        (WorkflowStage.MAKER, ActionRight.APPROVE),
+        (WorkflowStage.MAKER, ActionRight.EXIT),
+        (WorkflowStage.CHECKER, ActionRight.INIT),
+        (WorkflowStage.CHECKER, ActionRight.EDIT),     # Checker's edit
+        (WorkflowStage.CHECKER, ActionRight.APPROVE),  # Checker approves their edit
+        (WorkflowStage.CHECKER, ActionRight.EXIT),
+        (WorkflowStage.MAKER, ActionRight.INIT),       # Back to maker for edit approval
+        (WorkflowStage.MAKER, ActionRight.APPROVE),    # Maker approves edit
+        (WorkflowStage.MAKER, ActionRight.EXIT),
+        (WorkflowStage.APPROVER, ActionRight.INIT),    # Finally to approver
+    ]
+    
+    for i, (expected_stage, expected_action) in enumerate(expected_sequence):
+        action = all_actions[i]
+        assert action.workflow_stage == expected_stage, \
+            f"Step {i+1}: Expected stage {expected_stage}, got {action.workflow_stage}"
+        assert action.action_type == expected_action, \
+            f"Step {i+1}: Expected action {expected_action}, got {action.action_type}"
+        
+        # Verify head and stale flags
+        if i == len(expected_sequence) - 1:
+            assert action.head == True, f"Final action should be head"
+            assert action.is_stale == False, f"Final action should not be stale"
+        else:
+            assert action.head == False, f"Non-final action should not be head"
+            assert action.is_stale == True, f"Non-final action should be stale"
