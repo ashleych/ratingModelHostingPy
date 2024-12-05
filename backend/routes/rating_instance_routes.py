@@ -4,7 +4,7 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 import starlette
 from check_policy_rule import get_approval_tracking
-from enums_and_constants import ActionRight, WorkflowStage
+from enums_and_constants import ActionRight, WorkflowErrorCode, WorkflowStage
 from models.policy_rules_model import RatingAccessRule
 from models.rating_instance_model import RatingFactorScore
 from models.rating_model_model import RatingFactor, RatingFactorAttribute, RatingModel
@@ -18,7 +18,7 @@ from collections import OrderedDict
 import docx
 from reportlab.pdfgen import canvas
 import io
-from typing import List, Dict
+from typing import List, Dict, Union
 from fastapi import APIRouter, Request, Depends, HTTPException, Query
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import FileResponse
@@ -70,7 +70,7 @@ from calculate_derived_scores import DerivedFactor, calculate_derived_scores
 import os
 
 # from rating_workflow_processing import check_if_user_has_any_associated_roles, identify_available_actions_for_wf_step, process_rating_instance
-from schema.schema import User
+from schema.schema import User, WorkflowError
 from dependencies import get_db, auth_handler
 
 router = APIRouter()
@@ -401,7 +401,7 @@ async def view_customer_rating(
     )
 
 
-@router.post("/rating/{rating_instance_id}/{workflow_action_id}")
+@router.post("/submit_rating/{rating_instance_id}/{workflow_action_id}")
 async def submit_rating(
     request: Request,
     rating_instance_id: str,
@@ -410,11 +410,21 @@ async def submit_rating(
     db: Session = Depends(get_db),
 ):
     # Get the workflow action
-    workflow_action = db.query(WorkflowAction).get(workflow_action_id)
+    workflow_action:WorkflowAction = db.query(WorkflowAction).get(workflow_action_id)
+
+
+    # check if user
     if not workflow_action:
         raise HTTPException(status_code=404, detail="Workflow action not found")
+    else:
+        can_user_approve= workflow_action.can_user_perform_action(db,user_id=current_user.id,action=ActionRight.APPROVE)
+        if not can_user_approve:
+            return WorkflowError(code=WorkflowErrorCode.UNAUTHORIZED_ROLE)
+        if not workflow_action.can_submit(db=db):
+            return WorkflowError(code=WorkflowErrorCode.ALREADY_SUBMITTED)
 
     try:
+
         # This will handle all the cloning and db operations
         new_workflow = workflow_action.approve(db, user_id=current_user.id)
         # check if approval is now enough to move to next stage

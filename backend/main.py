@@ -54,9 +54,6 @@ def init_policy(session: Session, business_units: Dict[str, Any]) -> None:
                     "workflow_stage": WorkflowStage.MAKER,
                     "action_rights": [
                         ActionRight.VIEW,
-                        ActionRight.CREATE,
-                        ActionRight.EDIT,
-                        ActionRight.APPROVE
                     ],
                     "is_mandatory": True,
                     "rejection_flow": RejectionFlow.TO_MAKER
@@ -122,8 +119,6 @@ def init_policy(session: Session, business_units: Dict[str, Any]) -> None:
                     "workflow_stage": WorkflowStage.CHECKER,
                     "action_rights": [
                         ActionRight.VIEW,
-                        ActionRight.EDIT,
-                        ActionRight.APPROVE,
                         ActionRight.COMMENT
                     ],
                     "is_mandatory": True,
@@ -135,9 +130,31 @@ def init_policy(session: Session, business_units: Dict[str, Any]) -> None:
                     "workflow_stage": WorkflowStage.APPROVER,
                     "action_rights": [
                         ActionRight.VIEW,
-                        ActionRight.EDIT,
                         ActionRight.APPROVE,
-                        ActionRight.DELETE,
+                        ActionRight.COMMENT
+                    ],
+                    "approval_order": 1,
+                    "is_mandatory": True,
+                    "rejection_flow": RejectionFlow.TO_MAKER
+                },
+                {
+                    "role_name": "BU Head",
+                    "workflow_stage": WorkflowStage.APPROVER,
+                    "action_rights": [
+                        ActionRight.VIEW,
+                        ActionRight.APPROVE,
+                        ActionRight.COMMENT
+                    ],
+                    "approval_order": 1,
+                    "is_mandatory": True,
+                    "rejection_flow": RejectionFlow.TO_MAKER
+                },
+                {
+                    "role_name": "CEO",
+                    "workflow_stage": WorkflowStage.APPROVER,
+                    "action_rights": [
+                        ActionRight.VIEW,
+                        ActionRight.APPROVE,
                         ActionRight.COMMENT
                     ],
                     "approval_order": 1,

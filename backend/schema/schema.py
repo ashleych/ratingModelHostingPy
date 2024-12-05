@@ -1,3 +1,4 @@
+from multiprocessing.managers import BaseListProxy
 from typing import Optional, Dict, Any
 from ctypes import Union
 from pydantic import BaseModel, Field, ConfigDict, validator
@@ -534,17 +535,18 @@ class RatingModelApplicabilityRules(BaseSchema):
     business_unit: BusinessUnit
 
 
-class WorkflowError(Exception):
-    def __init__(
-        self,
-        code: WorkflowErrorCode,
-        message: Optional[str] = None,
-        details: Optional[Dict[str, Any]] = None
-    ):
-        self.code = code
-        self.message = message or ERROR_MESSAGES[code]
-        self.details = details
-        super().__init__(self.message)
+class WorkflowError(BaseModel):
+    code: WorkflowErrorCode
+    message: Optional[str] = None
+    details: Optional[Dict[str, Any]] = None
+
+    # def __init__(
+    #     self,
+    # ):
+    #     self.code = code
+    #     self.message = message or ERROR_MESSAGES[code]
+    #     self.details = details
+    #     # super().__init__(self.message)
 
 
 # Response model for API

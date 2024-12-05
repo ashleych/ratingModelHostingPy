@@ -1,5 +1,8 @@
+from pickle import APPEND
 from re import I
 from typing import Optional, Tuple
+
+from requests import session
 from enums_and_constants import ActionRight, WorkflowStage
 from models.base import Base
 
@@ -115,7 +118,7 @@ class WorkflowAction(Base):
 
 
     def clone(
-        self, db: Session, user_id, action_type=None, stage=None,rating_instance_id=None
+        self, db: Session, user_id, action_type=None, stage=None,rating_instance_id=None,
     ) -> "WorkflowAction":
         """
         Clone the current workflow action and handle all database operations.
@@ -123,15 +126,17 @@ class WorkflowAction(Base):
         """
         if not self.head:
             raise ValueError("Unable to clone the workflow as it is not the head")
-
+        change_head=True
+        # change_head= False if action_type and action_type==ActionRight.APPROVE else True
         try:
             # Start a nested transaction
             with db.begin_nested():
                 # Update current workflow action
-                self.head = False
-                self.is_stale = True
+                if change_head:
+                    self.head = False
+                    self.is_stale = True
                 db.add(self)
-                if action_type==ActionRight.MOVE_TO_NEXT_STAGE:
+                if action_type in [ActionRight.MOVE_TO_NEXT_STAGE,ActionRight.EXIT,ActionRight.INIT]:
                     """
                     its s system trigger, not really a user action, when a set of conditions are met the system automatically moves the workflow to the next stage, and ehnce we dont want it to eb associated with any one user
                     this is particularly needed hwne say 3 approvals are needed for the wf to mvoe to next stage, in this case it is the systme that checks if 3 approvals are in palce and then transfers it. itwould be incorrect to record the last approvers user id as hte uset that moved the wf to the next stage
@@ -152,9 +157,9 @@ class WorkflowAction(Base):
                     description=None,
                     preceding_action_id=self.id,
                     succeeding_action_id=None,
-                    is_stale=False,
+                    is_stale=False if change_head  else True,
                     policy_rule_id=self.policy_rule_id,
-                    head=True,
+                    head=True if change_head else False,
                 )
                 db.add(new_workflow)
 
@@ -167,16 +172,15 @@ class WorkflowAction(Base):
             raise ValueError(f"Failed to clone workflow action: {str(e)}")
 
 
-
     @classmethod
     def get_active_workflow(
-        cls, db: Session, rating_instance_id: UUID
+        cls, db: Session, work_flow_cycle_id: UUID
     ) -> Optional["WorkflowAction"]:
         """Get the current active (head) workflow action for a rating instance"""
         return (
             db.query(cls)
             .filter(
-                cls.rating_instance_id == rating_instance_id,
+                cls.workflow_cycle_id== work_flow_cycle_id,
                 cls.head == True,
                 cls.is_stale == False,
             )
@@ -238,31 +242,11 @@ class WorkflowAction(Base):
             is not None
         )
 
-    def get_previous_stage(self, db: Session) -> Optional[WorkflowStage]:
-        """Get the previous stage in the workflow progression"""
-        progression = self.get_workflow_progression(db)
 
-        try:
-            current_index = progression.index(self.workflow_stage)
-            if current_index > 0:  # If not at first stage
-                return progression[current_index - 1]
-        except ValueError:
-            # If current stage isn't in progression (shouldn't happen)
-            pass
 
-        return None
-
-    # Additional helper method that might be useful
-    def is_first_stage(self, db: Session) -> bool:
-        """Check if current stage is the first stage in progression"""
-        progression = self.get_workflow_progression(db)
-        return progression[0] == self.workflow_stage if progression else False
-
-    def is_last_stage(self, db: Session) -> bool:
-        """Check if current stage is the last stage in progression"""
-        progression = self.get_workflow_progression(db)
-        return progression[-1] == self.workflow_stage if progression else False
-
+    def is_latest_action(self,db:Session)->bool:
+        return self.head 
+    
     def get_stage_position(self, db: Session) -> Optional[Tuple[int, int]]:
         """
         Get the position of current stage in progression
@@ -275,7 +259,12 @@ class WorkflowAction(Base):
         except ValueError:
             return None
 
-    def approve(self, db: Session, user_id=None) -> "WorkflowAction":
+    def record_action(self,action: ActionRight,user_id,db:Session)->'WorkflowAction':
+
+        action_work_step= self.clone( db=db, action_type=action, stage=self.workflow_stage,user_id=user_id )
+        return action_work_step
+
+    def approve(self, db: Session, user_id=None) -> Optional["WorkflowAction"]:
         from check_policy_rule import get_approval_tracking
         """Approve workflow action and update rating instance approval status"""
         rating_instance = (
@@ -286,57 +275,68 @@ class WorkflowAction(Base):
 
         if not rating_instance:
             raise ValueError("Rating instance not found")
-        previous_action_type= self.action_type
-
-        self.action_type=ActionRight.APPROVE
-
-        db.add(self)
-        db.commit()
-        approval_tracking = get_approval_tracking( rating_instance_id=self.rating_instance_id, workflow_action_id=self.id, db=db)
-
-        approval_tracking.update_approval_status()
-        current_stage = self.workflow_stage
-        # for stage in [WorkflowStage.MAKER,WorkflowStage.CHECKER,WorkflowStage.APPROVER]:
-        #     if stage==current_stage:
-        if not approval_tracking.get_stage_level_approval_status(current_stage):
-            #means approval not done, we need more Approvals in the same stage
+        was_previous_action_an_edit = True if self.action_type ==ActionRight.EDIT else False
+        approval_wf_action = self.record_action( db=db, action=ActionRight.APPROVE,user_id=user_id )
+        is_this_stage_all_approved = approval_wf_action.check_approval_completion(db)
+        # self.action_type=ActionRight.APPROVE
+        # self.make_head(db=db) # we make the currnet workflow the head, it just makes it easier to clone. Essentially in the workflow, we dont allow the Approval step to be a head
+        if not is_this_stage_all_approved:
+            #means approval not done, we need more Approvals in the same stage. So we make the step previous to the 
             #but before that we need to check if there was an edit in this stage that hasnt been approved by the maker yet, in which case, it needs to go back to the maker stage for their approval
-            if previous_action_type==ActionRight.EDIT:
-                next_stage=WorkflowStage.MAKER
-                cloned_wf=self.clone( db=db, action_type=ActionRight.MOVE_TO_NEXT_STAGE, stage=next_stage,user_id=None )
+            if was_previous_action_an_edit:
+                self.exit_stage(db)
+                new_maker_stage_initiated= self.initiate_next_stage(next_stage=WorkflowStage.MAKER,db=db)
+                # cloned_as_maker_wf=exited_step.clone( db=db, action_type=ActionRight.MOVE_TO_NEXT_STAGE, stage=next_stage,user_id=None )
+                return new_maker_stage_initiated if new_maker_stage_initiated else None
             else:
-                cloned_wf=self.clone(db,user_id=self.user_id,action_type=ActionRight.VIEW,stage=self.workflow_stage)
-            return cloned_wf
+                return approval_wf_action
+                # cloned_wf=self.clone(db,user_id=self.user_id,action_type=ActionRight,stage=self.workflow_stage)
         else:
             # All approvals needed for this stage is done. Move to next stage
-            next_stage =   WorkflowStage.MAKER if previous_action_type==ActionRight.EDIT else self.get_next_stage(db)
+            exited_step= self.exit_stage(db)
+
+            next_stage =   WorkflowStage.MAKER if was_previous_action_an_edit else self.get_next_stage(db)
+            next_stage_initiated= self.initiate_next_stage(next_stage=next_stage,db=db)
+
             # db.add(rating_instance)
-            return self.clone( db=db, action_type=ActionRight.MOVE_TO_NEXT_STAGE, stage=next_stage,user_id=None )
-
+            return next_stage_initiated 
+        
+    def exit_stage(self,db:Session) -> Optional['WorkflowAction']:
+        latest_step=WorkflowAction.get_active_workflow(db=db,work_flow_cycle_id=self.workflow_cycle_id)
+        if latest_step:
+            exited_step= latest_step.clone(db=db,action_type=ActionRight.EXIT,stage=self.workflow_stage,user_id=None)
+            return exited_step
+        return None
     
-    # def submit(self, db: Session, user_id=None) -> "WorkflowAction":
-    #     """Approve workflow action and update rating instance approval status"""
-    #     rating_instance = (
-    #         db.query(RatingInstance)
-    #         .filter(RatingInstance.id == self.rating_instance_id)
-    #         .first()
-    #     )
-    #     if not rating_instance:
-    #         raise ValueError("Rating instance not found")
+    def initiate_next_stage(self,next_stage:WorkflowStage,db:Session)-> Optional['WorkflowAction']:
+        latest_step=WorkflowAction.get_active_workflow(db=db,work_flow_cycle_id=self.workflow_cycle_id)
+        if latest_step:
+            initiated_step= latest_step.clone(db=db,action_type=ActionRight.INIT,stage=next_stage,user_id=None)
+            return initiated_step
+        else:
+            return None
 
-    #     self.action_type=ActionRight.APPROVE
+    # def make_head(self, db: Session):
+    #     # Update all workflow actions in the same cycle to head=False
+    #     db.query(WorkflowAction)\
+    #         .filter(WorkflowAction.workflow_cycle_id == self.workflow_cycle_id)\
+    #         .filter(WorkflowAction.id != self.id)\
+    #         .filter(WorkflowAction.is_stale ==False)\
+    #         .update({"head": False,"is_stale": True})
+    
+    #     # Set current workflow action as head
+    #     self.head = True
+    #     self.is_stale = False
     #     db.add(self)
     #     db.commit()
 
-    #     next_stage = self.get_next_stage(db)
+    def check_approval_completion(self,db:Session):
+    
+        from check_policy_rule import get_approval_tracking
+        approval_tracking = get_approval_tracking( rating_instance_id=self.rating_instance_id, workflow_action_id=self.id, db=db)
+        return approval_tracking.get_stage_level_approval_status(self.workflow_stage)
 
-    #     rating_instance.overall_status = next_stage
-    #     db.add(rating_instance)
-    #     db.commit()
 
-    #     return self.clone(
-    #         db=db, user_id=user_id, action_type=ActionRight.VIEW, stage=next_stage
-    #     )
 
     def edit(self, db: Session, user_id=None) -> "WorkflowAction":
         """Edit workflow action and reset relevant approval flags"""
@@ -415,6 +415,8 @@ class WorkflowAction(Base):
         return self.workflow_stage
 
     def can_submit(self, db: Session) -> bool:
+
+        from check_policy_rule import get_approval_tracking
         """Check if workflow can be submitted based on current state"""
         if not self.head or self.is_stale:
             return False
@@ -428,16 +430,8 @@ class WorkflowAction(Base):
         # Can't submit if already in approved state
         if self.workflow_stage == WorkflowStage.APPROVED:
             return False
-
-        # Can't submit if current stage hasn't approved
-        if (
-            self.workflow_stage == WorkflowStage.MAKER
-            and not rating_instance.maker_approved
-            or self.workflow_stage == WorkflowStage.CHECKER
-            and not rating_instance.checker_approved
-            or self.workflow_stage == WorkflowStage.APPROVER
-            and not rating_instance.approver_approved
-        ):
-            return False
-
+        approval_tracking= get_approval_tracking(rating_instance_id=rating_instance.id,workflow_action_id=self.id,db=db)
+        if approval_tracking:
+            if approval_tracking.get_stage_level_approval_status(self.workflow_stage):
+                return False
         return True

@@ -1,5 +1,5 @@
 from fastapi import FastAPI, Request,Response,status,APIRouter
-from fastapi.responses import RedirectResponse,HTMLResponse
+from fastapi.responses import JSONResponse, RedirectResponse,HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
@@ -214,23 +214,25 @@ async def register(request: Request, email: str = Form(...), password: str = For
               "path_route": '/', "path_msg": "Click here to login!"})
     return response
 
-@app.post("/login/")
+@app.post("/login")
 async def sign_in(request: Request, response: Response,
-    email: str = Form(...), password: str = Form(...)):
+    email: str = Form(...), password: str = Form(...),testing:str=Form(None)):
     try:
         user = User(email = email,
             password= password)  
         if await auth_handler.authenticate_user(user.email, user.password):
             atoken = auth_handler.create_access_token(user.email)
-            # response = templates.TemplateResponse("login/success.html", 
-            #   {"request": request, "USERNAME": user.email, "success_msg": "Welcome back! ",
-            #   "path_route": '/uploadDocs', "path_msg": "Go to PatraChitra!"})
-            response = RedirectResponse(
-                url='/customers',  # Redirect to customers page
-                status_code=status.HTTP_303_SEE_OTHER  # Using 303 for POST-to-GET redirect
-            )
-            response.set_cookie(key="Authorization", value= f"{atoken}", httponly=True, samesite='lax',)
-            return response
+            if testing:
+                response=JSONResponse(content='success',status_code=status.HTTP_200_OK)
+                response.set_cookie(key="Authorization", value= f"{atoken}", httponly=True, samesite='lax',)
+                return response
+            else:
+                response = RedirectResponse(
+                    url='/customers',  # Redirect to customers page
+                    status_code=status.HTTP_303_SEE_OTHER  # Using 303 for POST-to-GET redirect
+                )
+                response.set_cookie(key="Authorization", value= f"{atoken}", httponly=True, samesite='lax',)
+                return response
         else:
             return templates.TemplateResponse("error.html",
             {"request": request, 'detail': 'Incorrect Username or Password', 'status_code': 404 })

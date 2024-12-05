@@ -55,6 +55,7 @@ from schema import schema
 
 # def clone_rating_instance(db: Session, original_instance: RatingInstanceCreate, new_workflow_step: WorkflowActionSchema) -> schema.RatingInstance:
 
+from rating_model_instance import generate_qualitative_factor_data
 
 def create_rating_instance_for_initial_step(wf_data:WorkflowAction,rating_model_id:UUID, statement_id:UUID,user:User, db:Session):
             customer_id=wf_data.customer_id
@@ -63,7 +64,7 @@ def create_rating_instance_for_initial_step(wf_data:WorkflowAction,rating_model_
                 id=uuid4(),
                 customer_id=ensure_uuid(customer_id),
                 financial_statement_id=ensure_uuid(statement_id),
-                rating_model_id=rating_model.id,
+                rating_model_id=rating_model_id,
                 workflow_action_id=wf_data.id,
                 overall_status=WorkflowStage.MAKER
             )
@@ -111,7 +112,7 @@ def create_rating_workflow_for_customer(db: Session, customer: Customer, user: U
     try:
         # Check policy rule
         
-        policy_rule = get_policy_rules_for_customer(cif_number=None, customer_id=customer.id)
+        policy_rule = get_policy_rules_for_customer(cif_number=None, customer_id=customer.id,db=db)
         if not policy_rule:
             raise WorkflowError(
                 code=WorkflowErrorCode.POLICY_RULE_NOT_FOUND,
@@ -163,7 +164,7 @@ def create_rating_workflow_for_customer(db: Session, customer: Customer, user: U
             workflow_cycle_id=workflow_cycle_id,
             customer_id=customer.id,
             workflow_stage=WorkflowStage.MAKER,
-            action_type=ActionRight.CREATE,
+            action_type=ActionRight.INIT,
             action_count_customer_level=1,
             head=True,
             is_stale=False,
@@ -278,7 +279,7 @@ def create_complete_rating_workflow(db: Session, customer: Customer, user: User)
 #                 "details": e.details
 #             }
 #         )
-def get_policy_rules_for_customer(cif_number: str|None, customer_id:str|UUID)-> PolicyRule|None:
+def get_policy_rules_for_customer(cif_number: str|None, customer_id:str|UUID,db:Session)-> PolicyRule|None:
     if cif_number:
         customer = db.query(Customer).options(joinedload(Customer.business_unit)).filter(Customer.cif_number==cif_number).first()
     else:

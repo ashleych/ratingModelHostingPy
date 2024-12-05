@@ -42,9 +42,8 @@ from main import init_db
 from customer_financial_statement import FsApp
 from models.rating_instance_model import RatingInstance
 from rating_model import configure_rating_model_factors, get_or_create_rating_model
-from models.models import RatingFactorAttribute
 
-from   rating_model_instance import process_rating_instance,get_quant_factor_inputs
+from   rating_model_instance import get_quant_factor_inputs
 
 def test_rating_instance_creation():
     init_db(DB_NAME)
