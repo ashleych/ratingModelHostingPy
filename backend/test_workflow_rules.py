@@ -746,3 +746,140 @@ def test_checker_edit_workflow(
         else:
             assert action.head == False, f"Non-final action should not be head"
             assert action.is_stale == True, f"Non-final action should be stale"
+
+
+def test_approver_edit_workflow(
+    client,
+    db,
+    test_user,
+    test_credit_analyst_user,
+    test_approver_1_user,
+    workflow_test_data
+):
+    """
+    Test workflow when approver makes an edit:
+    1. Maker approves initially
+    2. Checker approves
+    3. Approver makes an edit (stays in approver stage)
+    4. Approver approves their edit
+    5. Goes back to maker for approval
+    6. Maker approves
+    7. Goes back to checker
+    8. Checker approves
+    9. Returns to approver stage
+    """
+    # Initial maker approval
+    maker_auth_cookie = test_login(client, test_user)
+    workflow_action = workflow_test_data
+    
+    # Submit as maker
+    maker_response = client.post(
+        f"/submit_rating/{workflow_action.rating_instance_id}/{workflow_action.id}",
+        cookies={"Authorization": maker_auth_cookie},
+        allow_redirects=False
+    )
+    assert maker_response.status_code == 303
+    
+    # Submit as checker
+    checker_auth_cookie = test_login(client, test_credit_analyst_user)
+    checker_action = WorkflowAction.get_active_workflow(db, workflow_action.workflow_cycle_id)
+    checker_response = client.post(
+        f"/submit_rating/{checker_action.rating_instance_id}/{checker_action.id}",
+        cookies={"Authorization": checker_auth_cookie},
+        allow_redirects=False
+    )
+    assert checker_response.status_code == 303
+    
+    # Approver makes an edit
+    approver_auth_cookie = test_login(client, test_approver_1_user)
+    approver_action = WorkflowAction.get_active_workflow(db, workflow_action.workflow_cycle_id)
+    edit_response = client.post(
+        f"/edit_rating/{approver_action.rating_instance_id}/{approver_action.id}",
+        cookies={"Authorization": approver_auth_cookie},
+        allow_redirects=False
+    )
+    assert edit_response.status_code == 303
+    
+    # Verify still in APPROVER stage after edit
+    db.expire_all()
+    approver_after_edit = WorkflowAction.get_active_workflow(db, workflow_action.workflow_cycle_id)
+    assert approver_after_edit.workflow_stage == WorkflowStage.APPROVER
+    assert approver_after_edit.action_type == ActionRight.EDIT
+    
+    # Approver approves their edit
+    approver_approve_response = client.post(
+        f"/submit_rating/{approver_after_edit.rating_instance_id}/{approver_after_edit.id}",
+        cookies={"Authorization": approver_auth_cookie},
+        allow_redirects=False
+    )
+    assert approver_approve_response.status_code == 303
+    
+    # Verify it went back to MAKER stage
+    db.expire_all()
+    maker_action_after_edit = WorkflowAction.get_active_workflow(db, workflow_action.workflow_cycle_id)
+    assert maker_action_after_edit.workflow_stage == WorkflowStage.MAKER
+    
+    # Maker approves the edited version
+    maker_approve_edit_response = client.post(
+        f"/submit_rating/{maker_action_after_edit.rating_instance_id}/{maker_action_after_edit.id}",
+        cookies={"Authorization": maker_auth_cookie},
+        allow_redirects=False
+    )
+    assert maker_approve_edit_response.status_code == 303
+    
+    # Checker approves the edited version
+    db.expire_all()
+    checker_action_after_edit = WorkflowAction.get_active_workflow(db, workflow_action.workflow_cycle_id)
+    checker_approve_edit_response = client.post(
+        f"/submit_rating/{checker_action_after_edit.rating_instance_id}/{checker_action_after_edit.id}",
+        cookies={"Authorization": checker_auth_cookie},
+        allow_redirects=False
+    )
+    assert checker_approve_edit_response.status_code == 303
+    
+    # Verify final progression back to APPROVER stage
+    db.expire_all()
+    final_action = WorkflowAction.get_active_workflow(db, workflow_action.workflow_cycle_id)
+    assert final_action.workflow_stage == WorkflowStage.APPROVER
+    
+    # Verify the complete sequence of actions
+    all_actions = (
+        db.query(WorkflowAction)
+        .filter(WorkflowAction.workflow_cycle_id == workflow_action.workflow_cycle_id)
+        .order_by(WorkflowAction.action_count_customer_level)
+        .all()
+    )
+    
+    expected_sequence = [
+        (WorkflowStage.MAKER, ActionRight.INIT),
+        (WorkflowStage.MAKER, ActionRight.APPROVE),
+        (WorkflowStage.MAKER, ActionRight.EXIT),
+        (WorkflowStage.CHECKER, ActionRight.INIT),
+        (WorkflowStage.CHECKER, ActionRight.APPROVE),
+        (WorkflowStage.CHECKER, ActionRight.EXIT),
+        (WorkflowStage.APPROVER, ActionRight.INIT),
+        (WorkflowStage.APPROVER, ActionRight.EDIT),      # Approver's edit
+        (WorkflowStage.APPROVER, ActionRight.APPROVE),   # Approver approves their edit
+        (WorkflowStage.APPROVER, ActionRight.EXIT),
+        (WorkflowStage.MAKER, ActionRight.INIT),         # Back to maker
+        (WorkflowStage.MAKER, ActionRight.APPROVE),      # Maker approves edit
+        (WorkflowStage.MAKER, ActionRight.EXIT),
+        (WorkflowStage.CHECKER, ActionRight.INIT),       # To checker
+        (WorkflowStage.CHECKER, ActionRight.APPROVE),    # Checker approves
+        (WorkflowStage.CHECKER, ActionRight.EXIT),
+        (WorkflowStage.APPROVER, ActionRight.INIT),      # Back to approver
+    ]
+    
+    for i, (expected_stage, expected_action) in enumerate(expected_sequence):
+        action = all_actions[i]
+        assert action.workflow_stage == expected_stage, \
+            f"Step {i+1}: Expected stage {expected_stage}, got {action.workflow_stage}"
+        assert action.action_type == expected_action, \
+            f"Step {i+1}: Expected action {expected_action}, got {action.action_type}"
+        
+        if i == len(expected_sequence) - 1:
+            assert action.head == True
+            assert action.is_stale == False
+        else:
+            assert action.head == False
+            assert action.is_stale == True
