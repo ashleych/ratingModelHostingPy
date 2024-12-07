@@ -131,7 +131,8 @@ def init_policy(session: Session, business_units: Dict[str, Any]) -> None:
                     "action_rights": [
                         ActionRight.VIEW,
                         ActionRight.APPROVE,
-                        ActionRight.COMMENT
+                        ActionRight.COMMENT,
+                        ActionRight.EDIT
                     ],
                     "approval_order": 1,
                     "is_mandatory": True,
@@ -143,7 +144,8 @@ def init_policy(session: Session, business_units: Dict[str, Any]) -> None:
                     "action_rights": [
                         ActionRight.VIEW,
                         ActionRight.APPROVE,
-                        ActionRight.COMMENT
+                        ActionRight.COMMENT,
+                        ActionRight.EDIT
                     ],
                     "approval_order": 1,
                     "is_mandatory": True,
@@ -155,7 +157,9 @@ def init_policy(session: Session, business_units: Dict[str, Any]) -> None:
                     "action_rights": [
                         ActionRight.VIEW,
                         ActionRight.APPROVE,
-                        ActionRight.COMMENT
+                        ActionRight.COMMENT,
+                        ActionRight.EDIT
+
                     ],
                     "approval_order": 1,
                     "is_mandatory": True,

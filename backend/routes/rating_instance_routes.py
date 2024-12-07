@@ -439,6 +439,7 @@ async def submit_rating(
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
+
 @router.post("/edit_rating/{rating_instance_id}/{workflow_action_id}")
 async def edit_rating(
     request: Request,
@@ -452,14 +453,23 @@ async def edit_rating(
     if not workflow_action:
         raise HTTPException(status_code=404, detail="Workflow action not found")
 
+    can_user_edit = workflow_action.can_user_perform_action(db, user_id=current_user.id, action=ActionRight.EDIT)
+    if not can_user_edit:
+        return WorkflowError(code=WorkflowErrorCode.UNAUTHORIZED_ROLE)
+    
+    can_edit, error_code = workflow_action.can_edit(db)
+    if not can_edit:
+        return WorkflowError(code=error_code)
+    
     try:
-        # This will handle all the cloning and db operations
         new_or_existing_workflow = workflow_action.edit(db, user_id=current_user.id)
-        # check if approval is now enough to move to next stage
         
         return RedirectResponse(
             url=request.url_for(
-                "view_customer_rating", customer_id= new_or_existing_workflow.customer_id).include_query_params(rating_instance_id=str(new_or_existing_workflow.rating_instance_id),workflow_action_id=new_or_existing_workflow.id
+                "view_customer_rating", customer_id=new_or_existing_workflow.customer_id
+            ).include_query_params(
+                rating_instance_id=str(new_or_existing_workflow.rating_instance_id),
+                workflow_action_id=new_or_existing_workflow.id
             ),
             status_code=303
         )
@@ -1123,3 +1133,7 @@ async def save_module(
 
     db.commit()
     return {"success": True, "message": f"Module {module_name} saved successfully"}
+
+
+
+

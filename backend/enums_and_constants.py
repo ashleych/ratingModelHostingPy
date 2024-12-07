@@ -146,7 +146,7 @@ class FactorInputSource(str, Enum):
     DERIVED = "derived"
 
 
-# Define error codes
+
 class WorkflowErrorCode(Enum):
     POLICY_RULE_NOT_FOUND = "POLICY_RULE_NOT_FOUND"
     UNAUTHORIZED_ROLE = "UNAUTHORIZED_ROLE"
@@ -156,10 +156,11 @@ class WorkflowErrorCode(Enum):
     MISSING_MAKER_STAGE = "MISSING_MAKER_STAGE"
     UNAUTHORIZED_ACTION = "UNAUTHORIZED_ACTION"
     STATEMENT_NOT_FOUND = "STATEMENT_NOT_FOUND"
-    WORKFLOW_CREATION_FAILED="WORKFLOW_CREATION_FAILED"
+    WORKFLOW_CREATION_FAILED = "WORKFLOW_CREATION_FAILED"
+    ALREADY_IN_EDIT = "ALREADY_IN_EDIT"
+    EDIT_IN_APPROVED = "EDIT_IN_APPROVED"
+    STALE_WORKFLOW = "STALE_WORKFLOW"
 
-
-# Define error messages
 ERROR_MESSAGES = {
     WorkflowErrorCode.POLICY_RULE_NOT_FOUND: "No policy rule found for customer {cif_number}",
     WorkflowErrorCode.UNAUTHORIZED_ROLE: "User does not have required maker role for this policy",
@@ -169,5 +170,8 @@ ERROR_MESSAGES = {
     WorkflowErrorCode.MISSING_MAKER_STAGE: "No maker stage configuration found for this policy",
     WorkflowErrorCode.UNAUTHORIZED_ACTION: "User is not authorized to perform {action} action",
     WorkflowErrorCode.STATEMENT_NOT_FOUND: "No financial statement found for customer {customer_id} for year {year}",
-    WorkflowErrorCode.WORKFLOW_CREATION_FAILED: "Workflow unable to be created for {customer_id} "
+    WorkflowErrorCode.WORKFLOW_CREATION_FAILED: "Workflow unable to be created for {customer_id}",
+    WorkflowErrorCode.ALREADY_IN_EDIT: "Workflow is already in edit mode",
+    WorkflowErrorCode.EDIT_IN_APPROVED: "Cannot edit workflow in approved stage",
+    WorkflowErrorCode.STALE_WORKFLOW: "Cannot edit stale workflow"
 }

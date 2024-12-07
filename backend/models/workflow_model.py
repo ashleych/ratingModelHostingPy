@@ -2,7 +2,7 @@ from pickle import APPEND
 from re import I
 from typing import Optional, Tuple
 
-from enums_and_constants import ActionRight, WorkflowStage
+from enums_and_constants import ActionRight, WorkflowErrorCode, WorkflowStage
 from models.base import Base
 
 
@@ -482,3 +482,27 @@ class WorkflowAction(Base):
             if approval_tracking.get_stage_level_approval_status(self.workflow_stage):
                 return False
         return True
+
+
+
+    def can_edit(self, db: Session) -> Tuple[bool, Optional[WorkflowErrorCode]]:
+        """Check if workflow can be edited based on current state"""
+        if not self.head:
+            return False, WorkflowErrorCode.NOT_HEAD_ACTION
+            
+        if self.is_stale:
+            return False, WorkflowErrorCode.STALE_WORKFLOW
+
+        rating_instance = (
+            db.query(RatingInstance)
+            .filter(RatingInstance.id == self.rating_instance_id)
+            .first()
+        )
+
+        if self.workflow_stage == WorkflowStage.APPROVED:
+            return False, WorkflowErrorCode.EDIT_IN_APPROVED
+
+        if self.action_type == ActionRight.EDIT:
+            return False, WorkflowErrorCode.ALREADY_IN_EDIT
+
+        return True, None

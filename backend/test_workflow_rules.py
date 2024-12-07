@@ -883,3 +883,66 @@ def test_approver_edit_workflow(
         else:
             assert action.head == False
             assert action.is_stale == True
+
+
+
+
+def test_unauthorized_edit_attempts(
+    client,
+    db,
+    test_user,
+    test_credit_analyst_user,
+    test_approver_1_user,
+    workflow_test_data
+):
+    """Test unauthorized edit attempts at different workflow stages"""
+    
+    # Setup: Get workflow to checker stage
+    maker_auth_cookie = test_login(client, test_user)
+    workflow_action = workflow_test_data
+    
+    # Submit as maker to move to checker stage
+    maker_response = client.post(
+        f"/submit_rating/{workflow_action.rating_instance_id}/{workflow_action.id}",
+        cookies={"Authorization": maker_auth_cookie},
+        allow_redirects=False
+    )
+    assert maker_response.status_code == 303
+    
+    # Test 1: Maker trying to edit in checker stage (unauthorized)
+    checker_action = WorkflowAction.get_active_workflow(db, workflow_action.workflow_cycle_id)
+    edit_response = client.post(
+        f"/edit_rating/{checker_action.rating_instance_id}/{checker_action.id}",
+        cookies={"Authorization": maker_auth_cookie},
+        allow_redirects=False
+    )
+    error = WorkflowError.model_validate(edit_response.json())
+    assert error.code == WorkflowErrorCode.UNAUTHORIZED_ROLE
+    
+    # Test 2: Random approver trying to edit in checker stage
+    approver_auth_cookie = test_login(client, test_approver_1_user)
+    edit_response = client.post(
+        f"/edit_rating/{checker_action.rating_instance_id}/{checker_action.id}",
+        cookies={"Authorization": approver_auth_cookie},
+        allow_redirects=False
+    )
+    error = WorkflowError.model_validate(edit_response.json())
+    assert error.code == WorkflowErrorCode.UNAUTHORIZED_ROLE
+
+    # Move to approver stage
+    checker_auth_cookie = test_login(client, test_credit_analyst_user)
+    checker_response = client.post(
+        f"/submit_rating/{checker_action.rating_instance_id}/{checker_action.id}",
+        cookies={"Authorization": checker_auth_cookie},
+        allow_redirects=False
+    )
+    
+    # Test 3: Checker trying to edit in approver stage
+    approver_action = WorkflowAction.get_active_workflow(db, workflow_action.workflow_cycle_id)
+    edit_response = client.post(
+        f"/edit_rating/{approver_action.rating_instance_id}/{approver_action.id}",
+        cookies={"Authorization": checker_auth_cookie},
+        allow_redirects=False
+    )
+    error = WorkflowError.model_validate(edit_response.json())
+    assert error.code == WorkflowErrorCode.UNAUTHORIZED_ROLE
