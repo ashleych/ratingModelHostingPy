@@ -159,6 +159,7 @@ class WorkflowErrorCode(Enum):
     WORKFLOW_CREATION_FAILED = "WORKFLOW_CREATION_FAILED"
     ALREADY_IN_EDIT = "ALREADY_IN_EDIT"
     EDIT_IN_APPROVED = "EDIT_IN_APPROVED"
+    NOT_IN_EDIT_MODE = "NOT_IN_EDIT_MODE"
     STALE_WORKFLOW = "STALE_WORKFLOW"
 
 ERROR_MESSAGES = {
@@ -173,5 +174,6 @@ ERROR_MESSAGES = {
     WorkflowErrorCode.WORKFLOW_CREATION_FAILED: "Workflow unable to be created for {customer_id}",
     WorkflowErrorCode.ALREADY_IN_EDIT: "Workflow is already in edit mode",
     WorkflowErrorCode.EDIT_IN_APPROVED: "Cannot edit workflow in approved stage",
-    WorkflowErrorCode.STALE_WORKFLOW: "Cannot edit stale workflow"
+    WorkflowErrorCode.STALE_WORKFLOW: "Cannot edit stale workflow",
+    WorkflowErrorCode.NOT_IN_EDIT_MODE: "Cannot edit when the workflow is not in edit mode"
 }

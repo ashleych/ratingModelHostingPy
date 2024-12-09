@@ -37,6 +37,11 @@ class RatingFactor(Base):
     rating_model = relationship("RatingModel")
     __table_args__ = (UniqueConstraint('rating_model_id', 'name', name='uix_rating_model_factorname'),)
 
+    def get_factors_attributes(self, db: Session) -> List["RatingFactorAttribute"]:
+        """
+        Get the attributes of a rating factor.
+        """
+        return db.query(RatingFactorAttribute).filter_by(rating_factor_id=self.id).order_by(RatingFactorAttribute.score).all()
 
 class RatingModel(Base):
 
@@ -45,6 +50,15 @@ class RatingModel(Base):
     template_id = Column(UUID, ForeignKey('template.id'),nullable=False)
 
     template = relationship("Template")
+
+    def get_factor_by_name(self, name: str,db:Session) -> "RatingFactor|None":
+        """
+        Get the ID of a rating factor by its name.
+        """
+        factor = db.query(RatingFactor).filter_by(name=name).filter(RatingModel.id==self.id).first()
+        if factor:
+            return factor
+        return None
 
 
 class RatingModelApplicabilityRules(Base):

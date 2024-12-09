@@ -1,7 +1,7 @@
 
 <div class="grid grid-cols-3 gap-4 mt-2">
     <div class="text-sm font-medium text-gray-500 dark:text-gray-400 flex items-center">
-        <span class="factor-label" data-factor-id="{{ factor.id }}">{{ factor.label }}</span>
+        <span class="factor-label" data-workflow-id="{{workflow_action.id}}" data-factor-id="{{ factor.id }}">{{ factor.label }}</span>
         {% if factor.weightage %}
             <span class="ml-1">({{ "{:.2f}".format(factor.weightage * 100) }}%)</span>
         {% endif %}

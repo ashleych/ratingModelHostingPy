@@ -76,7 +76,9 @@ class RatingInstance(Base):
             db.commit()
         return new_instance_db
 
-    
+    def get_factor_score(self,factor_id:UUID, db: Session) -> "RatingFactorScore|None":
+        factor_score= db.query(RatingFactorScore).filter(RatingFactorScore.rating_instance_id == self.id).filter(RatingFactorScore.rating_factor_id==factor_id).first()
+        return factor_score
 
 class RatingFactorScore(Base):
 

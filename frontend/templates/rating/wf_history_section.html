@@ -1,4 +1,11 @@
 <!-- Workflow History Button -->
+<!-- Add at the top -->
+<div id="compareControls" class="mb-4 hidden">
+    <button onclick="compareSelected()" 
+            class="bg-blue-500 text-white px-4 py-2 rounded">
+        Compare Selected
+    </button>
+</div>
 <button id="showHistoryBtn"
     class="text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 mb-4"
     onclick="toggleHistory()">
@@ -12,12 +19,15 @@
         <ul role="list" class="-mb-8">
             {% for action in workflow_history %}
             <li>
-
                 <div class="relative pb-8">
                     {% if not loop.last %}
-                    <span class="absolute top-4 left-4 -ml-px h-full w-0.5 bg-gray-200 dark:bg-gray-700"></span>
+                    <!-- <span class="absolute top-4 left-4 -ml-px h-full w-0.5 bg-gray-200 dark:bg-gray-700"></span> -->
                     {% endif %}
                     <div class="relative flex space-x-3">
+            <input type="checkbox" 
+                   class="compare-checkbox mt-2" 
+                   data-rating-id="{{ action.rating_instance_id }}"
+                   onchange="handleCheckboxChange()">
                         <div>
                             <span
                                 class="h-8 w-8 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center ring-8 ring-white dark:ring-gray-800">
@@ -43,10 +53,10 @@
                         <div class="min-w-0 flex-1 pt-1.5 flex justify-between space-x-4">
                             <div x-data="{ open: false }" x-on:click="open = ! open" @click.away="open = false">
                                 <p class="text-sm text-gray-500 dark:text-gray-400">
-                                    {% if action.user%}
                                     <span
                                     class="font-medium text-gray-900 dark:text-gray-100 relative inline-block cursor-pointer">
                                     {{ action.action_type.value.upper() }}
+                                    {% if action.user%}
                                     by {{ action.user.name }}
                                         <!-- Tooltip -->
                                         <div x-show="open" 
@@ -108,4 +118,21 @@
             button.textContent = 'Show Full History';
         }
     }
+</script>
+<!-- Add at bottom of file -->
+<script>
+function handleCheckboxChange() {
+    const checkboxes = document.querySelectorAll('.compare-checkbox:checked');
+    const controls = document.getElementById('compareControls');
+    controls.classList.toggle('hidden', checkboxes.length < 2);
+}
+
+function compareSelected() {
+    const checkboxes = document.querySelectorAll('.compare-checkbox:checked');
+    if (checkboxes.length === 2) {
+        const id1 = checkboxes[0].dataset.ratingId;
+        const id2 = checkboxes[1].dataset.ratingId;
+        window.location.href = `/rating_compare?instance1_id=${id1}&instance2_id=${id2}`;
+    }
+}
 </script>

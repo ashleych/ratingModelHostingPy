@@ -249,27 +249,6 @@ def score_quantitative_factors(db: Session, rating_instance: RatingInstance) -> 
     print("Quantitative factors scored successfully")
 
 
-# def process_rating_instance(db: Session, rating_instance: RatingInstance):
-#     try:
-#         quant_factor_scores, incomplete_financial_information,missing_fields = get_quant_factor_inputs(db, rating_instance)
-        
-#         if incomplete_financial_information:
-#             rating_instance.incomplete_financial_information = True
-#             db.commit()
-#             print("Incomplete financial information. No further processing.")
-#             return
-
-#         if check_all_user_inputs_factor_availability(db, rating_instance):
-#             score_quantitative_factors(db, rating_instance)
-#             update_qualitative_factor_scores(db, rating_instance)
-#             calculate_derived_scores(db,rating_instance)
-            
-#         else:
-#             print("Not all user inputs are available. Waiting for completion.")
-
-#     except Exception as e:
-#         print(f"Error processing rating instance: {str(e)}")
-#         # Handle the error appropriately (e.g., logging, rolling back transaction)
 
 if __name__ == "__main__":
     from sqlalchemy import create_engine

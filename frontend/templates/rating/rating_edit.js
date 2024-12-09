@@ -53,6 +53,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function handleSaveClick(saveButton) {
         const factorId = saveButton.getAttribute('data-factor-id');
+        const workflowId = saveButton.getAttribute('data-workflow-id');
         console.log('Saving factor:', factorId);
 
         const selectField = document.querySelector(`.factor-input[data-factor-id="${factorId}"]`);
@@ -65,14 +66,15 @@ document.addEventListener('DOMContentLoaded', function () {
 
 
         // Send AJAX request to update the value
-        fetch('/api/update_factor_value', {
+        fetch('/rating/update_factor_value', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
                 factor_id: factorId,
-                new_value: selectField.value
+                new_value: selectField.value,
+                workflow_action_id:workflowId 
             }),
         }).then(response => {
             console.log('Received response:', response);

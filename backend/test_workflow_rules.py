@@ -23,6 +23,7 @@ from models.statement_models import FinancialStatement
 from models.rating_instance_model import RatingInstance
 from models.workflow_model import WorkflowAction
 from rating_workflow_processing import create_rating_instance_for_initial_step, create_rating_workflow_for_customer, get_applicable_rating_model_for_business_unit
+from routes.rating_instance_routes import FactorUpdateResponse
 from schema import schema
 client = TestClient(app)
 # SQLALCHEMY_DATABASE_URL = "postgresql://postgres:postgres@localhost/llama_app_db"
@@ -946,3 +947,111 @@ def test_unauthorized_edit_attempts(
     )
     error = WorkflowError.model_validate(edit_response.json())
     assert error.code == WorkflowErrorCode.UNAUTHORIZED_ROLE
+
+
+from sqlalchemy.orm import joinedload
+
+UPDATE_URL= "/rating/update_factor_value"
+
+def test_edit_rating_workflow_actions(
+    client,
+    db,
+    test_user,
+    test_credit_analyst_user,
+    test_approver_1_user,
+    workflow_test_data
+):
+    """Test unauthorized edit attempts at different workflow stages"""
+    
+    # Setup: Get workflow to checker stage
+    maker_auth_cookie = test_login(client, test_user)
+    checker_auth_cookie = test_login(client, test_credit_analyst_user)
+    workflow_action = workflow_test_data
+    
+    # Submit as maker to move to checker stage
+    maker_response = client.post(
+        f"/submit_rating/{workflow_action.rating_instance_id}/{workflow_action.id}",
+        cookies={"Authorization": maker_auth_cookie},
+        allow_redirects=False
+    )
+    assert maker_response.status_code == 303
+    
+    # Test 1: Maker trying to edit in checker stage (unauthorized)
+    checker_action = WorkflowAction.get_active_workflow(db, workflow_action.workflow_cycle_id)
+
+
+
+    edit_response = client.post(
+        f"/edit_rating/{checker_action.rating_instance_id}/{checker_action.id}",
+        cookies={"Authorization": maker_auth_cookie},
+        allow_redirects=False
+    )
+    error = WorkflowError.model_validate(edit_response.json())
+    assert error.code == WorkflowErrorCode.UNAUTHORIZED_ROLE
+    # get the rating model for the instance
+
+
+
+
+    rating_instance = db.query(RatingInstance).options(joinedload(RatingInstance.rating_model)).filter(RatingInstance.id == checker_action.rating_instance_id).first()
+    rating_model:RatingModel = rating_instance.rating_model
+
+    factor_to_be_changed ='industry_outlook'
+    # get the factor for the rating model
+    factor :RatingFactor|None = rating_model.get_factor_by_name(factor_to_be_changed,db=db)
+    # get the factor score
+    if factor:
+        factor_score:RatingFactorScore = rating_instance.get_factor_score(db=db,factor_id=factor.id) 
+        factor_attributes= factor.get_factors_attributes(db=db)
+
+    json={
+            "factor_id": str(factor_score.id),
+            "workflow_action_id": str(checker_action.id),
+            "new_value": "Negative"
+        }
+
+    # Login as checker and try update (should succeed)
+    checker_auth_cookie = test_login(client, test_credit_analyst_user)
+    update_response = client.post(UPDATE_URL, json=json,
+        cookies={"Authorization": checker_auth_cookie}
+    )
+    print(update_response.json())
+    assert update_response.status_code == 200
+    error = FactorUpdateResponse.model_validate(update_response.json()).error
+    assert error.code == WorkflowErrorCode.NOT_IN_EDIT_MODE
+    
+    db.expire_all()
+    # Verify update succeeded
+    updated_score = db.query(RatingFactorScore).filter(RatingFactorScore.id==factor_score.id).first()
+    assert updated_score.raw_value_text == "Positive"
+
+
+    db.expire_all()
+    edit_response_correct = client.post(
+        f"/edit_rating/{checker_action.rating_instance_id}/{checker_action.id}",
+        cookies={"Authorization": checker_auth_cookie},
+        allow_redirects=False
+    )
+    assert maker_response.status_code == 303
+    latest_action = WorkflowAction.get_active_workflow(db, workflow_action.workflow_cycle_id)
+
+
+
+    json={
+            "factor_id": str(factor_score.id),
+            "workflow_action_id": str(latest_action.id),
+            "new_value": "Negative"
+        }
+
+    # Login as checker and try update (should succeed)
+    checker_auth_cookie = test_login(client, test_credit_analyst_user)
+    update_response = client.post(UPDATE_URL, json=json,
+        cookies={"Authorization": checker_auth_cookie}
+    )
+    print(update_response.json())
+    assert update_response.status_code == 200
+    
+    db.expire_all()
+    # Verify update succeeded
+    updated_score = db.query(RatingFactorScore).filter(RatingFactorScore.id==factor_score.id).first()
+    assert updated_score.raw_value_text == "Negative"

@@ -1,0 +1,48 @@
+
+{% extends "_layout.html" %}
+{% block content %}
+
+<div class="container mx-auto px-4">
+    <div class="grid grid-cols-2 gap-4">
+        <!-- Left column - Instance 1 -->
+        <div class="dark:text-gray-100">
+            <h3>Rating from {{ instance1.created_at.strftime('%Y-%m-%d') }}</h3>
+        </div>
+        <!-- Right column - Instance 2 -->
+        <div class="dark:text-gray-100">
+            <h3>Rating from {{ instance2.created_at.strftime('%Y-%m-%d') }}</h3>
+        </div>
+    </div>
+
+    {% for module in data1.keys() %}
+    <div class="mt-6">
+        <h2 class="text-xl font-bold dark:text-gray-100">{{ module }}</h2>
+        <div class="grid grid-cols-2 gap-4">
+            <!-- Instance 1 factors -->
+            <div>
+                {% for factor in data1[module] %}
+                <div class="p-2 {% if factor.score != data2[module][loop.index0].score %}bg-yellow-100 dark:bg-yellow-900{% endif %} dark:text-gray-100">
+                    <p>{{ factor.label }}: {{ factor.score }}</p>
+                    <p class="text-sm text-gray-600 dark:text-gray-400">
+                        Raw value: {{ factor.raw_value_text or factor.raw_value_float }}
+                    </p>
+                </div>
+                {% endfor %}
+            </div>
+            <!-- Instance 2 factors -->
+            <div>
+                {% for factor in data2[module] %}
+                <div class="p-2 {% if factor.score != data1[module][loop.index0].score %}bg-yellow-100 dark:bg-yellow-900{% endif %} dark:text-gray-100">
+                    <p>{{ factor.label }}: {{ factor.score }}</p>
+                    <p class="text-sm text-gray-600 dark:text-gray-400">
+                        Raw value: {{ factor.raw_value_text or factor.raw_value_float }}
+                    </p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+{% endblock %}
