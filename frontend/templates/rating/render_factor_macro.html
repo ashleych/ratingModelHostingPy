@@ -1,9 +1,9 @@
 
 <div class="grid grid-cols-3 gap-4 mt-2">
-    <div class="text-sm font-medium text-gray-500 dark:text-gray-400 flex items-center">
+    <div class="text-sm font-medium text-gray-600 dark:text-gray-300 flex items-center">
         <span class="factor-label" data-workflow-id="{{workflow_action.id}}" data-factor-id="{{ factor.id }}">{{ factor.label }}</span>
         {% if factor.weightage %}
-            <span class="ml-1">({{ "{:.2f}".format(factor.weightage * 100) }}%)</span>
+            <span class="ml-1 text-gray-500 dark:text-gray-400">({{ "{:.2f}".format(factor.weightage * 100) }}%)</span>
         {% endif %}
         {% if factor.input_source == 'user_input' and factor.factor_attributes  and ActionRight.EDIT in available_actions and workflow_action.action_type==ActionRight.EDIT %}
             <button class="edit-btn ml-2 text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300"
@@ -13,6 +13,9 @@
                 </svg>
             </button>
         {% endif %}
+    </div>
+    <div class="text-sm text-gray-900 dark:text-gray-100">
+        <span class="factor-score" data-factor-id="{{ factor.id }}">{{ "{:.2f}".format(factor.score) if factor.score is not none else 'N/A' }}</span>
     </div>
     <div class="text-sm text-gray-900 dark:text-gray-100">
         <span class="factor-value" data-factor-id="{{ factor.id }}">
@@ -25,7 +28,7 @@
             {% endif %}
         </span>
         {% if factor.input_source == 'user_input' and factor.factor_attributes %}
-            <select class="factor-input hidden w-full text-sm border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white" 
+            <select class="factor-input hidden w-full text-sm border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:ring-indigo-500 focus:border-indigo-500 dark:focus:ring-indigo-400 dark:focus:border-indigo-400" 
                     data-factor-id="{{ factor.id }}">
                 {% for attribute in factor.factor_attributes %}
                     <option value="{{ attribute.label }}" {% if attribute.label == factor.raw_value_text %}selected{% endif %}>
@@ -35,7 +38,5 @@
             </select>
         {% endif %}
     </div>
-    <div class="text-sm text-gray-900 dark:text-gray-100">
-        <span class="factor-score" data-factor-id="{{ factor.id }}">{{ "{:.2f}".format(factor.score) if factor.score is not none else 'N/A' }}</span>
-    </div>
+
 </div>

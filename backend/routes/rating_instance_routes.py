@@ -259,8 +259,9 @@ async def submit_rating(
     db: Session = Depends(get_db),
 ):
     # Get the workflow action
-    workflow_action:WorkflowAction = db.query(WorkflowAction).get(workflow_action_id)
+    # workflow_action:WorkflowAction = db.query(WorkflowAction).get(workflow_action_id)
 
+    workflow_action = db.query(WorkflowAction).filter(WorkflowAction.id==workflow_action_id).first()
 
     # check if user
     if not workflow_action:
@@ -298,7 +299,7 @@ async def edit_rating(
     db: Session = Depends(get_db),
 ):
     # Get the workflow action
-    workflow_action = db.query(WorkflowAction).get(workflow_action_id)
+    workflow_action = db.query(WorkflowAction).filter(WorkflowAction.id==workflow_action_id).first()
     if not workflow_action:
         raise HTTPException(status_code=404, detail="Workflow action not found")
 
@@ -583,7 +584,7 @@ class FactorUpdateResponse(BaseModel):
     new_score: Optional[float]=None
     updated_derived_factors: Optional[List[DerivedFactor]]=None
     new_overall_rating: Optional[str]=None
-    error:WorkflowError
+    error:Optional[WorkflowError ]=None
 
 
 @router.post("/rating/update_factor_value", response_model=FactorUpdateResponse)
@@ -599,8 +600,9 @@ async def update_factor_value(
         .filter(WorkflowAction.id == request.workflow_action_id)
         .first()
     )
-    if workflow_action.workflow_stage != ActionRight.EDIT:
-        return FactorUpdateResponse(error=WorkflowError(code=WorkflowErrorCode.NOT_IN_EDIT_MODE))
+    if workflow_action:
+        if workflow_action.action_type != ActionRight.EDIT:
+            return FactorUpdateResponse(error=WorkflowError(code=WorkflowErrorCode.NOT_IN_EDIT_MODE))
     try:
         print(f"Updating factor {request.factor_id} with new value {request.new_value}")
 

@@ -51,14 +51,18 @@ class RatingModel(Base):
 
     template = relationship("Template")
 
-    def get_factor_by_name(self, name: str,db:Session) -> "RatingFactor|None":
+
+    def get_factor_by_name(self, name: str, db: Session) -> "RatingFactor|None":
         """
         Get the ID of a rating factor by its name.
         """
-        factor = db.query(RatingFactor).filter_by(name=name).filter(RatingModel.id==self.id).first()
-        if factor:
-            return factor
-        return None
+        factor = (
+            db.query(RatingFactor)
+            .filter(RatingFactor.name == name)
+            .filter(RatingFactor.rating_model_id == self.id)
+            .first()
+        )
+        return factor
 
 
 class RatingModelApplicabilityRules(Base):

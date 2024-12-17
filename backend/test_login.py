@@ -44,7 +44,7 @@ def test_login_success():
         data={
             "email": "ashley.cherian@gmail.com",
             "password": "admin"
-        },allow_redirects=False
+        },follow_redirects=False
     )
     print(response)
     assert response.status_code == 303  # Should redirect
